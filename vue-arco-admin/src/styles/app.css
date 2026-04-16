@@ -1,0 +1,130 @@
+/* 轻医疗后台（全站 token）
+ * 目标：专业克制、层级清晰、无重渐变/无营销式 hover
+ */
+:root{
+  /* 色彩系统（克制版） */
+  --med-primary: #1677ff;
+  --med-success: #52c41a;
+  --med-warning: #faad14;
+  --med-danger: #ff4d4f;
+  --med-ai-bg: #f5f9ff;
+  --med-ai-border: #e6f4ff;
+
+  /* 中性色 */
+  --med-bg: #fafafa;
+  --med-surface: #ffffff;
+  --med-border: #f0f0f0;
+  --med-text: #262626;
+  --med-text-2: #434343;
+  --med-muted: #8c8c8c;
+
+  /* 字体体系 */
+  --med-fz-page-title: 18px;
+  --med-fw-page-title: 600;
+  --med-fz-section-title: 14px;
+  --med-fw-section-title: 500;
+  --med-fz-body: 13px;
+  --med-fw-body: 400;
+  --med-fz-number: 20px;
+  --med-fw-number: 600;
+
+  /* 间距体系 */
+  --med-page-pad: 20px;
+  --med-card-pad: 16px;
+  --med-gap: 20px;
+
+  /* 视觉效果（极轻） */
+  --med-radius: 8px;
+  --med-shadow: 0 1px 2px rgba(0,0,0,.04);
+
+  /* 兼容旧变量（逐步淘汰） */
+  --bg: var(--med-bg);
+  --panel: var(--med-surface);
+  --text: var(--med-text);
+  --muted: var(--med-muted);
+  --blue: var(--med-primary);
+}
+
+html,body{height:100%}
+body{
+  margin:0;
+  background:var(--med-bg);
+  color:var(--med-text);
+  font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+}
+
+/* 让 Arco 更像医疗系统：克制、清爽 */
+.arco-layout{background:transparent}
+.arco-layout-header{background:var(--panel)}
+.arco-layout-sider{background:var(--med-surface)}
+
+/* 表格：去 Excel 感的最小改造（轻 hover、弱表头背景） */
+.arco-table-th{
+  background: #fafafa !important;
+}
+.arco-table-tr:hover .arco-table-td{
+  background: #f5f5f5 !important;
+}
+
+/* 卡片：弱边界 + 极轻阴影（不做上浮） */
+.arco-card{
+  border-radius: var(--med-radius);
+}
+.arco-card:not(.arco-card-bordered){
+  box-shadow: var(--med-shadow);
+}
+
+/* ========== Med 页面布局补丁 ========== */
+/* 双栏：左侧主表占满剩余宽度，避免侧栏与视窗间大块留白 */
+.med-page .split > :first-child {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* 筛选条：标签勿用过窄宽度（否则中文会竖排） */
+.med-page .queryBar .qlabel {
+  flex-shrink: 0;
+  min-width: 52px;
+  width: auto;
+  white-space: nowrap;
+  text-align: right;
+  font-size: 13px;
+  color: var(--med-muted);
+}
+
+/* 筛选条：输入与下拉固定宽度，避免 Arco Select 在 flex 中被拉成全屏 */
+.med-page .queryBar .q {
+  width: 260px;
+  max-width: 100%;
+  flex: 0 0 auto;
+}
+.med-page .queryBar .sel {
+  width: 168px;
+  flex: 0 0 auto;
+  max-width: 100%;
+}
+
+/* 主内容区：略增顶内边距，减轻首屏标题被裁切的观感 */
+.arco-layout-content.content {
+  padding-top: 18px;
+}
+
+/* 双栏右侧 AI：与左侧表格等高，内部卡片撑满 */
+.med-page .split .ai-col {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  min-height: 0;
+}
+.med-page .split .ai-col > * {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* 表格内：编号/时间不换行（配合列宽 minWidth） */
+.med-page .table-mono-nowrap {
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+}
+

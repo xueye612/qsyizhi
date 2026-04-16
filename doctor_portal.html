@@ -1,0 +1,2231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>肾移植随访 - 医生端</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* DEMO弹窗样式 */
+        .demo-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .demo-modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .demo-modal-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 40px;
+        }
+
+        .demo-modal-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+
+        .demo-modal-subtitle {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 15px;
+        }
+
+        .demo-modal-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .demo-modal-warning {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 15px;
+            text-align: left;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .demo-modal-warning-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #92400e;
+            margin-bottom: 5px;
+        }
+
+        .demo-modal-warning-text {
+            font-size: 11px;
+            color: #78350f;
+            line-height: 1.5;
+        }
+
+        .demo-modal-close-btn {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            border: none;
+            padding: 12px 40px;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .demo-modal-close-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .container {
+            max-width: 375px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            padding: 20px;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .search-box {
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .search-box::before {
+            content: '🔍';
+            margin-right: 8px;
+        }
+
+        .tab-bar {
+            display: flex;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 3px;
+        }
+
+        .tab-item {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab-item.active {
+            background: white;
+            color: #1e3a8a;
+            font-weight: 600;
+        }
+
+        .content {
+            padding: 15px;
+            background: #f8f9fa;
+            min-height: 500px;
+        }
+
+        .patient-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: transform 0.2s;
+            position: relative;
+        }
+
+        .patient-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .patient-card.alert {
+            border-left: 4px solid #ef4444;
+        }
+
+        .patient-card.warning {
+            border-left: 4px solid #f59e0b;
+        }
+
+        .patient-card.normal {
+            border-left: 4px solid #10b981;
+        }
+
+        .alert-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .alert-badge.danger {
+            background: #fef2f2;
+            color: #ef4444;
+        }
+
+        .alert-badge.warning {
+            background: #fffbeb;
+            color: #f59e0b;
+        }
+
+        .alert-badge.info {
+            background: #ecfdf5;
+            color: #10b981;
+        }
+
+        .patient-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .patient-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .patient-id {
+            font-size: 11px;
+            color: #6b7280;
+        }
+
+        .patient-stage {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            margin-left: 8px;
+        }
+
+        .stage-pre {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        .stage-post {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .patient-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #f3f4f6;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
+        .last-update {
+            font-size: 10px;
+            color: #9ca3af;
+            margin-top: 8px;
+        }
+
+        .section {
+            margin-bottom: 15px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .btn-large {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .btn-large.secondary {
+            background: #f9fafb;
+            color: #6b7280;
+            border: 1px solid #e5e7eb;
+        }
+
+        .page-view {
+            display: none;
+        }
+
+        .page-view.active {
+            display: block;
+        }
+
+        .detail-header {
+            background: white;
+            padding: 15px;
+            border-radius: 12px 12px 0 0;
+            margin: -15px -15px 15px -15px;
+            padding-top: 20px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+
+        .back-btn::before {
+            content: '←';
+            margin-right: 5px;
+        }
+
+        .info-item {
+            background: #f9fafb;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .info-label {
+            font-size: 10px;
+            color: #6b7280;
+            margin-bottom: 3px;
+        }
+
+        .info-value {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .ai-card {
+            background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%);
+            border-radius: 12px;
+            padding: 15px;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .trend-chart {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+        }
+
+        .chart-bar {
+            width: 16px;
+            background: linear-gradient(to top, #3b82f6, #60a5fa);
+            border-radius: 4px 4px 0 0;
+            position: relative;
+        }
+
+        .chart-bar.abnormal {
+            background: linear-gradient(to top, #ef4444, #f87171);
+        }
+
+        .chart-bar.warning {
+            background: linear-gradient(to top, #f59e0b, #fbbf24);
+        }
+
+        .chart-label {
+            font-size: 9px;
+            color: #6b7280;
+            margin-top: 5px;
+            text-align: center;
+        }
+
+        .medication-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-left: 20px;
+            padding-bottom: 15px;
+            border-left: 2px solid #e5e7eb;
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: -6px;
+            top: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #3b82f6;
+        }
+
+        .reminder-card {
+            background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+            border-radius: 12px;
+            padding: 15px;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .reminder-card.success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .symptom-tag {
+            display: inline-block;
+            padding: 4px 10px;
+            background: #f3f4f6;
+            border-radius: 15px;
+            font-size: 10px;
+            color: #4b5563;
+            margin: 3px;
+        }
+
+        .symptom-tag.alert {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .device-sync-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .data-history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .action-buttons button {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .filter-bar {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+        }
+
+        .filter-tag {
+            padding: 6px 12px;
+            background: #f3f4f6;
+            border-radius: 6px;
+            font-size: 11px;
+            color: #6b7280;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .filter-tag.active {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .dashboard-card {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            border-radius: 12px;
+            padding: 15px;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .dashboard-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .dashboard-stat {
+            text-align: center;
+        }
+
+        .dashboard-stat-value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .dashboard-stat-label {
+            font-size: 10px;
+            opacity: 0.9;
+            margin-top: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-top">
+                <div class="header-title">肾移植随访系统</div>
+                <div class="search-box" onclick="toggleSearch()">搜索患者/课题...</div>
+            </div>
+            <div class="tab-bar">
+                <div class="tab-item active" onclick="switchMainTab('management')">患者管理</div>
+                <div class="tab-item" onclick="switchMainTab('donor')">供体管理</div>
+                <div class="tab-item" onclick="switchMainTab('research')">科研功能</div>
+                <div class="tab-item" onclick="switchMainTab('analysis')">数据分析</div>
+            </div>
+        </div>
+
+        <!-- 患者管理页面 -->
+        <div class="content page-view active" id="managementPage">
+            <!-- 仪表盘 -->
+            <div class="dashboard-card">
+                <div style="font-size: 14px; font-weight: 600;">今日工作概览</div>
+                <div class="dashboard-stats">
+                    <div class="dashboard-stat">
+                        <div class="dashboard-stat-value">8</div>
+                        <div class="dashboard-stat-label">待随访</div>
+                    </div>
+                    <div class="dashboard-stat">
+                        <div class="dashboard-stat-value" style="color: #fbbf24;">3</div>
+                        <div class="dashboard-stat-label">异常提醒</div>
+                    </div>
+                    <div class="dashboard-stat">
+                        <div class="dashboard-stat-value">12</div>
+                        <div class="dashboard-stat-label">今日复诊</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 筛选栏 -->
+            <div class="filter-bar">
+                <div class="filter-tag active">全部患者</div>
+                <div class="filter-tag">异常 (3)</div>
+                <div class="filter-tag">需关注 (5)</div>
+                <div class="filter-tag">术后 (42)</div>
+                <div class="filter-tag">术前 (8)</div>
+            </div>
+
+            <!-- 患者列表 -->
+            <div class="patient-card alert" onclick="showPatientDetail('李明', 'alert')">
+                <div class="alert-badge danger">异常</div>
+                <div class="patient-header">
+                    <span class="patient-name">李明<span class="patient-stage stage-post">术后6个月</span></span>
+                    <span class="patient-id">ID: PT20260125</span>
+                </div>
+                <div class="patient-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" style="color: #ef4444;">128</div>
+                        <div class="stat-label">肌酐 μmol/L</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" style="color: #f59e0b;">8.2</div>
+                        <div class="stat-label">血药浓度</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">68.5</div>
+                        <div class="stat-label">体重 kg</div>
+                    </div>
+                </div>
+                <div class="last-update">最后更新: 2026-03-31 09:30</div>
+            </div>
+
+            <div class="patient-card warning" onclick="showPatientDetail('王芳', 'warning')">
+                <div class="alert-badge warning">需关注</div>
+                <div class="patient-header">
+                    <span class="patient-name">王芳<span class="patient-stage stage-post">术后5个月</span></span>
+                    <span class="patient-id">ID: PT20260210</span>
+                </div>
+                <div class="patient-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" style="color: #f59e0b;">98</div>
+                        <div class="stat-label">肌酐 μmol/L</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">7.5</div>
+                        <div class="stat-label">血药浓度</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">62.0</div>
+                        <div class="stat-label">体重 kg</div>
+                    </div>
+                </div>
+                <div class="last-update">最后更新: 2026-03-31 08:15</div>
+            </div>
+
+            <div class="patient-card normal" onclick="showPatientDetail('张伟', 'normal')">
+                <div class="alert-badge info">正常</div>
+                <div class="patient-header">
+                    <span class="patient-name">张伟<span class="patient-stage stage-post">术后3个月</span></span>
+                    <span class="patient-id">ID: PT20260301</span>
+                </div>
+                <div class="patient-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" style="color: #10b981;">85</div>
+                        <div class="stat-label">肌酐 μmol/L</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">8.0</div>
+                        <div class="stat-label">血药浓度</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">70.2</div>
+                        <div class="stat-label">体重 kg</div>
+                    </div>
+                </div>
+                <div class="last-update">最后更新: 2026-03-30 16:45</div>
+            </div>
+        </div>
+
+        <!-- 患者详情页面 -->
+        <div class="content page-view" id="patientDetailPage">
+            <div class="detail-header">
+                <div class="back-btn" onclick="backToPatientList()">← 返回患者列表</div>
+                <div style="font-size: 16px; font-weight: 600; color: #1f2937; margin-bottom: 15px;">患者详情</div>
+                
+                <div style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); border-radius: 12px; padding: 15px; color: white; margin-bottom: 15px;">
+                    <div style="display: flex; align-items: center;">
+                        <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-right: 12px;">👤</div>
+                        <div style="flex: 1;">
+                            <div style="font-size: 18px; font-weight: 600;" id="detailPatientName">李明</div>
+                            <div style="font-size: 12px; opacity: 0.9; margin-top: 3px;" id="detailPatientInfo">术后6个月 | ID: PT20260125</div>
+                            <div style="font-size: 11px; opacity: 0.9; margin-top: 2px;">随访医生: 张主任</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px;">
+                    <div class="info-item">
+                        <div class="info-label">性别</div>
+                        <div class="info-value">男</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">年龄</div>
+                        <div class="info-value">48岁</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">手术日期</div>
+                        <div class="info-value">2025-09-01</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">血型</div>
+                        <div class="info-value">A型</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 最新指标 -->
+            <div class="section">
+                <div class="section-title">最新检查指标</div>
+                <div class="card">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px;">
+                        <div class="stat-item">
+                            <div class="stat-value" id="detailCreatinine" style="color: #ef4444;">128</div>
+                            <div class="stat-label">肌酐 μmol/L</div>
+                            <div class="stat-label" style="font-size: 9px; color: #868e96;">参考值: 53-106</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="detailConcentration">8.2</div>
+                            <div class="stat-label">血药浓度</div>
+                            <div class="stat-label" style="font-size: 9px; color: #868e96;">参考值: 5-12</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="detailWeight">68.5</div>
+                            <div class="stat-label">体重 kg</div>
+                            <div class="stat-label" style="font-size: 9px; color: #868e96;">BMI: 23.1</div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                        <div class="stat-item">
+                            <div class="stat-value">120/80</div>
+                            <div class="stat-label">血压 mmHg</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">5.8</div>
+                            <div class="stat-label">血糖 mmol/L</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">130</div>
+                            <div class="stat-label">血红蛋白 g/L</div>
+                        </div>
+                    </div>
+                    <div class="last-update" style="text-align: center; margin-top: 10px;">最后更新: 2026-03-31 09:30</div>
+                </div>
+            </div>
+
+            <!-- 今日健康数据 -->
+            <div class="section">
+                <div class="section-title">
+                    <span>今日健康数据</span>
+                    <span style="font-size: 11px; color: #3b82f6; cursor: pointer;">查看历史 →</span>
+                </div>
+                <div class="card">
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px;">
+                        <div class="stat-item">
+                            <div class="stat-value">2000</div>
+                            <div class="stat-label">饮水量 ml</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">1800</div>
+                            <div class="stat-label">尿量 ml</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">2</div>
+                            <div class="stat-label">大便次</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">3</div>
+                            <div class="stat-label">乏力分</div>
+                        </div>
+                    </div>
+                    <div style="font-size: 11px; color: #6b7280; line-height: 1.4;">
+                        饮食记录：今日饮食清淡，早餐:小米粥+鸡蛋,午餐:米饭+蔬菜+鱼肉,晚餐:面条+青菜
+                    </div>
+                </div>
+            </div>
+
+            <!-- 症状记录 -->
+            <div class="section">
+                <div class="section-title">
+                    <span>症状记录</span>
+                    <span style="font-size: 11px; color: #3b82f6; cursor: pointer;">全部记录 →</span>
+                </div>
+                <div class="card">
+                    <div style="margin-bottom: 10px;">
+                        <span class="symptom-tag alert">水肿</span>
+                        <span class="symptom-tag alert">乏力</span>
+                        <span class="symptom-tag">食欲正常</span>
+                        <span class="symptom-tag">睡眠良好</span>
+                    </div>
+                    <div style="font-size: 11px; color: #6b7280; margin-bottom: 8px;">
+                        今日整体感受：一般，乏力程度3分，食欲正常，睡眠质量正常
+                    </div>
+                    <div style="font-size: 10px; color: #9ca3af;">记录时间: 2026-04-01 14:30</div>
+                </div>
+            </div>
+
+            <!-- AI智能分析 -->
+            <div class="section">
+                <div class="section-title">AI智能分析报告</div>
+                <div class="ai-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size: 14px; font-weight: 600; display: flex; align-items: center;">🤖 最新分析</span>
+                        <span style="font-size: 10px; opacity: 0.8;">2026-03-31 09:35</span>
+                    </div>
+                    <div style="font-size: 12px; line-height: 1.6; opacity: 0.95;">
+                        患者近期肌酐水平呈上升趋势（85→98→112→128 μmol/L），结合血药浓度8.2 ng/ml处于治疗窗下限，提示可能存在免疫抑制不足风险。建议考虑增加他克莫司剂量至2.5mg bid，并密切监测血药浓度和肾功能。
+                    </div>
+                    <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; margin-top: 10px;">
+                        <div style="font-size: 11px; font-weight: 600; margin-bottom: 5px; display: flex; align-items: center;">⚠️ 异常指标提醒</div>
+                        <div style="font-size: 11px; line-height: 1.5; opacity: 0.95;">
+                            • 肌酐连续3次检测呈上升趋势<br>
+                            • 血药浓度低于目标治疗窗<br>
+                            • 需关注排斥反应早期征象
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 指标趋势 -->
+            <div class="section">
+                <div class="section-title">
+                    <span>指标趋势</span>
+                    <span style="font-size: 11px; color: #3b82f6; cursor: pointer;">查看完整报告 →</span>
+                </div>
+                <div class="trend-chart">
+                    <div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 10px;">肌酐变化趋势 (近7天)</div>
+                    <div style="height: 120px; display: flex; align-items: flex-end; justify-content: space-around; padding: 20px 10px 0; border-bottom: 1px solid #e5e7eb;">
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <div class="chart-bar" style="height: 40px;"></div>
+                            <div class="chart-label">3/25</div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <div class="chart-bar" style="height: 45px;"></div>
+                            <div class="chart-label">3/26</div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <div class="chart-bar" style="height: 55px;"></div>
+                            <div class="chart-label">3/27</div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <div class="chart-bar warning" style="height: 65px;"></div>
+                            <div class="chart-label">3/28</div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <div class="chart-bar warning" style="height: 75px;"></div>
+                            <div class="chart-label">3/29</div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <div class="chart-bar abnormal" style="height: 85px;"></div>
+                            <div class="chart-label">3/30</div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <div class="chart-bar abnormal" style="height: 95px;"></div>
+                            <div class="chart-label">3/31</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 用药情况 -->
+            <div class="section">
+                <div class="section-title">
+                    <span>当前用药方案</span>
+                    <span style="font-size: 11px; color: #3b82f6; cursor: pointer;">调药记录 →</span>
+                </div>
+                <div class="card">
+                    <div class="medication-item">
+                        <div>
+                            <div style="font-size: 13px; color: #1f2937; font-weight: 600;">他克莫司胶囊</div>
+                            <div style="font-size: 11px; color: #6b7280;">免疫抑制剂 | 2mg × 2次/日</div>
+                        </div>
+                        <div style="font-size: 12px; font-weight: 600; color: #667eea;">2mg × 2次/日</div>
+                    </div>
+                    <div class="medication-item">
+                        <div>
+                            <div style="font-size: 13px; color: #1f2937; font-weight: 600;">泼尼松片</div>
+                            <div style="font-size: 11px; color: #6b7280;">糖皮质激素 | 10mg × 1次/日</div>
+                        </div>
+                        <div style="font-size: 12px; font-weight: 600; color: #667eea;">10mg × 1次/日</div>
+                    </div>
+                    <div class="medication-item">
+                        <div>
+                            <div style="font-size: 13px; color: #1f2937; font-weight: 600;">吗替麦考酚酯</div>
+                            <div style="font-size: 11px; color: #6b7280;">抗代谢药 | 0.5g × 2次/日</div>
+                        </div>
+                        <div style="font-size: 12px; font-weight: 600; color: #667eea;">0.5g × 2次/日</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 设备数据 -->
+            <div class="section">
+                <div class="section-title">
+                    <span>设备同步数据</span>
+                    <span style="font-size: 11px; color: #3b82f6; cursor: pointer;">设备管理 →</span>
+                </div>
+                <div class="card">
+                    <div class="device-sync-item">
+                        <div style="flex: 1;">
+                            <div style="font-size: 13px; color: #1f2937; font-weight: 600;">🩺 智能血压计</div>
+                            <div style="font-size: 11px; color: #6b7280;">最新数据: 120/80 mmHg | 心率 72次/分</div>
+                            <div style="font-size: 10px; color: #9ca3af;">同步时间: 2026-04-01 08:30</div>
+                        </div>
+                    </div>
+                    <div class="device-sync-item">
+                        <div style="flex: 1;">
+                            <div style="font-size: 13px; color: #1f2937; font-weight: 600;">⚖️ 智能体重秤</div>
+                            <div style="font-size: 11px; color: #6b7280;">最新数据: 68.5kg | BMI 23.1</div>
+                            <div style="font-size: 10px; color: #9ca3af;">同步时间: 2026-04-01 07:00</div>
+                        </div>
+                    </div>
+                    <div class="device-sync-item">
+                        <div style="flex: 1;">
+                            <div style="font-size: 13px; color: #1f2937; font-weight: 600;">🩸 血糖仪</div>
+                            <div style="font-size: 11px; color: #6b7280;">最新数据: 5.8 mmol/L (空腹)</div>
+                            <div style="font-size: 10px; color: #9ca3af;">同步时间: 2026-04-01 06:45</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 提醒与任务 -->
+            <div class="section">
+                <div class="section-title">
+                    <span>提醒与任务</span>
+                    <span style="font-size: 11px; color: #3b82f6; cursor: pointer;">全部提醒 →</span>
+                </div>
+                <div class="reminder-card">
+                    <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">服用他克莫司</div>
+                    <div style="font-size: 12px; opacity: 0.95;">请在14:00服用2mg他克莫司胶囊，餐前30分钟服用效果最佳</div>
+                    <div style="font-size: 11px; opacity: 0.9; margin-top: 5px;">距离服药还有 2 小时</div>
+                </div>
+                <div class="reminder-card success">
+                    <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">复诊提醒</div>
+                    <div style="font-size: 12px; opacity: 0.95;">明天上午9:00复诊，请提前30分钟到达医院</div>
+                    <div style="font-size: 11px; opacity: 0.9; margin-top: 5px;">张主任 | 肾移植科门诊</div>
+                </div>
+            </div>
+
+            <!-- 检查报告 -->
+            <div class="section">
+                <div class="section-title">
+                    <span>检查报告</span>
+                    <span style="font-size: 11px; color: #3b82f6; cursor: pointer;">查看全部 →</span>
+                </div>
+                <div class="card">
+                    <div class="data-history-item">
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; color: #1f2937; font-weight: 600;">2026-03-31 09:30</div>
+                            <div style="font-size: 11px; color: #6b7280;">肾功能检查报告</div>
+                        </div>
+                        <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #d1fae5; color: #065f46;">已解析</span>
+                    </div>
+                    <div class="data-history-item">
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; color: #1f2937; font-weight: 600;">2026-03-28 14:15</div>
+                            <div style="font-size: 11px; color: #6b7280;">血常规检查报告</div>
+                        </div>
+                        <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #fef3c7; color: #92400e;">分析中</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 调药记录 -->
+            <div class="section">
+                <div class="section-title">
+                    <span>调药记录</span>
+                    <span style="font-size: 11px; color: #3b82f6; cursor: pointer;">查看全部 →</span>
+                </div>
+                <div class="card">
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">2026-03-25 14:30</div>
+                        <div style="font-size: 12px; color: #1f2937;">他克莫司剂量调整：1.5mg → 2mg，原因：血药浓度偏低</div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">2026-03-15 10:00</div>
+                        <div style="font-size: 12px; color: #1f2937;">新加吗替麦考酚酯：0.5g bid，原因：强化免疫抑制</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 随访任务 -->
+            <div class="section">
+                <div class="section-title">
+                    <span>随访任务</span>
+                    <span style="font-size: 11px; color: #3b82f6; cursor: pointer;">任务管理 →</span>
+                </div>
+                <div class="card">
+                    <div style="padding: 10px; background: #fef3c7; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid #f59e0b;">
+                        <div style="font-size: 12px; font-weight: 600; color: #92400e; margin-bottom: 5px;">填写本周随访记录</div>
+                        <div style="font-size: 11px; color: #78350f; line-height: 1.4;">请填写本周的随访数据，包括体重、尿量、饮食记录等</div>
+                        <div style="font-size: 10px; color: #92400e; margin-top: 5px;">截止时间：2026-04-03 23:59</div>
+                    </div>
+                    <div style="padding: 10px; background: #d1fae5; border-radius: 8px; border-left: 3px solid #10b981;">
+                        <div style="font-size: 12px; font-weight: 600; color: #065f46; margin-bottom: 5px;">上传术后检查报告</div>
+                        <div style="font-size: 11px; color: #064e3b; line-height: 1.4;">已完成术后第6个月检查报告上传</div>
+                        <div style="font-size: 10px; color: #065f46; margin-top: 5px;">完成时间：2026-03-31 09:30</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 医患沟通 -->
+            <div class="section">
+                <div class="section-title">
+                    <span>医患沟通</span>
+                    <span style="font-size: 11px; color: #3b82f6; cursor: pointer;">查看对话 →</span>
+                </div>
+                <div class="card">
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+                        <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">患者 (李明) - 2026-04-01 10:30</div>
+                        <div style="font-size: 12px; color: #1f2937;">医生，我最近感觉有些疲惫，需要注意什么吗？</div>
+                    </div>
+                    <div style="background: #dbeafe; padding: 10px; border-radius: 8px; margin-bottom: 8px;">
+                        <div style="font-size: 11px; color: #1e40af; margin-bottom: 3px;">医生 (张主任) - 2026-04-01 11:00</div>
+                        <div style="font-size: 12px; color: #1e40af;">根据您的检查数据，肌酐水平略有波动。建议您保证充足休息，避免过度劳累，按时服药。</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="section">
+                <div class="action-buttons">
+                    <button class="btn-primary" onclick="alert('调药功能')">📊 调整用药</button>
+                    <button class="btn-warning" onclick="alert('预约功能')">📅 预约复诊</button>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn-success" onclick="alert('发起随访')">📋 发起随访</button>
+                    <button class="btn-large secondary" onclick="alert('发送消息')">💬 发送消息</button>
+                </div>
+                <button class="btn-large" onclick="alert('生成随访计划')">🎯 生成个性化随访计划</button>
+            </div>
+        </div>
+
+        <!-- 供体管理详情页面 -->
+        <div class="content page-view" id="donorDetailPage">
+            <div class="detail-header">
+                <div class="back-btn" onclick="backToDonorList()">← 返回供体列表</div>
+                <div style="font-size: 16px; font-weight: 600; color: #1f2937; margin-bottom: 15px;">供体详细信息</div>
+                
+                <div style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); border-radius: 12px; padding: 15px; color: white; margin-bottom: 15px;">
+                    <div style="display: flex; align-items: center;">
+                        <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-right: 12px;">👤</div>
+                        <div style="flex: 1;">
+                            <div style="font-size: 18px; font-weight: 600;" id="donorDetailName">张某某</div>
+                            <div style="font-size: 12px; opacity: 0.9; margin-top: 3px;" id="donorDetailInfo">供体ID: DONOR-2026-0042 | 年龄: 32岁 | 男性</div>
+                            <div style="font-size: 11px; opacity: 0.9; margin-top: 2px;" id="donorDetailType">活体供体 | 父亲供子 | A型</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 10px; opacity: 0.8; margin-bottom: 3px;">供体状态</div>
+                            <div style="font-size: 12px; font-weight: 600; padding: 3px 8px; background: rgba(255,255,255,0.2); border-radius: 4px;" id="donorDetailStatus">已评估</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 基本信息 -->
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px;">
+                    <div class="info-item">
+                        <div class="info-label">年龄</div>
+                        <div class="info-value" id="donorDetailAge">32岁</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">性别</div>
+                        <div class="info-value">男</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">身高</div>
+                        <div class="info-value">175cm</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">体重</div>
+                        <div class="info-value">70kg</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">BMI</div>
+                        <div class="info-value">22.9</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">血型</div>
+                        <div class="info-value" id="donorDetailBloodType">A型</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 医学评估信息 -->
+            <div class="section">
+                <div class="section-title">医学评估信息</div>
+                <div class="card">
+                    <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f3f4f6;">
+                        <div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 8px;">配型信息</div>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                            <div>
+                                <div class="info-label">HLA配型</div>
+                                <div class="info-value" id="donorDetailHLA">3/6位点匹配</div>
+                            </div>
+                            <div>
+                                <div class="info-label">交叉配血</div>
+                                <div class="info-value" id="donorDetailCrossmatch" style="color: #10b981;">阴性</div>
+                            </div>
+                            <div>
+                                <div class="info-label">PRA水平</div>
+                                <div class="info-value">2%</div>
+                            </div>
+                            <div>
+                                <div class="info-label">群体反应性抗体</div>
+                                <div class="info-value">阴性</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f3f4f6;">
+                        <div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 8px;">肾功能评估</div>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                            <div class="stat-item">
+                                <div class="stat-value" style="color: #10b981;">76</div>
+                                <div class="stat-label">肌酐 μmol/L</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" style="color: #10b981;">1.05</div>
+                                <div class="stat-label">eGFR</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">95</div>
+                                <div class="stat-label">肾功能 %</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f3f4f6;">
+                        <div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 8px;">心血管评估</div>
+                        <div style="background: #f9fafb; border-radius: 8px; padding: 10px;">
+                            <div style="font-size: 11px; color: #1f2937; margin-bottom: 5px;">心电图</div>
+                            <div style="font-size: 12px; color: #10b981; font-weight: 600;">窦性心律，正常心电图</div>
+                            <div style="font-size: 11px; color: #1f2937; margin-bottom: 5px; margin-top: 10px;">心脏彩超</div>
+                            <div style="font-size: 12px; color: #10b981; font-weight: 600;">EF 62%，结构功能正常</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 8px;">肾脏影像学</div>
+                        <div style="background: #f9fafb; border-radius: 8px; padding: 10px;">
+                            <div style="font-size: 11px; color: #1f2937; margin-bottom: 5px;">双肾CT</div>
+                            <div style="font-size: 12px; color: #1f2937; font-weight: 600; margin-bottom: 5px;">双肾大小形态正常，无占位性病变</div>
+                            <div style="font-size: 11px; color: #6b7280; line-height: 1.4;">
+                                左肾: 10.5cm × 5.2cm × 4.8cm<br>
+                                右肾: 10.8cm × 5.5cm × 5.0cm<br>
+                                肾动脉: 双侧肾动脉显影良好，无狭窄
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 实验室检查 -->
+            <div class="section">
+                <div class="section-title">
+                    <span>实验室检查</span>
+                    <span style="font-size: 11px; color: #3b82f6; cursor: pointer;">查看全部报告 →</span>
+                </div>
+                <div class="card">
+                    <div class="data-history-item">
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; color: #1f2937; font-weight: 600;">血常规</div>
+                            <div style="font-size: 10px; color: #6b7280;">2026-03-25 | WBC 6.5×10⁹/L Hb 145g/L PLT 230×10⁹/L</div>
+                        </div>
+                        <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #d1fae5; color: #065f46;">正常</span>
+                    </div>
+                    <div class="data-history-item">
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; color: #1f2937; font-weight: 600;">尿常规</div>
+                            <div style="font-size: 10px; color: #6b7280;">2026-03-25 | PRO - GLU - BLD - LEU -</div>
+                        </div>
+                        <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #d1fae5; color: #065f46;">正常</span>
+                    </div>
+                    <div class="data-history-item">
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; color: #1f2937; font-weight: 600;">肝功能</div>
+                            <div style="font-size: 10px; color: #6b7280;">2026-03-25 | ALT 25U/L AST 22U/L TBIL 18μmol/L</div>
+                        </div>
+                        <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #d1fae5; color: #065f46;">正常</span>
+                    </div>
+                    <div class="data-history-item">
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; color: #1f2937; font-weight: 600;">凝血功能</div>
+                            <div style="font-size: 10px; color: #6b7280;">2026-03-25 | PT 12.5s APTT 35s INR 0.98</div>
+                        </div>
+                        <span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #d1fae5; color: #065f46;">正常</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 传染病筛查 -->
+            <div class="section">
+                <div class="section-title">传染病筛查</div>
+                <div class="card">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                        <div style="background: #d1fae5; padding: 8px; border-radius: 6px; display: flex; align-items: center;">
+                            <span style="font-size: 16px; margin-right: 8px;">🦠</span>
+                            <div>
+                                <div style="font-size: 11px; color: #1f2937; font-weight: 600;">HBsAg</div>
+                                <div style="font-size: 10px; color: #064e3b;">阴性</div>
+                            </div>
+                        </div>
+                        <div style="background: #d1fae5; padding: 8px; border-radius: 6px; display: flex; align-items: center;">
+                            <span style="font-size: 16px; margin-right: 8px;">🦠</span>
+                            <div>
+                                <div style="font-size: 11px; color: #1f2937; font-weight: 600;">HCV</div>
+                                <div style="font-size: 10px; color: #064e3b;">阴性</div>
+                            </div>
+                        </div>
+                        <div style="background: #d1fae5; padding: 8px; border-radius: 6px; display: flex; align-items: center;">
+                            <span style="font-size: 16px; margin-right: 8px;">🦠</span>
+                            <div>
+                                <div style="font-size: 11px; color: #1f2937; font-weight: 600;">HIV</div>
+                                <div style="font-size: 10px; color: #064e3b;">阴性</div>
+                            </div>
+                        </div>
+                        <div style="background: #d1fae5; padding: 8px; border-radius: 6px; display: flex; align-items: center;">
+                            <span style="font-size: 16px; margin-right: 8px;">🦠</span>
+                            <div>
+                                <div style="font-size: 11px; color: #1f2937; font-weight: 600;">TPPA</div>
+                                <div style="font-size: 10px; color: #064e3b;">阴性</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 风险评估 -->
+            <div class="section">
+                <div class="section-title">风险评估</div>
+                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 15px; color: white; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size: 20px; margin-right: 8px;">✅</span>
+                        <span style="font-size: 14px; font-weight: 600;">综合评估结果：适宜捐赠</span>
+                    </div>
+                    <div style="font-size: 11px; line-height: 1.6; opacity: 0.95;">
+                        • 肾功能良好，eGFR > 90ml/min<br>
+                        • 心血管评估正常，无手术禁忌症<br>
+                        • 心理评估合格，完全自愿<br>
+                        • 家庭社会支持良好
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div style="font-size: 12px; font-weight: 600; color: #1f2937; margin-bottom: 8px;">风险评估维度</div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                                <span style="font-size: 11px; color: #1f2937;">医学风险</span>
+                                <span style="font-size: 11px; color: #10b981; font-weight: 600;">低风险</span>
+                            </div>
+                            <div style="height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden;">
+                                <div style="height: 100%; width: 15%; background: #10b981;"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                                <span style="font-size: 11px; color: #1f2937;">手术风险</span>
+                                <span style="font-size: 11px; color: #10b981; font-weight: 600;">低风险</span>
+                            </div>
+                            <div style="height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden;">
+                                <div style="height: 100%; width: 20%; background: #10b981;"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                                <span style="font-size: 11px; color: #1f2937;">心理风险</span>
+                                <span style="font-size: 11px; color: #10b981; font-weight: 600;">低风险</span>
+                            </div>
+                            <div style="height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden;">
+                                <div style="height: 100%; width: 10%; background: #10b981;"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                                <span style="font-size: 11px; color: #1f2937;">长期风险</span>
+                                <span style="font-size: 11px; color: #f59e0b; font-weight: 600;">中风险</span>
+                            </div>
+                            <div style="height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden;">
+                                <div style="height: 100%; width: 45%; background: #f59e0b;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 评估时间线 -->
+            <div class="section">
+                <div class="section-title">评估时间线</div>
+                <div class="card">
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">2026-03-25 14:30</div>
+                        <div style="font-size: 12px; color: #1f2937; font-weight: 600;">完成综合评估</div>
+                        <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">评估人: 张主任 | 结果: 适宜捐赠</div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">2026-03-24 10:00</div>
+                        <div style="font-size: 12px; color: #1f2937; font-weight: 600;">完成心理评估</div>
+                        <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">评估人: 心理科李医生 | 结果: 合格</div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">2026-03-23 09:30</div>
+                        <div style="font-size: 12px; color: #1f2937; font-weight: 600;">完成影像学检查</div>
+                        <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">双肾CT、肾动脉造影均正常</div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div style="font-size: 11px; color: #6b7280; margin-bottom: 3px;">2026-03-20 14:00</div>
+                        <div style="font-size: 12px; color: #1f2937; font-weight: 600;">提交供体申请</div>
+                        <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">申请类型: 父亲供子 | 申请状态: 已受理</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 手术信息 -->
+            <div class="section">
+                <div class="section-title">手术信息</div>
+                <div class="card">
+                    <div style="background: #f9fafb; border-radius: 8px; padding: 12px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; font-weight: 600; color: #1f2937; margin-bottom: 8px;">手术安排</div>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                            <div>
+                                <div class="info-label">手术日期</div>
+                                <div class="info-value" style="color: #3b82f6;">待定</div>
+                            </div>
+                            <div>
+                                <div class="info-label">手术方式</div>
+                                <div class="info-value">腹腔镜供肾切除</div>
+                            </div>
+                            <div>
+                                <div class="info-label">主刀医生</div>
+                                <div class="info-value">张主任</div>
+                            </div>
+                            <div>
+                                <div class="info-label">麻醉方式</div>
+                                <div class="info-value">全身麻醉</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="padding: 10px; background: #dbeafe; border-radius: 8px; border-left: 3px solid #3b82f6;">
+                        <div style="font-size: 10px; font-weight: 600; color: #1e40af; margin-bottom: 3px;">📋 术前准备</div>
+                        <div style="font-size: 10px; color: #1e3a8a; line-height: 1.5;">
+                            • 术前3天开始流质饮食<br>
+                            • 术前1天晚8点后禁食禁水<br>
+                            • 术前1天完成肠道准备<br>
+                            • 术前签署知情同意书
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 关联患者 -->
+            <div class="section">
+                <div class="section-title">关联患者信息</div>
+                <div class="card" style="cursor: pointer;">
+                    <div style="display: flex; align-items: center; padding: 10px; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 8px;">
+                        <div style="width: 50px; height: 50px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 12px;">👤</div>
+                        <div style="flex: 1;">
+                            <div style="font-size: 14px; font-weight: 600; color: #1f2937;">李明</div>
+                            <div style="font-size: 10px; color: #6b7280; margin-top: 2px;">受体ID: PT20260125 | 父子关系</div>
+                            <div style="font-size: 10px; color: #6b7280;">术后6个月 | 肾功能良好</div>
+                        </div>
+                        <span style="font-size: 20px;">→</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="section">
+                <div class="action-buttons">
+                    <button class="btn-primary" onclick="alert('启动健康评估')">🧠 启动健康评估</button>
+                    <button class="btn-warning" onclick="alert('预约手术')">📅 预约手术</button>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn-success" onclick="alert('生成评估报告')">📄 生成评估报告</button>
+                    <button class="btn-large secondary" onclick="alert('查看随访记录')">📋 查看随访记录</button>
+                </div>
+                <button class="btn-large" onclick="alert('编辑供体信息')">✏️ 编辑供体信息</button>
+            </div>
+        </div>
+
+        <!-- 供体管理页面 -->
+        <div class="content page-view" id="donorPage">
+            <!-- 供体概览 -->
+            <div class="section">
+                <div class="section-title">供体管理概览</div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px;">
+                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 15px; border-radius: 8px; text-align: center; color: white;">
+                        <div style="font-size: 24px; font-weight: 700;">186</div>
+                        <div style="font-size: 11px; opacity: 0.9;">供体总数</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); padding: 15px; border-radius: 8px; text-align: center; color: white;">
+                        <div style="font-size: 24px; font-weight: 700;">28</div>
+                        <div style="font-size: 11px; opacity: 0.9;">活体供体</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 15px; border-radius: 8px; text-align: center; color: white;">
+                        <div style="font-size: 24px; font-weight: 700;">158</div>
+                        <div style="font-size: 11px; opacity: 0.9;">尸体供体</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 供体列表筛选 -->
+            <div class="section">
+                <div class="filter-bar">
+                    <div class="filter-tag active">全部供体</div>
+                    <div class="filter-tag">活体供体 (28)</div>
+                    <div class="filter-tag">尸体供体 (158)</div>
+                    <div class="filter-tag">亲属供体 (22)</div>
+                    <div class="filter-tag">非亲属供体 (6)</div>
+                </div>
+            </div>
+
+            <!-- 供体列表 -->
+            <div class="section">
+                <div class="section-title">供体列表</div>
+                
+                <!-- 活体供体卡片 -->
+                <div class="card" style="border-left: 4px solid #3b82f6; cursor: pointer;" onclick="showDonorDetail('DONOR-2026-0042')">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div>
+                            <div style="display: flex; align-items: center;">
+                                <span style="font-size: 15px; font-weight: 600; color: #1f2937;">张某某</span>
+                                <span style="margin-left: 8px; font-size: 10px; padding: 3px 8px; border-radius: 4px; background: #dbeafe; color: #1e40af; font-weight: 600;">活体供体</span>
+                                <span style="margin-left: 5px; font-size: 10px; padding: 3px 8px; border-radius: 4px; background: #d1fae5; color: #065f46; font-weight: 600;">亲属</span>
+                            </div>
+                            <div style="font-size: 11px; color: #6b7280; margin-top: 3px;">供体ID: DONOR-2026-0042 | 年龄: 32岁 | 男性</div>
+                        </div>
+                        <span style="font-size: 10px; padding: 3px 8px; border-radius: 4px; background: #d1fae5; color: #065f46;">已评估</span>
+                    </div>
+                    
+                    <div style="background: #f9fafb; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 11px; font-weight: 600; color: #1f2937; margin-bottom: 5px;">供体信息</div>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                            <div>
+                                <div style="font-size: 10px; color: #6b7280;">供体类型</div>
+                                <div style="font-size: 12px; color: #1f2937; font-weight: 600;">父亲供子</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 10px; color: #6b7280;">血型</div>
+                                <div style="font-size: 12px; color: #1f2937; font-weight: 600;">A型</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 10px; color: #6b7280;">HLA配型</div>
+                                <div style="font-size: 12px; color: #1f2937; font-weight: 600;">3/6位点匹配</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 10px; color: #6b7280;">交叉配血</div>
+                                <div style="font-size: 12px; color: #10b981; font-weight: 600;">阴性</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-primary" style="flex: 1; font-size: 11px; padding: 8px;">查看详情</button>
+                        <button class="btn-warning" style="flex: 1; font-size: 11px; padding: 8px;">健康评估</button>
+                    </div>
+                </div>
+
+                <!-- 活体供体卡片2 -->
+                <div class="card" style="border-left: 4px solid #3b82f6; cursor: pointer;" onclick="showDonorDetail('DONOR-2026-0041')">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div>
+                            <div style="display: flex; align-items: center;">
+                                <span style="font-size: 15px; font-weight: 600; color: #1f2937;">李某某</span>
+                                <span style="margin-left: 8px; font-size: 10px; padding: 3px 8px; border-radius: 4px; background: #dbeafe; color: #1e40af; font-weight: 600;">活体供体</span>
+                                <span style="margin-left: 5px; font-size: 10px; padding: 3px 8px; border-radius: 4px; background: #fef3c7; color: #92400e; font-weight: 600;">非亲属</span>
+                            </div>
+                            <div style="font-size: 11px; color: #6b7280; margin-top: 3px;">供体ID: DONOR-2026-0041 | 年龄: 28岁 | 女性</div>
+                        </div>
+                        <span style="font-size: 10px; padding: 3px 8px; border-radius: 4px; background: #dbeafe; color: #1e40af;">评估中</span>
+                    </div>
+                    
+                    <div style="background: #f9fafb; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 11px; font-weight: 600; color: #1f2937; margin-bottom: 5px;">供体信息</div>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                            <div>
+                                <div style="font-size: 10px; color: #6b7280;">供体类型</div>
+                                <div style="font-size: 12px; color: #1f2937; font-weight: 600;">配偶供肾</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 10px; color: #6b7280;">血型</div>
+                                <div style="font-size: 12px; color: #1f2937; font-weight: 600;">B型</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 10px; color: #6b7280;">HLA配型</div>
+                                <div style="font-size: 12px; color: #1f2937; font-weight: 600;">2/6位点匹配</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 10px; color: #6b7280;">交叉配血</div>
+                                <div style="font-size: 12px; color: #f59e0b; font-weight: 600;">待检测</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-primary" style="flex: 1; font-size: 11px; padding: 8px;">查看详情</button>
+                        <button class="btn-warning" style="flex: 1; font-size: 11px; padding: 8px;">健康评估</button>
+                    </div>
+                </div>
+
+                <!-- 尸体供体卡片 -->
+                <div class="card" style="border-left: 4px solid #8b5cf6; cursor: pointer;" onclick="showDonorDetail('DONOR-2026-0158')">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div>
+                            <div style="display: flex; align-items: center;">
+                                <span style="font-size: 15px; font-weight: 600; color: #1f2937;">DCD-2026-0158</span>
+                                <span style="margin-left: 8px; font-size: 10px; padding: 3px 8px; border-radius: 4px; background: #ede9fe; color: #5b21b6; font-weight: 600;">尸体供体</span>
+                                <span style="margin-left: 5px; font-size: 10px; padding: 3px 8px; border-radius: 4px; background: #d1fae5; color: #065f46; font-weight: 600;">已分配</span>
+                            </div>
+                            <div style="font-size: 11px; color: #6b7280; margin-top: 3px;">供体ID: DONOR-2026-0158 | 年龄: 45岁 | 男性</div>
+                        </div>
+                        <span style="font-size: 10px; padding: 3px 8px; border-radius: 4px; background: #10b981; color: white;">已完成</span>
+                    </div>
+                    
+                    <div style="background: #f9fafb; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 11px; font-weight: 600; color: #1f2937; margin-bottom: 5px;">供体信息</div>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                            <div>
+                                <div style="font-size: 10px; color: #6b7280;">获取时间</div>
+                                <div style="font-size: 12px; color: #1f2937; font-weight: 600;">2026-03-25</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 10px; color: #6b7280;">血型</div>
+                                <div style="font-size: 12px; color: #1f2937; font-weight: 600;">O型</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 10px; color: #6b7280;">供体类型</div>
+                                <div style="font-size: 12px; color: #1f2937; font-weight: 600;">脑死亡捐献</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 10px; color: #6b7280;">肾脏质量</div>
+                                <div style="font-size: 12px; color: #10b981; font-weight: 600;">良好</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #f0fdf4; border-radius: 8px; padding: 10px; margin-bottom: 10px; border-left: 3px solid #10b981;">
+                        <div style="font-size: 10px; color: #065f46; font-weight: 600; margin-bottom: 3px;">配型结果</div>
+                        <div style="font-size: 11px; color: #064e3b; line-height: 1.4;">
+                            受体: 王某 (A型) | HLA匹配度: 4/6位点<br>
+                            手术日期: 2026-03-26 | 移植物功能: 良好
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-primary" style="flex: 1; font-size: 11px; padding: 8px;">查看详情</button>
+                        <button class="btn-success" style="flex: 1; font-size: 11px; padding: 8px;">随访记录</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 供体健康评估 -->
+            <div class="section">
+                <div class="section-title">供体健康评估</div>
+                <div style="background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%); border-radius: 12px; padding: 15px; color: white; margin-bottom: 12px;">
+                    <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center;">
+                        <span style="margin-right: 8px;">🏥</span>AI健康评估助手
+                    </div>
+                    <div style="font-size: 11px; line-height: 1.6; opacity: 0.95;">
+                        基于28项评估指标，智能评估供体健康风险<br>
+                        • 肾功能储备评估<br>
+                        • 心血管风险筛查<br>
+                        • 术后生活质量预测
+                    </div>
+                </div>
+                <button class="btn-large" style="background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%);">🧠 启动健康评估</button>
+            </div>
+
+            <!-- 供体统计 -->
+            <div class="section">
+                <div class="section-title">供体统计</div>
+                <div class="card">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px;">
+                        <div style="text-align: center; padding: 10px; background: #dbeafe; border-radius: 8px;">
+                            <div style="font-size: 18px; font-weight: 700; color: #1e40af;">96.2%</div>
+                            <div style="font-size: 10px; color: #1e3a8a;">评估完成率</div>
+                        </div>
+                        <div style="text-align: center; padding: 10px; background: #d1fae5; border-radius: 8px;">
+                            <div style="font-size: 18px; font-weight: 700; color: #059669;">94.5%</div>
+                            <div style="font-size: 10px; color: #064e3b;">合格率</div>
+                        </div>
+                    </div>
+                    <div style="padding: 10px; background: #f9fafb; border-radius: 8px;">
+                        <div style="font-size: 11px; font-weight: 600; color: #1f2937; margin-bottom: 5px;">月度统计</div>
+                        <div style="font-size: 10px; color: #6b7280; line-height: 1.6;">
+                            • 本月新增供体: 12例<br>
+                            • 活体供体评估中: 3例<br>
+                            • 尸体供体获取: 9例<br>
+                            • 供体并发症: 0例
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 快捷操作 -->
+            <div class="section">
+                <div class="section-title">快捷操作</div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                    <button class="btn-primary">➕ 新增供体</button>
+                    <button class="btn-warning">📋 批量评估</button>
+                </div>
+                <button class="btn-large secondary" style="margin-top: 10px;">📤 导出供体报告</button>
+            </div>
+        </div>
+
+        <!-- 科研功能页面 -->
+        <div class="content page-view" id="researchPage">
+            <!-- 课题概览 -->
+            <div class="section">
+                <div class="section-title">我的科研项目</div>
+                <div class="card">
+                    <div style="margin-bottom: 10px;">
+                        <div style="font-size: 10px; color: #6b7280;">课题编号: KTR-2026-001</div>
+                        <div style="font-size: 14px; font-weight: 600; color: #1f2937; margin: 5px 0;">肾移植术后他克莫司血药浓度与肾功能相关性研究</div>
+                        <span style="font-size: 10px; padding: 3px 8px; border-radius: 4px; background: #dbeafe; color: #1e40af; font-weight: 600;">进行中</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 10px 0; padding: 10px 0; border-top: 1px solid #f3f4f6; border-bottom: 1px solid #f3f4f6;">
+                        <div class="stat-item">
+                            <div class="stat-value" style="font-size: 16px; font-weight: 700;">128</div>
+                            <div class="stat-label">入组患者</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" style="font-size: 16px; font-weight: 700;">6</div>
+                            <div class="stat-label">随访月数</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" style="font-size: 16px; font-weight: 700;">98%</div>
+                            <div class="stat-label">数据完整率</div>
+                        </div>
+                    </div>
+                    <div style="background: #f9fafb; border-radius: 8px; padding: 10px; margin-top: 10px;">
+                        <div style="font-size: 11px; color: #1f2937; margin-bottom: 5px;">课题进度</div>
+                        <div style="height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; margin-bottom: 5px;">
+                            <div style="height: 100%; width: 65%; background: linear-gradient(90deg, #3b82f6, #1e40af);"></div>
+                        </div>
+                        <div style="font-size: 10px; color: #6b7280; text-align: center;">数据收集中 - 预计完成时间: 2026-09-30</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据管理 -->
+            <div class="section">
+                <div class="section-title">科研数据管理</div>
+                <div class="card" style="background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%); color: white;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size: 14px; font-weight: 600;">📊 数据导出与清洗</span>
+                        <button style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 6px; font-size: 11px; cursor: pointer;">立即导出</button>
+                    </div>
+                    <div style="font-size: 11px; line-height: 1.5; opacity: 0.95;">
+                        • 多格式导出（Excel、CSV、SPSS、R数据集）<br>
+                        • 自动脱敏处理，符合隐私保护要求<br>
+                        • 支持自定义时间范围和指标筛选<br>
+                        • AI异常数据检测与自动清洗
+                    </div>
+                </div>
+            </div>
+
+            <!-- 样本筛选与入组 -->
+            <div class="section">
+                <div class="section-title">样本筛选与入组</div>
+                <div class="card">
+                    <div style="padding: 10px; background: #f9fafb; border-radius: 8px; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #1f2937; font-weight: 600; margin-bottom: 8px;">快速筛选条件</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                            <span class="symptom-tag">术后<6个月</span>
+                            <span class="symptom-tag">年龄>60岁</span>
+                            <span class="symptom-tag alert">肌酐>120</span>
+                            <span class="symptom-tag">血药浓度<7ng/ml</span>
+                            <span class="symptom-tag">有并发症</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                        <button class="btn-primary" style="flex: 2; font-size: 12px;">🎯 精确筛选</button>
+                        <button class="btn-success" style="flex: 1; font-size: 12px;">批量入组</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 临床研究工具 -->
+            <div class="section">
+                <div class="section-title">临床研究工具</div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px;">
+                    <div class="card" style="padding: 12px; text-align: center; cursor: pointer;">
+                        <div style="font-size: 20px; margin-bottom: 5px;">📈</div>
+                        <div style="font-size: 12px; font-weight: 600; color: #1f2937;">生存分析</div>
+                        <div style="font-size: 10px; color: #6b7280;">Kaplan-Meier</div>
+                    </div>
+                    <div class="card" style="padding: 12px; text-align: center; cursor: pointer;">
+                        <div style="font-size: 20px; margin-bottom: 5px;">🔍</div>
+                        <div style="font-size: 12px; font-weight: 600; color: #1f2937;">回归分析</div>
+                        <div style="font-size: 10px; color: #6b7280;">Cox回归</div>
+                    </div>
+                    <div class="card" style="padding: 12px; text-align: center; cursor: pointer;">
+                        <div style="font-size: 20px; margin-bottom: 5px;">📊</div>
+                        <div style="font-size: 12px; font-weight: 600; color: #1f2937;">亚组分析</div>
+                        <div style="font-size: 10px; color: #6b7280;">分层分析</div>
+                    </div>
+                    <div class="card" style="padding: 12px; text-align: center; cursor: pointer;">
+                        <div style="font-size: 20px; margin-bottom: 5px;">🎲</div>
+                        <div style="font-size: 12px; font-weight: 600; color: #1f2937;">随机对照</div>
+                        <div style="font-size: 10px; color: #6b7280;">RCT设计</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI辅助科研 -->
+            <div class="section">
+                <div class="section-title">AI辅助科研</div>
+                <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px; padding: 15px; color: white; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <span style="font-size: 20px; margin-right: 8px;">🤖</span>
+                        <span style="font-size: 14px; font-weight: 600;">AI智能选题与假设生成</span>
+                    </div>
+                    <div style="font-size: 11px; line-height: 1.6; opacity: 0.95;">
+                        基于当前随访数据，AI已识别出3个潜在研究方向：<br>
+                        • 老年肾移植患者免疫抑制方案优化<br>
+                        • 术后感染风险预测模型构建<br>
+                        • 血药浓度监测频率个性化调整
+                    </div>
+                </div>
+                <button class="btn-large" style="background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%);">🧠 启动AI科研助手</button>
+            </div>
+
+            <!-- 论文与报告 -->
+            <div class="section">
+                <div class="section-title">论文与报告</div>
+                <div class="card">
+                    <div class="data-history-item">
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; color: #1f2937; font-weight: 600;">他克莫司血药浓度与肾功能相关性分析</div>
+                            <div style="font-size: 10px; color: #6b7280;">会议摘要 | 2026-03-15</div>
+                        </div>
+                        <button style="background: #f3f4f6; border: none; color: #6b7280; padding: 4px 8px; border-radius: 4px; font-size: 10px;">查看</button>
+                    </div>
+                    <div class="data-history-item">
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; color: #1f2937; font-weight: 600;">肾移植术后早期并发症风险预测模型</div>
+                            <div style="font-size: 10px; color: #6b7280;">完整论文 | 2026-02-28</div>
+                        </div>
+                        <button style="background: #f3f4f6; border: none; color: #6b7280; padding: 4px 8px; border-radius: 4px; font-size: 10px;">查看</button>
+                    </div>
+                </div>
+                <button class="btn-large secondary">📄 生成新论文大纲</button>
+            </div>
+
+            <!-- 多中心协作 -->
+            <div class="section">
+                <div class="section-title">多中心协作</div>
+                <div class="card">
+                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #3b82f6, #1e40af); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; margin-right: 12px;">🏥</div>
+                        <div style="flex: 1;">
+                            <div style="font-size: 13px; font-weight: 600; color: #1f2937;">全国肾移植随访研究联盟</div>
+                            <div style="font-size: 10px; color: #6b7280;">8家三甲医院 | 1,256例共享数据</div>
+                        </div>
+                        <span style="font-size: 10px; padding: 3px 8px; border-radius: 4px; background: #d1fae5; color: #065f46;">已加入</span>
+                    </div>
+                    <div style="background: #f9fafb; border-radius: 8px; padding: 10px;">
+                        <div style="font-size: 11px; color: #1f2937; margin-bottom: 5px;">协作数据统计</div>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                            <div class="stat-item">
+                                <div class="stat-value" style="font-size: 14px; font-weight: 700; color: #3b82f6;">1,256</div>
+                                <div class="stat-label">总样本</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" style="font-size: 14px; font-weight: 700; color: #10b981;">85%</div>
+                                <div class="stat-label">数据质量</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" style="font-size: 14px; font-weight: 700; color: #f59e0b;">6</div>
+                                <div class="stat-label">联合课题</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-large secondary">🤝 申请加入新联盟</button>
+            </div>
+
+            <!-- 随访质量控制 -->
+            <div class="section">
+                <div class="section-title">随访质量控制</div>
+                <div class="card">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px;">
+                        <div style="text-align: center; padding: 10px; background: #d1fae5; border-radius: 8px;">
+                            <div style="font-size: 18px; font-weight: 700; color: #059669;">98.2%</div>
+                            <div style="font-size: 10px; color: #064e3b;">随访完整性</div>
+                        </div>
+                        <div style="text-align: center; padding: 10px; background: #dbeafe; border-radius: 8px;">
+                            <div style="font-size: 18px; font-weight: 700; color: #1e40af;">95.6%</div>
+                            <div style="font-size: 10px; color: #1e3a8a;">数据准确率</div>
+                        </div>
+                    </div>
+                    <div style="padding: 10px; background: #fef3c7; border-radius: 8px; border-left: 3px solid #f59e0b;">
+                        <div style="font-size: 11px; font-weight: 600; color: #92400e; margin-bottom: 5px;">⚠️ 需关注问题</div>
+                        <div style="font-size: 10px; color: #78350f; line-height: 1.5;">
+                            • 3例患者随访记录存在缺失<br>
+                            • 部分患者上传数据格式不统一<br>
+                            • 建议加强随访前培训指导
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 科研模板库 -->
+            <div class="section">
+                <div class="section-title">科研模板库</div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px;">
+                    <div class="card" style="padding: 12px; cursor: pointer;">
+                        <div style="font-size: 12px; font-weight: 600; color: #1f2937; margin-bottom: 5px;">CRF表单模板</div>
+                        <div style="font-size: 10px; color: #6b7280;">标准病例报告表</div>
+                    </div>
+                    <div class="card" style="padding: 12px; cursor: pointer;">
+                        <div style="font-size: 12px; font-weight: 600; color: #1f2937; margin-bottom: 5px;">随访流程模板</div>
+                        <div style="font-size: 10px; color: #6b7280;">标准化随访流程</div>
+                    </div>
+                    <div class="card" style="padding: 12px; cursor: pointer;">
+                        <div style="font-size: 12px; font-weight: 600; color: #1f2937; margin-bottom: 5px;">数据分析模板</div>
+                        <div style="font-size: 10px; color: #6b7280;">常用统计分析代码</div>
+                    </div>
+                    <div class="card" style="padding: 12px; cursor: pointer;">
+                        <div style="font-size: 12px; font-weight: 600; color: #1f2937; margin-bottom: 5px;">论文撰写模板</div>
+                        <div style="font-size: 10px; color: #6b7280;">中英文论文框架</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 快捷操作 -->
+            <div class="section">
+                <button class="btn-large">📥 批量导入科研数据</button>
+                <button class="btn-large secondary">📤 导出分析报告</button>
+                <button class="btn-large secondary">🔬 创建新课题</button>
+            </div>
+        </div>
+
+        <!-- 数据分析页面 -->
+        <div class="content page-view" id="analysisPage">
+            <!-- 整体数据概览 -->
+            <div class="section">
+                <div class="section-title">整体数据概览</div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px;">
+                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 15px; border-radius: 8px; text-align: center; color: white;">
+                        <div style="font-size: 24px; font-weight: 700;">256</div>
+                        <div style="font-size: 11px; opacity: 0.9;">总患者数</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); padding: 15px; border-radius: 8px; text-align: center; color: white;">
+                        <div style="font-size: 24px; font-weight: 700;">12,847</div>
+                        <div style="font-size: 11px; opacity: 0.9;">随访记录</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 15px; border-radius: 8px; text-align: center; color: white;">
+                        <div style="font-size: 24px; font-weight: 700;">95.6%</div>
+                        <div style="font-size: 11px; opacity: 0.9;">随访完成率</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据可视化模块 -->
+            <div class="section">
+                <div class="section-title">
+                    <span>📊 数据可视化分析</span>
+                    <span style="font-size: 11px; color: #3b82f6; cursor: pointer;">全屏查看 →</span>
+                </div>
+                
+                <!-- 折线图 - 肌酐趋势 -->
+                <div class="card">
+                    <div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 12px; display: flex; justify-content: space-between;">
+                        <span>肾功能指标趋势图（肌酐）</span>
+                        <span style="font-size: 10px; color: #6b7280;">近6个月</span>
+                    </div>
+                    <div style="height: 180px; background: linear-gradient(to bottom, #f9fafb, #f3f4f6); border-radius: 8px; padding: 15px; position: relative; border: 1px solid #e5e7eb;">
+                        <svg viewBox="0 0 300 120" style="width: 100%; height: 100%;">
+                            <line x1="0" y1="30" x2="300" y2="30" stroke="#e5e7eb" stroke-width="1"/>
+                            <line x1="0" y1="60" x2="300" y2="60" stroke="#e5e7eb" stroke-width="1"/>
+                            <line x1="0" y1="90" x2="300" y2="90" stroke="#e5e7eb" stroke-width="1"/>
+                            <text x="5" y="25" font-size="8" fill="#6b7280">150</text>
+                            <text x="5" y="55" font-size="8" fill="#6b7280">100</text>
+                            <text x="5" y="85" font-size="8" fill="#6b7280">50</text>
+                            <text x="5" y="115" font-size="8" fill="#6b7280">0</text>
+                            <polyline fill="none" stroke="#3b82f6" stroke-width="2" points="30,70 80,65 130,60 180,55 230,50 280,45"/>
+                            <circle cx="30" cy="70" r="4" fill="#3b82f6"/>
+                            <circle cx="80" cy="65" r="4" fill="#3b82f6"/>
+                            <circle cx="130" cy="60" r="4" fill="#3b82f6"/>
+                            <circle cx="180" cy="55" r="4" fill="#3b82f6"/>
+                            <circle cx="230" cy="50" r="4" fill="#3b82f6"/>
+                            <circle cx="280" cy="45" r="4" fill="#ef4444"/>
+                            <text x="30" y="132" font-size="8" fill="#6b7280" text-anchor="middle">10月</text>
+                            <text x="80" y="132" font-size="8" fill="#6b7280" text-anchor="middle">11月</text>
+                            <text x="130" y="132" font-size="8" fill="#6b7280" text-anchor="middle">12月</text>
+                            <text x="180" y="132" font-size="8" fill="#6b7280" text-anchor="middle">1月</text>
+                            <text x="230" y="132" font-size="8" fill="#6b7280" text-anchor="middle">2月</text>
+                            <text x="280" y="132" font-size="8" fill="#6b7280" text-anchor="middle">3月</text>
+                        </svg>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <span style="font-size: 10px; padding: 3px 8px; border-radius: 4px; background: #dbeafe; color: #1e40af;">肌酐</span>
+                        <span style="font-size: 10px; padding: 3px 8px; border-radius: 4px; background: #f3f4f6; color: #6b7280;">尿素氮</span>
+                        <span style="font-size: 10px; padding: 3px 8px; border-radius: 4px; background: #f3f4f6; color: #6b7280;">尿酸</span>
+                    </div>
+                </div>
+
+                <!-- 柱状图 - 并发症分布 -->
+                <div class="card">
+                    <div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 12px;">术后并发症类型分布</div>
+                    <div style="height: 160px; background: linear-gradient(to bottom, #f9fafb, #f3f4f6); border-radius: 8px; padding: 15px; position: relative; border: 1px solid #e5e7eb;">
+                        <svg viewBox="0 0 300 120" style="width: 100%; height: 100%;">
+                            <text x="5" y="25" font-size="8" fill="#6b7280">80</text>
+                            <text x="5" y="50" font-size="8" fill="#6b7280">60</text>
+                            <text x="5" y="75" font-size="8" fill="#6b7280">40</text>
+                            <text x="5" y="100" font-size="8" fill="#6b7280">20</text>
+                            <rect x="30" y="40" width="35" height="70" fill="#3b82f6" rx="2"/>
+                            <rect x="85" y="55" width="35" height="55" fill="#8b5cf6" rx="2"/>
+                            <rect x="140" y="70" width="35" height="40" fill="#10b981" rx="2"/>
+                            <rect x="195" y="80" width="35" height="30" fill="#f59e0b" rx="2"/>
+                            <rect x="250" y="90" width="35" height="20" fill="#ef4444" rx="2"/>
+                            <text x="47" y="35" font-size="9" fill="#3b82f6" text-anchor="middle" font-weight="600">72</text>
+                            <text x="102" y="50" font-size="9" fill="#8b5cf6" text-anchor="middle" font-weight="600">56</text>
+                            <text x="157" y="65" font-size="9" fill="#10b981" text-anchor="middle" font-weight="600">41</text>
+                            <text x="212" y="75" font-size="9" fill="#f59e0b" text-anchor="middle" font-weight="600">30</text>
+                            <text x="267" y="85" font-size="9" fill="#ef4444" text-anchor="middle" font-weight="600">20</text>
+                            <text x="47" y="115" font-size="7" fill="#6b7280" text-anchor="middle">感染</text>
+                            <text x="102" y="115" font-size="7" fill="#6b7280" text-anchor="middle">排斥</text>
+                            <text x="157" y="115" font-size="7" fill="#6b7280" text-anchor="middle">代谢</text>
+                            <text x="212" y="115" font-size="7" fill="#6b7280" text-anchor="middle">心血管</text>
+                            <text x="267" y="115" font-size="7" fill="#6b7280" text-anchor="middle">其他</text>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 饼图 - 患者风险分层 -->
+                <div class="card">
+                    <div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 12px;">患者风险分层</div>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <svg viewBox="0 0 100 100" style="width: 120px; height: 120px;">
+                            <path d="M50,50 L50,0 A50,50 0 0,1 50,100 Z" fill="#ef4444" stroke="white" stroke-width="2"/>
+                            <path d="M50,50 L50,100 A50,50 0 0,1 93.3,25 Z" fill="#f59e0b" stroke="white" stroke-width="2"/>
+                            <path d="M50,50 L93.3,25 A50,50 0 0,1 50,0 Z" fill="#10b981" stroke="white" stroke-width="2"/>
+                        </svg>
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <span style="width: 12px; height: 12px; background: #ef4444; border-radius: 2px; margin-right: 8px;"></span>
+                                <div style="flex: 1;">
+                                    <div style="font-size: 11px; color: #1f2937;">高风险</div>
+                                    <div style="font-size: 10px; color: #6b7280;">需要重点关注</div>
+                                </div>
+                                <span style="font-size: 14px; font-weight: 600; color: #ef4444;">35%</span>
+                            </div>
+                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <span style="width: 12px; height: 12px; background: #f59e0b; border-radius: 2px; margin-right: 8px;"></span>
+                                <div style="flex: 1;">
+                                    <div style="font-size: 11px; color: #1f2937;">中风险</div>
+                                    <div style="font-size: 10px; color: #6b7280;">定期随访</div>
+                                </div>
+                                <span style="font-size: 14px; font-weight: 600; color: #f59e0b;">42%</span>
+                            </div>
+                            <div style="display: flex; align-items: center;">
+                                <span style="width: 12px; height: 12px; background: #10b981; border-radius: 2px; margin-right: 8px;"></span>
+                                <div style="flex: 1;">
+                                    <div style="font-size: 11px; color: #1f2937;">低风险</div>
+                                    <div style="font-size: 10px; color: #6b7280;">常规管理</div>
+                                </div>
+                                <span style="font-size: 14px; font-weight: 600; color: #10b981;">23%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 散点图 - 血药浓度与肾功能相关性 -->
+                <div class="card">
+                    <div style="font-size: 13px; font-weight: 600; color: #1f2937; margin-bottom: 12px;">血药浓度 vs 肌酐水平相关性分析</div>
+                    <div style="height: 160px; background: linear-gradient(to bottom, #f9fafb, #f3f4f6); border-radius: 8px; padding: 15px; position: relative; border: 1px solid #e5e7eb;">
+                        <svg viewBox="0 0 280 120" style="width: 100%; height: 100%;">
+                            <line x1="20" y1="100" x2="270" y2="100" stroke="#9ca3af" stroke-width="1"/>
+                            <line x1="20" y1="100" x2="20" y2="20" stroke="#9ca3af" stroke-width="1"/>
+                            <circle cx="40" cy="90" r="3" fill="#3b82f6" opacity="0.7"/>
+                            <circle cx="55" cy="85" r="3" fill="#3b82f6" opacity="0.7"/>
+                            <circle cx="70" cy="75" r="3" fill="#3b82f6" opacity="0.7"/>
+                            <circle cx="85" cy="70" r="3" fill="#3b82f6" opacity="0.7"/>
+                            <circle cx="100" cy="65" r="3" fill="#3b82f6" opacity="0.7"/>
+                            <circle cx="115" cy="60" r="3" fill="#3b82f6" opacity="0.7"/>
+                            <circle cx="130" cy="55" r="3" fill="#3b82f6" opacity="0.7"/>
+                            <circle cx="145" cy="50" r="3" fill="#3b82f6" opacity="0.7"/>
+                            <circle cx="160" cy="48" r="3" fill="#3b82f6" opacity="0.7"/>
+                            <circle cx="175" cy="45" r="3" fill="#3b82f6" opacity="0.7"/>
+                            <circle cx="190" cy="42" r="3" fill="#3b82f6" opacity="0.7"/>
+                            <circle cx="205" cy="40" r="3" fill="#3b82f6" opacity="0.7"/>
+                            <circle cx="220" cy="38" r="3" fill="#3b82f6" opacity="0.7"/>
+                            <circle cx="235" cy="35" r="3" fill="#ef4444" opacity="0.9"/>
+                            <circle cx="250" cy="32" r="3" fill="#ef4444" opacity="0.9"/>
+                            <circle cx="265" cy="30" r="3" fill="#ef4444" opacity="0.9"/>
+                            <line x1="40" y1="88" x2="260" y2="30" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.8"/>
+                            <text x="145" y="115" font-size="8" fill="#6b7280" text-anchor="middle">血药浓度 (ng/ml)</text>
+                            <text x="12" y="60" font-size="8" fill="#6b7280" text-anchor="middle" transform="rotate(-90, 12, 60)">肌酐 (μmol/L)</text>
+                        </svg>
+                    </div>
+                    <div style="font-size: 10px; color: #6b7280; margin-top: 8px; line-height: 1.4;">
+                        <span style="color: #3b82f6;">●</span> 正常范围样本  
+                        <span style="color: #ef4444;">●</span> 异常样本  
+                        <span style="color: #ef4444;">─</span> 负相关趋势线 (r=-0.72, p<0.01)
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI智能洞察 -->
+            <div class="section">
+                <div class="section-title">AI智能洞察</div>
+                <div style="background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%); padding: 15px; border-radius: 12px; color: white; margin-bottom: 12px;">
+                    <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center;">
+                        <span style="margin-right: 8px;">🤖</span>AI数据分析报告
+                    </div>
+                    <div style="font-size: 11px; line-height: 1.6; opacity: 0.95;">
+                        • 血药浓度控制在7-10ng/ml范围内患者排斥反应发生率降低45%<br>
+                        • 术后3-6个月为并发症高发期，建议加强监测频率<br>
+                        • 年龄>60岁患者感染风险显著增高，需重点关注
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="height: 80px;"></div>
+    </div>
+
+    <script>
+        function switchMainTab(tabName) {
+            // 隐藏所有页面
+            document.querySelectorAll('.page-view').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // 移除所有标签的active状态
+            document.querySelectorAll('.tab-item').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 显示选中的页面
+            document.getElementById(tabName + 'Page').classList.add('active');
+            
+            // 添加active状态到点击的标签
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
+        }
+
+        // 显示患者详情页
+        function showPatientDetail(patientName, status) {
+            // 隐藏患者列表页
+            document.getElementById('managementPage').classList.remove('active');
+            
+            // 显示患者详情页
+            document.getElementById('patientDetailPage').classList.add('active');
+            
+            // 根据患者信息更新详情页内容
+            if (patientName === '李明') {
+                document.getElementById('detailPatientName').textContent = '李明';
+                document.getElementById('detailPatientInfo').textContent = '术后6个月 | ID: PT20260125';
+                document.getElementById('detailCreatinine').textContent = '128';
+                document.getElementById('detailCreatinine').style.color = '#ef4444';
+                document.getElementById('detailConcentration').textContent = '8.2';
+                document.getElementById('detailConcentration').style.color = '#f59e0b';
+                document.getElementById('detailWeight').textContent = '68.5';
+            } else if (patientName === '王芳') {
+                document.getElementById('detailPatientName').textContent = '王芳';
+                document.getElementById('detailPatientInfo').textContent = '术后5个月 | ID: PT20260210';
+                document.getElementById('detailCreatinine').textContent = '98';
+                document.getElementById('detailCreatinine').style.color = '#f59e0b';
+                document.getElementById('detailConcentration').textContent = '7.5';
+                document.getElementById('detailConcentration').style.color = '#1f2937';
+                document.getElementById('detailWeight').textContent = '62.0';
+            } else if (patientName === '张伟') {
+                document.getElementById('detailPatientName').textContent = '张伟';
+                document.getElementById('detailPatientInfo').textContent = '术后3个月 | ID: PT20260301';
+                document.getElementById('detailCreatinine').textContent = '85';
+                document.getElementById('detailCreatinine').style.color = '#10b981';
+                document.getElementById('detailConcentration').textContent = '8.0';
+                document.getElementById('detailConcentration').style.color = '#1f2937';
+                document.getElementById('detailWeight').textContent = '70.2';
+            }
+        }
+
+        // 返回患者列表页
+        function backToPatientList() {
+            // 隐藏患者详情页
+            document.getElementById('patientDetailPage').classList.remove('active');
+            
+            // 显示患者列表页
+            document.getElementById('managementPage').classList.add('active');
+        }
+
+        // 显示供体详情页
+        function showDonorDetail(donorId) {
+            // 隐藏供体列表页
+            document.getElementById('donorPage').classList.remove('active');
+            
+            // 显示供体详情页
+            document.getElementById('donorDetailPage').classList.add('active');
+            
+            // 根据供体ID更新详情页内容
+            if (donorId === 'DONOR-2026-0042') {
+                document.getElementById('donorDetailName').textContent = '张某某';
+                document.getElementById('donorDetailInfo').textContent = '供体ID: DONOR-2026-0042 | 年龄: 32岁 | 男性';
+                document.getElementById('donorDetailType').textContent = '活体供体 | 父亲供子 | A型';
+                document.getElementById('donorDetailStatus').textContent = '已评估';
+                document.getElementById('donorDetailStatus').style.background = 'rgba(255,255,255,0.2)';
+            } else if (donorId === 'DONOR-2026-0041') {
+                document.getElementById('donorDetailName').textContent = '李某某';
+                document.getElementById('donorDetailInfo').textContent = '供体ID: DONOR-2026-0041 | 年龄: 28岁 | 女性';
+                document.getElementById('donorDetailType').textContent = '活体供体 | 配偶供肾 | B型';
+                document.getElementById('donorDetailStatus').textContent = '评估中';
+                document.getElementById('donorDetailStatus').style.background = '#f59e0b';
+            } else if (donorId === 'DONOR-2026-0158') {
+                document.getElementById('donorDetailName').textContent = 'DCD-2026-0158';
+                document.getElementById('donorDetailInfo').textContent = '供体ID: DONOR-2026-0158 | 年龄: 45岁 | 男性';
+                document.getElementById('donorDetailType').textContent = '尸体供体 | 脑死亡捐献 | O型';
+                document.getElementById('donorDetailStatus').textContent = '已完成';
+                document.getElementById('donorDetailStatus').style.background = '#10b981';
+            }
+        }
+
+        // 返回供体列表页
+        function backToDonorList() {
+            // 隐藏供体详情页
+            document.getElementById('donorDetailPage').classList.remove('active');
+            
+            // 显示供体列表页
+            document.getElementById('donorPage').classList.add('active');
+        }
+
+        // 筛选标签切换
+        document.querySelectorAll('.filter-tag').forEach(tag => {
+            tag.addEventListener('click', function() {
+                document.querySelectorAll('.filter-tag').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        function toggleSearch() {
+            alert('搜索功能：支持自然语言搜索，如"肌酐超过100的术后患者"');
+        }
+    </script>
+
+    <!-- DEMO弹窗 -->
+    <div class="demo-modal" id="demoModal">
+        <div class="demo-modal-content">
+            <div class="demo-modal-icon">🏥</div>
+            <div class="demo-modal-title">肾移植随访系统</div>
+            <div class="demo-modal-subtitle">医生端演示版本</div>
+            <div class="demo-modal-badge">DEMO</div>
+            
+            <div class="demo-modal-warning">
+                <div class="demo-modal-warning-title">⚠️ 重要提示</div>
+                <div class="demo-modal-warning-text">
+                    本系统为功能演示版本，所有展示的患者数据、医疗信息、随访记录均为模拟数据，不用于真实的临床决策或患者管理。
+                </div>
+            </div>
+            
+            <button class="demo-modal-close-btn" onclick="closeDemoModal()">进入系统</button>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载时显示DEMO弹窗
+        window.onload = function() {
+            document.getElementById('demoModal').style.display = 'flex';
+        };
+
+        // 关闭DEMO弹窗
+        function closeDemoModal() {
+            document.getElementById('demoModal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

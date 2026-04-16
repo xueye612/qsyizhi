@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>器官移植随访系统 - 医生端电脑版</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{--bg:#0f172a;--bg2:#1e293b;--bg3:#334155;--surface:#1e293b;--surface2:#273548;--border:#334155;--border2:#475569;--text:#f1f5f9;--text2:#94a3b8;--text3:#64748b;--primary:#007cff;--primary2:#0066d6;--primary3:#004aa6;--accent:#e040ff;--success:#00ff9d;--warning:#ffd200;--danger:#ff4466;--info:#00f2ff;--radius:12px;--shadow:0 4px 24px rgba(0,0,0,0.3)}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100vh}
+        .app{display:grid;grid-template-columns:240px 1fr;grid-template-rows:60px 1fr;height:100vh}
+        /* 侧边栏 */
+        .sidebar{grid-row:1/3;background:linear-gradient(180deg,#0f172a 0%,#1a1f35 100%);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+        .sidebar-brand{padding:16px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)}
+        .sidebar-brand .logo{width:40px;height:40px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;font-weight:700}
+        .sidebar-brand h2{font-size:15px;line-height:1.3}
+        .sidebar-brand p{font-size:10px;color:var(--text2);margin-top:2px}
+        .nav-section{padding:12px 0}
+        .nav-section-title{padding:4px 20px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+        .nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;font-size:13px;color:var(--text2);cursor:pointer;transition:all .2s;border-left:3px solid transparent;position:relative}
+        .nav-item:hover{background:rgba(59,130,246,.08);color:var(--text)}
+        .nav-item.active{background:rgba(59,130,246,.12);color:var(--primary);border-left-color:var(--primary);font-weight:600}
+        .nav-item .icon{font-size:18px;width:24px;text-align:center}
+        .nav-item .badge-count{position:absolute;right:16px;background:var(--danger);color:#fff;font-size:10px;padding:2px 6px;border-radius:10px;font-weight:600}
+        .nav-divider{height:1px;background:var(--border);margin:4px 16px}
+        .sidebar-footer{margin-top:auto;padding:16px 20px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px}
+        .avatar{width:36px;height:36px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff}
+        .sidebar-footer .user-info{font-size:12px}
+        .sidebar-footer .user-info .name{font-weight:600;color:var(--text)}
+        .sidebar-footer .user-info .role{color:var(--text3);font-size:10px}
+        /* 顶栏 */
+        .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+        .topbar-left{display:flex;align-items:center;gap:16px}
+        .topbar-left h3{font-size:16px;font-weight:600}
+        .search-box{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;min-width:320px}
+        .search-box input{background:transparent;border:none;color:var(--text);font-size:13px;outline:none;width:100%}
+        .search-box input::placeholder{color:var(--text3)}
+        .topbar-right{display:flex;align-items:center;gap:12px}
+        .topbar-btn{width:36px;height:36px;border-radius:8px;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;font-size:16px;color:var(--text2);transition:all .2s}
+        .topbar-btn:hover{border-color:var(--primary);color:var(--primary)}
+        .topbar-btn .dot{position:absolute;top:6px;right:6px;width:8px;height:8px;background:var(--danger);border-radius:50%;border:2px solid var(--surface)}
+        .link-btns{display:flex;gap:8px}
+        .link-btn{padding:7px 14px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;text-decoration:none;border:1px solid var(--border);color:var(--text2);background:transparent}
+        .link-btn:hover{border-color:var(--primary);color:var(--primary)}
+        .link-btn.accent{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border:none}
+        /* 主内容 */
+        .main{overflow-y:auto;padding:20px 24px;background:var(--bg)}
+        .page{display:none}.page.active{display:block}
+        /* 仪表盘 KPI */
+        .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+        .kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;position:relative;overflow:hidden;transition:transform .2s}
+        .kpi-card:hover{transform:translateY(-2px)}
+        .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+        .kpi-card:nth-child(1)::before{background:linear-gradient(90deg,var(--primary),var(--info))}
+        .kpi-card:nth-child(2)::before{background:linear-gradient(90deg,var(--danger),var(--warning))}
+        .kpi-card:nth-child(3)::before{background:linear-gradient(90deg,var(--success),#6ee7b7)}
+        .kpi-card:nth-child(4)::before{background:linear-gradient(90deg,var(--accent),#c084fc)}
+        .kpi-label{font-size:12px;color:var(--text2);margin-bottom:8px}
+        .kpi-value{font-size:28px;font-weight:700;line-height:1}
+        .kpi-meta{font-size:11px;color:var(--text3);margin-top:6px;display:flex;align-items:center;gap:4px}
+        .kpi-meta .up{color:var(--success)}.kpi-meta .down{color:var(--danger)}
+        /* 通用卡片 */
+        .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+        .card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+        .card-header h4{font-size:14px;font-weight:600}
+        .card-header .sub{font-size:11px;color:var(--text3)}
+        .card-body{padding:16px 18px}
+        .card-body.np{padding:0}
+        /* 双栏 */
+        .split{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+        .triple{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:16px;margin-bottom:20px}
+        .single{margin-bottom:20px}
+        /* 患者列表 */
+        .patient-table{width:100%;border-collapse:collapse}
+        .patient-table th,.patient-table td{text-align:left;padding:11px 14px;font-size:13px;border-bottom:1px solid var(--border)}
+        .patient-table th{color:var(--text2);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.5px;background:rgba(0,0,0,.15)}
+        .patient-table tr{cursor:pointer;transition:background .15s}
+        .patient-table tr:hover{background:rgba(59,130,246,.06)}
+        .patient-table tr.selected{background:rgba(59,130,246,.12)}
+        .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+        .status-dot.danger{background:var(--danger)}.status-dot.warning{background:var(--warning)}.status-dot.success{background:var(--success)}.status-dot.info{background:var(--info)}
+        .tag{display:inline-block;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:600}
+        .tag-danger{background:rgba(239,68,68,.15);color:#fca5a5}.tag-warning{background:rgba(245,158,11,.15);color:#fcd34d}.tag-success{background:rgba(16,185,129,.15);color:#6ee7b7}.tag-info{background:rgba(6,182,212,.15);color:#67e8f9}.tag-purple{background:rgba(139,92,246,.15);color:#c4b5fd}
+        /* 过滤栏 */
+        .filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+        .filter-chip{padding:6px 14px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--border);color:var(--text2);background:transparent;transition:all .2s}
+        .filter-chip:hover,.filter-chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+        /* 患者详情面板 */
+        .detail-panel{position:fixed;top:0;right:-560px;width:560px;height:100vh;background:var(--surface);border-left:1px solid var(--border);box-shadow:-20px 0 60px rgba(0,0,0,.4);z-index:1000;transition:right .35s cubic-bezier(.4,0,.2,1);overflow-y:auto}
+        .detail-panel.open{right:0}
+        .detail-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:999;display:none}
+        .detail-overlay.show{display:block}
+        .detail-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:8px;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--text2);z-index:1}
+        .detail-hero{padding:24px 20px;background:linear-gradient(135deg,var(--primary3),var(--accent));color:#fff;position:relative}
+        .detail-hero h3{font-size:20px;margin-bottom:4px}
+        .detail-hero p{font-size:12px;opacity:.9}
+        .detail-info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:16px 20px}
+        .detail-info-item{padding:10px;background:var(--bg);border-radius:8px}
+        .detail-info-item .label{font-size:10px;color:var(--text3);margin-bottom:3px}
+        .detail-info-item .value{font-size:13px;font-weight:600}
+        .detail-section{padding:14px 20px;border-bottom:1px solid var(--border)}
+        .detail-section h5{font-size:13px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+        .detail-stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+        .detail-stat{text-align:center;padding:10px;background:var(--bg);border-radius:8px}
+        .detail-stat .val{font-size:18px;font-weight:700}
+        .detail-stat .lbl{font-size:10px;color:var(--text3);margin-top:3px}
+        .detail-stat .ref{font-size:9px;color:var(--text3)}
+        .med-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+        .med-row:last-child{border:none}
+        .med-row .med-name{font-size:12px;font-weight:600}
+        .med-row .med-desc{font-size:10px;color:var(--text3)}
+        .med-row .med-dose{font-size:12px;font-weight:600;color:var(--accent)}
+        .timeline-item{position:relative;padding-left:20px;padding-bottom:14px;border-left:2px solid var(--border);margin-left:4px}
+        .timeline-item::before{content:'';position:absolute;left:-5px;top:2px;width:8px;height:8px;border-radius:50%;background:var(--primary)}
+        .timeline-item .t-date{font-size:10px;color:var(--text3)}
+        .timeline-item .t-text{font-size:12px;color:var(--text);margin-top:2px}
+        /* AI卡片 */
+        .ai-card{background:linear-gradient(135deg,#7c3aed,#8b5cf6);border-radius:var(--radius);padding:16px 18px;color:#fff;margin-bottom:16px}
+        .ai-card h5{font-size:14px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+        .ai-card p{font-size:12px;opacity:.95;line-height:1.6}
+        .ai-card .ai-alert{background:rgba(255,255,255,.12);padding:10px;border-radius:8px;margin-top:10px;font-size:11px;line-height:1.5}
+        /* 趋势图 */
+        .chart-bars{height:140px;display:flex;align-items:flex-end;justify-content:space-around;padding:10px 6px 0;border-bottom:1px solid var(--border)}
+        .chart-col{display:flex;flex-direction:column;align-items:center;gap:4px}
+        .chart-bar{width:22px;border-radius:4px 4px 0 0;transition:height .6s ease}
+        .chart-bar.blue{background:linear-gradient(to top,var(--primary),#60a5fa)}
+        .chart-bar.red{background:linear-gradient(to top,var(--danger),#f87171)}
+        .chart-bar.yellow{background:linear-gradient(to top,var(--warning),#fbbf24)}
+        .chart-bar.green{background:linear-gradient(to top,var(--success),#6ee7b7)}
+        .chart-lbl{font-size:9px;color:var(--text3)}
+        .chart-val{font-size:9px;color:var(--text2);font-weight:600}
+        /* 按钮 */
+        .btn{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+        .btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary2)}
+        .btn-warning{background:var(--warning);color:#fff}
+        .btn-success{background:var(--success);color:#fff}
+        .btn-accent{background:var(--accent);color:#fff}
+        .btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border)}.btn-outline:hover{border-color:var(--primary);color:var(--primary)}
+        .btn-group{display:flex;gap:8px;flex-wrap:wrap}
+        /* 供体卡片 */
+        .donor-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;transition:all .3s;cursor:pointer;position:relative;overflow:hidden}
+        .donor-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--primary),var(--accent));opacity:0;transition:opacity .3s}
+        .donor-card:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:0 8px 24px rgba(59,130,246,.15)}
+        .donor-card:hover::before{opacity:1}
+        .donor-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+        .donor-card-info{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;background:rgba(0,0,0,.15);border-radius:8px;padding:10px;margin-bottom:10px}
+        .donor-card-info .di-label{font-size:9px;color:var(--text3)}
+        .donor-card-info .di-value{font-size:12px;font-weight:600;margin-top:2px}
+        /* 科研卡片 */
+        .research-project{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+        .research-project h5{font-size:14px;margin-bottom:6px}
+        .research-project .rp-id{font-size:10px;color:var(--text3)}
+        .research-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0;padding:12px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+        .research-stats .rs{text-align:center}
+        .research-stats .rs .v{font-size:18px;font-weight:700}
+        .research-stats .rs .l{font-size:10px;color:var(--text3);margin-top:2px}
+        .progress-bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
+        .progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--primary),var(--accent));transition:width .6s ease}
+        /* 研究工具网格 */
+        .tool-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+        .tool-item{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:all .2s}
+        .tool-item:hover{border-color:var(--primary);background:rgba(59,130,246,.06)}
+        .tool-item .ti{font-size:24px;margin-bottom:6px}
+        .tool-item .tt{font-size:12px;font-weight:600}
+        .tool-item .td{font-size:10px;color:var(--text3)}
+        /* 数据分析 */
+        .analysis-card{background:var(--bg);border-radius:var(--radius);padding:16px;border:1px solid var(--border)}
+        .analysis-card h5{font-size:13px;margin-bottom:12px}
+        /* 响应式 */
+        @media(max-width:1280px){.kpi-row{grid-template-columns:repeat(2,1fr)}.triple{grid-template-columns:1fr}}
+        @media(max-width:1024px){.app{grid-template-columns:200px 1fr}.split{grid-template-columns:1fr}}
+        @media(max-width:768px){.app{grid-template-columns:1fr}.sidebar{display:none}}
+        /* 动画 */
+        @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        .card,.kpi-card{animation:fadeIn .4s ease both}
+        .card:nth-child(2),.kpi-card:nth-child(2){animation-delay:.05s}
+        .card:nth-child(3),.kpi-card:nth-child(3){animation-delay:.1s}
+        .card:nth-child(4),.kpi-card:nth-child(4){animation-delay:.15s}
+        /* Iconify图标 */
+        iconify-icon{vertical-align:middle;display:inline-flex}
+        .ic-sm{font-size:16px}.ic-md{font-size:20px}.ic-lg{font-size:24px}
+        .ic-ai{color:var(--accent)}.ic-risk{color:var(--danger)}.ic-data{color:var(--primary)}.ic-med{color:var(--success)}.ic-warn{color:var(--warning)}.ic-cyan{color:var(--info)}.ic-pink{color:#f472b6}
+        /* 供体详情实验室行 */
+        .dd-lab-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid var(--border)}
+        .dd-lab-row:last-child{border:none}
+        .dd-lab-row span:first-child{color:var(--text2)}
+        .dd-lab-row span:last-child{font-weight:600}
+        /* 供体风险项 */
+        .dd-risk-item{margin-bottom:10px}
+        .dd-risk-header{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
+        .dd-risk-header span:first-child{color:var(--text2)}
+        .dd-risk-header span:last-child{font-weight:600}
+    </style>
+    <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+</head>
+<body>
+<div class="app">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="logo">肾</div>
+            <div><h2>器官移植随访系统</h2><p>医生端电脑版 v2.0</p></div>
+        </div>
+        <nav class="nav-section">
+            <div class="nav-section-title">临床管理</div>
+            <div class="nav-item active" onclick="switchPage('management')"><span class="icon"><iconify-icon icon="mdi:clipboard-text" class="ic-md ic-data"></iconify-icon></span>患者管理<span class="badge-count">3</span></div>
+            <div class="nav-item" onclick="switchPage('donor')"><span class="icon"><iconify-icon icon="mdi:kidney" class="ic-md ic-med"></iconify-icon></span>供体管理</div>
+            <div class="nav-divider"></div>
+            <div class="nav-section-title">科研与分析</div>
+            <div class="nav-item" onclick="switchPage('research')"><span class="icon"><iconify-icon icon="mdi:microscope" class="ic-md ic-cyan"></iconify-icon></span>科研功能</div>
+            <div class="nav-item" onclick="switchPage('analysis')"><span class="icon"><iconify-icon icon="mdi:chart-bar" class="ic-md ic-data"></iconify-icon></span>数据分析</div>
+            <div class="nav-divider"></div>
+            <div class="nav-section-title">增强功能</div>
+            <div class="nav-item" onclick="switchPage('ai')"><span class="icon"><iconify-icon icon="mdi:robot-happy" class="ic-md ic-ai"></iconify-icon></span>AI 诊断助手</div>
+            <div class="nav-item" onclick="switchPage('team')"><span class="icon"><iconify-icon icon="mdi:account-group" class="ic-md ic-cyan"></iconify-icon></span>团队协作</div>
+            <div class="nav-item" onclick="switchPage('schedule')"><span class="icon"><iconify-icon icon="mdi:calendar-clock" class="ic-md ic-warn"></iconify-icon></span>排班与任务</div>
+            <div class="nav-divider"></div>
+            <div class="nav-section-title">快捷入口</div>
+            <div class="nav-item" onclick="window.open('data_screen.html','_blank')"><span class="icon"><iconify-icon icon="mdi:monitor-dashboard" class="ic-md ic-data"></iconify-icon></span>数据大屏</div>
+            <div class="nav-item" onclick="window.open('doctor_portal.html','_blank')"><span class="icon"><iconify-icon icon="mdi:cellphone" class="ic-md ic-med"></iconify-icon></span>移动端预览</div>
+            <div class="nav-item" onclick="window.open('patient_pc.html','_blank')"><span class="icon"><iconify-icon icon="mdi:account-heart" class="ic-md ic-pink"></iconify-icon></span>患者端视图</div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="avatar">张</div>
+            <div class="user-info"><div class="name">张主任</div><div class="role">肾移植科 · 主任医师</div></div>
+        </div>
+    </aside>
+
+    <!-- 顶栏 -->
+    <header class="topbar">
+        <div class="topbar-left">
+            <h3 id="pageTitle">患者管理</h3>
+            <div class="search-box"><iconify-icon icon="mdi:magnify" class="ic-md" style="color:var(--text3)"></iconify-icon><input type="text" placeholder="搜索患者姓名、ID、课题编号..."></div>
+        </div>
+        <div class="topbar-right">
+            <div class="link-btns">
+                <a class="link-btn accent" href="data_screen.html" target="_blank"><iconify-icon icon="mdi:monitor-dashboard" class="ic-sm"></iconify-icon> 数据大屏</a>
+            </div>
+            <div class="topbar-btn" title="通知"><iconify-icon icon="mdi:bell" class="ic-md"></iconify-icon><span class="dot"></span></div>
+            <div class="topbar-btn" title="消息"><iconify-icon icon="mdi:chat" class="ic-md"></iconify-icon></div>
+            <div class="topbar-btn" title="设置"><iconify-icon icon="mdi:cog" class="ic-md"></iconify-icon></div>
+        </div>
+    </header>
+
+    <!-- 主内容 -->
+    <main class="main">
+        <!-- ==================== 患者管理页 ==================== -->
+        <div class="page active" id="page-management">
+            <div class="kpi-row">
+                <div class="kpi-card"><div class="kpi-label">待随访患者</div><div class="kpi-value" style="color:var(--primary)">18</div><div class="kpi-meta"><span class="up">↑ 4</span> 较昨日</div></div>
+                <div class="kpi-card"><div class="kpi-label">异常预警</div><div class="kpi-value" style="color:var(--danger)">5</div><div class="kpi-meta">高风险 2 例需立即处置</div></div>
+                <div class="kpi-card"><div class="kpi-label">今日复诊</div><div class="kpi-value" style="color:var(--success)">23</div><div class="kpi-meta">已完成 61% · 14/23</div></div>
+                <div class="kpi-card"><div class="kpi-label">在管患者总量</div><div class="kpi-value" style="color:var(--accent)">386</div><div class="kpi-meta"><span class="up">↑ 6.2%</span> 环比上月</div></div>
+            </div>
+
+            <div class="filter-bar">
+                <span style="font-size:12px;color:var(--text2);margin-right:6px">筛选：</span>
+                <div class="filter-chip active" onclick="filterPatients(this)">全部患者</div>
+                <div class="filter-chip" onclick="filterPatients(this)">异常 (3)</div>
+                <div class="filter-chip" onclick="filterPatients(this)">需关注 (5)</div>
+                <div class="filter-chip" onclick="filterPatients(this)">术后 (42)</div>
+                <div class="filter-chip" onclick="filterPatients(this)">术前 (8)</div>
+                <div style="margin-left:auto" class="btn-group">
+                    <button class="btn btn-primary">+ 新增患者</button>
+                    <button class="btn btn-outline"><iconify-icon icon="mdi:export" class="ic-sm"></iconify-icon> 导出名单</button>
+                    <button class="btn btn-outline"><iconify-icon icon="mdi:chart-bar" class="ic-sm"></iconify-icon> 批量分析</button>
+                </div>
+            </div>
+
+            <div class="card single">
+                <div class="card-body np">
+                    <table class="patient-table">
+                        <thead><tr><th>状态</th><th>患者姓名</th><th>ID</th><th>阶段</th><th>肌酐 μmol/L</th><th>血药浓度</th><th>体重 kg</th><th>血压 mmHg</th><th>血糖 mmol/L</th><th>血红蛋白 g/L</th><th>最后更新</th><th>操作</th></tr></thead>
+                        <tbody>
+                            <tr onclick="openDetail('李明')" class="selected">
+                                <td><span class="status-dot danger"></span></td>
+                                <td><strong>李明</strong></td>
+                                <td>PT20260125</td>
+                                <td><span class="tag tag-success">术后6个月</span></td>
+                                <td style="color:#fca5a5;font-weight:600">128 ↑</td>
+                                <td style="color:#fcd34d">8.2</td>
+                                <td>68.5</td>
+                                <td>120/80</td>
+                                <td>5.8</td>
+                                <td>130</td>
+                                <td style="color:var(--text3)">03-31 09:30</td>
+                                <td><button class="btn btn-primary" onclick="event.stopPropagation();openDetail('李明')">详情</button></td>
+                            </tr>
+                            <tr onclick="openDetail('王芳')">
+                                <td><span class="status-dot warning"></span></td>
+                                <td><strong>王芳</strong></td>
+                                <td>PT20260210</td>
+                                <td><span class="tag tag-success">术后5个月</span></td>
+                                <td style="color:#fcd34d">98</td>
+                                <td>7.5</td>
+                                <td>62.0</td>
+                                <td>125/82</td>
+                                <td>6.1</td>
+                                <td>125</td>
+                                <td style="color:var(--text3)">03-31 08:15</td>
+                                <td><button class="btn btn-outline" onclick="event.stopPropagation();openDetail('王芳')">详情</button></td>
+                            </tr>
+                            <tr onclick="openDetail('张伟')">
+                                <td><span class="status-dot success"></span></td>
+                                <td><strong>张伟</strong></td>
+                                <td>PT20260301</td>
+                                <td><span class="tag tag-success">术后3个月</span></td>
+                                <td style="color:#6ee7b7">85</td>
+                                <td>8.0</td>
+                                <td>70.2</td>
+                                <td>118/76</td>
+                                <td>5.5</td>
+                                <td>138</td>
+                                <td style="color:var(--text3)">03-30 16:45</td>
+                                <td><button class="btn btn-outline" onclick="event.stopPropagation();openDetail('张伟')">详情</button></td>
+                            </tr>
+                            <tr onclick="openDetail('赵玲')">
+                                <td><span class="status-dot warning"></span></td>
+                                <td><strong>赵玲</strong></td>
+                                <td>PT20260322</td>
+                                <td><span class="tag tag-info">术后1个月</span></td>
+                                <td>92</td>
+                                <td style="color:#fcd34d">6.8</td>
+                                <td>55.3</td>
+                                <td>130/85</td>
+                                <td>6.3</td>
+                                <td>118</td>
+                                <td style="color:var(--text3)">04-01 10:20</td>
+                                <td><button class="btn btn-outline" onclick="event.stopPropagation();openDetail('赵玲')">详情</button></td>
+                            </tr>
+                            <tr onclick="openDetail('陈凯')">
+                                <td><span class="status-dot info"></span></td>
+                                <td><strong>陈凯</strong></td>
+                                <td>PT20260115</td>
+                                <td><span class="tag tag-purple">术前评估</span></td>
+                                <td>165</td>
+                                <td>—</td>
+                                <td>75.8</td>
+                                <td>140/90</td>
+                                <td>7.2</td>
+                                <td>105</td>
+                                <td style="color:var(--text3)">04-02 11:00</td>
+                                <td><button class="btn btn-outline" onclick="event.stopPropagation();openDetail('陈凯')">详情</button></td>
+                            </tr>
+                            <tr onclick="openDetail('刘洋')">
+                                <td><span class="status-dot success"></span></td>
+                                <td><strong>刘洋</strong></td>
+                                <td>PT20260108</td>
+                                <td><span class="tag tag-success">术后8个月</span></td>
+                                <td style="color:#6ee7b7">78</td>
+                                <td>9.1</td>
+                                <td>65.0</td>
+                                <td>115/72</td>
+                                <td>5.2</td>
+                                <td>142</td>
+                                <td style="color:var(--text3)">04-01 14:30</td>
+                                <td><button class="btn btn-outline" onclick="event.stopPropagation();openDetail('刘洋')">详情</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="split">
+                <div class="card">
+                    <div class="card-header"><h4>异常告警流</h4><span class="sub">按时间倒序 · 实时更新</span></div>
+                    <div class="card-body">
+                        <div class="timeline-item"><div class="t-date">09:35 今日</div><div class="t-text"><span class="tag tag-danger">高危</span> 李明 — 肌酐 128 μmol/L，连续3次上升，触发高危流程</div></div>
+                        <div class="timeline-item"><div class="t-date">09:15 今日</div><div class="t-text"><span class="tag tag-warning">警告</span> 赵玲 — 血药浓度 6.8，低于目标治疗窗下限</div></div>
+                        <div class="timeline-item"><div class="t-date">08:42 今日</div><div class="t-text"><span class="tag tag-warning">警告</span> 王芳 — 连续2次晚间服药延迟超 45 分钟</div></div>
+                        <div class="timeline-item"><div class="t-date">08:10 今日</div><div class="t-text"><span class="tag tag-info">提示</span> 赵玲 — 术后第30天关键检查报告未上传</div></div>
+                        <div class="timeline-item"><div class="t-date">昨日 16:20</div><div class="t-text"><span class="tag tag-success">恢复</span> 张伟 — 肌酐下降至正常范围 85 μmol/L</div></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h4>肌酐趋势总览 (全科近7天)</h4><span class="sub">均值变化</span></div>
+                    <div class="card-body">
+                        <div class="chart-bars">
+                            <div class="chart-col"><div class="chart-val">88</div><div class="chart-bar blue" style="height:55px"></div><div class="chart-lbl">3/25</div></div>
+                            <div class="chart-col"><div class="chart-val">91</div><div class="chart-bar blue" style="height:60px"></div><div class="chart-lbl">3/26</div></div>
+                            <div class="chart-col"><div class="chart-val">95</div><div class="chart-bar blue" style="height:68px"></div><div class="chart-lbl">3/27</div></div>
+                            <div class="chart-col"><div class="chart-val">102</div><div class="chart-bar yellow" style="height:78px"></div><div class="chart-lbl">3/28</div></div>
+                            <div class="chart-col"><div class="chart-val">108</div><div class="chart-bar yellow" style="height:86px"></div><div class="chart-lbl">3/29</div></div>
+                            <div class="chart-col"><div class="chart-val">115</div><div class="chart-bar red" style="height:96px"></div><div class="chart-lbl">3/30</div></div>
+                            <div class="chart-col"><div class="chart-val">118</div><div class="chart-bar red" style="height:102px"></div><div class="chart-lbl">3/31</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="split">
+                <div class="card">
+                    <div class="card-header"><h4>今日排班与任务</h4><span class="sub">门诊 + 远程随访</span></div>
+                    <div class="card-body">
+                        <div class="timeline-item"><div class="t-date">09:30 - 10:30</div><div class="t-text"><strong>术后异常复盘会</strong> · 参会：肾移植科、药学部、检验科</div></div>
+                        <div class="timeline-item"><div class="t-date">11:00 - 12:00</div><div class="t-text"><strong>专病门诊</strong> · 预约 8 人，含首次复诊 3 人</div></div>
+                        <div class="timeline-item"><div class="t-date">14:00 - 16:00</div><div class="t-text"><strong>远程随访窗口</strong> · 待处理 12 人，5人需电话回访</div></div>
+                        <div class="timeline-item"><div class="t-date">16:30 - 17:00</div><div class="t-text"><strong>多学科会诊</strong> · 李明高风险病例讨论</div></div>
+                    </div>
+                </div>
+                <div class="ai-card">
+                    <h5><iconify-icon icon="mdi:robot-happy" class="ic-md"></iconify-icon> AI 风险预测摘要</h5>
+                    <p>系统分析全部在管患者近 7 天数据，识别出以下风险信号：</p>
+                    <div class="ai-alert">
+                        • 李明肌酐连续3次上升（85→98→112→128），排斥反应风险 <strong style="color:#fca5a5">高</strong><br>
+                        • 赵玲血药浓度持续偏低，免疫抑制不足风险 <strong style="color:#fcd34d">中</strong><br>
+                        • 王芳服药依从性下降至82%，需护理干预<br>
+                        • 刘洋各项指标稳定，推荐延长随访间隔至2周
+                    </div>
+                    <div style="margin-top:12px" class="btn-group">
+                        <button class="btn" style="background:rgba(255,255,255,.15);color:#fff">查看完整分析</button>
+                        <button class="btn" style="background:rgba(255,255,255,.15);color:#fff">生成会诊摘要</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 供体管理页 ==================== -->
+        <div class="page" id="page-donor">
+            <div class="kpi-row">
+                <div class="kpi-card"><div class="kpi-label">供体总数</div><div class="kpi-value" style="color:var(--success)">186</div><div class="kpi-meta">活体 28 + 尸体 158</div></div>
+                <div class="kpi-card"><div class="kpi-label">评估完成率</div><div class="kpi-value" style="color:var(--primary)">96.2%</div><div class="kpi-meta">待评估 7 例</div></div>
+                <div class="kpi-card"><div class="kpi-label">合格率</div><div class="kpi-value" style="color:var(--success)">94.5%</div><div class="kpi-meta">不合格 10 例</div></div>
+                <div class="kpi-card"><div class="kpi-label">本月新增</div><div class="kpi-value" style="color:var(--accent)">12</div><div class="kpi-meta">活体 3 + DCD 9</div></div>
+            </div>
+            <div class="filter-bar">
+                <div class="filter-chip active">全部供体</div><div class="filter-chip">活体供体 (28)</div><div class="filter-chip">尸体供体 (158)</div><div class="filter-chip">亲属供体 (22)</div><div class="filter-chip">非亲属供体 (6)</div>
+                <div style="margin-left:auto" class="btn-group"><button class="btn btn-primary">+ 新增供体</button><button class="btn btn-outline"><iconify-icon icon="mdi:export" class="ic-sm"></iconify-icon> 导出报告</button><button class="btn btn-accent"><iconify-icon icon="mdi:brain" class="ic-sm"></iconify-icon> 启动AI评伊</button></div>
+            </div>
+            <div class="card single">
+                <div class="card-body">
+                    <div class="donor-card" onclick="openDonorDetail('张某某','DONOR-2026-0042','32岁','男','A型','活体供体','父亲供子','亲属','已评估')">
+                        <div class="donor-card-header">
+                            <div><strong style="font-size:15px">张某某</strong> <span class="tag tag-info">活体供体</span> <span class="tag tag-success">亲属</span><br><span style="font-size:11px;color:var(--text3)">DONOR-2026-0042 | 32岁 | 男 | A型</span></div>
+                            <span class="tag tag-success">已评估</span>
+                        </div>
+                        <div class="donor-card-info">
+                            <div><div class="di-label">供体类型</div><div class="di-value">父亲供子</div></div>
+                            <div><div class="di-label">HLA配型</div><div class="di-value">3/6位点</div></div>
+                            <div><div class="di-label">交叉配血</div><div class="di-value" style="color:var(--success)">阴性</div></div>
+                            <div><div class="di-label">肌酐</div><div class="di-value" style="color:var(--success)">76 μmol/L</div></div>
+                        </div>
+                        <div class="btn-group"><button class="btn btn-primary" onclick="event.stopPropagation();openDonorDetail('张某某','DONOR-2026-0042','32岁','男','A型','活体供体','父亲供子','亲属','已评估')">查看详情</button><button class="btn btn-warning">健康评估</button><button class="btn btn-outline">关联患者</button></div>
+                    </div>
+                    <div class="donor-card" onclick="openDonorDetail('李某某','DONOR-2026-0041','28岁','女','B型','活体供体','配偶供肾','非亲属','评估中')">
+                        <div class="donor-card-header">
+                            <div><strong style="font-size:15px">李某某</strong> <span class="tag tag-info">活体供体</span> <span class="tag tag-warning">非亲属</span><br><span style="font-size:11px;color:var(--text3)">DONOR-2026-0041 | 28岁 | 女 | B型</span></div>
+                            <span class="tag tag-info">评估中</span>
+                        </div>
+                        <div class="donor-card-info">
+                            <div><div class="di-label">供体类型</div><div class="di-value">配偶供肾</div></div>
+                            <div><div class="di-label">HLA配型</div><div class="di-value">2/6位点</div></div>
+                            <div><div class="di-label">交叉配血</div><div class="di-value" style="color:var(--warning)">待检测</div></div>
+                            <div><div class="di-label">肌酐</div><div class="di-value">82 μmol/L</div></div>
+                        </div>
+                        <div class="btn-group"><button class="btn btn-primary" onclick="event.stopPropagation();openDonorDetail('李某某','DONOR-2026-0041','28岁','女','B型','活体供体','配偶供肾','非亲属','评估中')">查看详情</button><button class="btn btn-warning">健康评估</button></div>
+                    </div>
+                    <div class="donor-card" onclick="openDonorDetail('DCD-2026-0158','DONOR-2026-0158','45岁','男','O型','尸体供体','脑死亡捐献','—','已完成')">
+                        <div class="donor-card-header">
+                            <div><strong style="font-size:15px">DCD-2026-0158</strong> <span class="tag tag-purple">尸体供体</span> <span class="tag tag-success">已分配</span><br><span style="font-size:11px;color:var(--text3)">DONOR-2026-0158 | 45岁 | 男 | O型</span></div>
+                            <span class="tag tag-success">已完成</span>
+                        </div>
+                        <div class="donor-card-info">
+                            <div><div class="di-label">获取时间</div><div class="di-value">2026-03-25</div></div>
+                            <div><div class="di-label">供体类型</div><div class="di-value">脑死亡捐献</div></div>
+                            <div><div class="di-label">肾脏质量</div><div class="di-value" style="color:var(--success)">良好</div></div>
+                            <div><div class="di-label">受体匹配</div><div class="di-value">王某 4/6位点</div></div>
+                        </div>
+                        <div class="btn-group"><button class="btn btn-primary" onclick="event.stopPropagation();openDonorDetail('DCD-2026-0158','DONOR-2026-0158','45岁','男','O型','尸体供体','脑死亡捐献','—','已完成')">查看详情</button><button class="btn btn-success">随访记录</button></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 科研功能页 ==================== -->
+        <div class="page" id="page-research">
+            <div class="kpi-row">
+                <div class="kpi-card"><div class="kpi-label">进行中课题</div><div class="kpi-value" style="color:var(--primary)">3</div><div class="kpi-meta">本月新增 1 项</div></div>
+                <div class="kpi-card"><div class="kpi-label">入组患者总数</div><div class="kpi-value" style="color:var(--accent)">128</div><div class="kpi-meta">数据完整率 98%</div></div>
+                <div class="kpi-card"><div class="kpi-label">发表论文</div><div class="kpi-value" style="color:var(--success)">5</div><div class="kpi-meta">SCI 3篇 · 核心 2篇</div></div>
+                <div class="kpi-card"><div class="kpi-label">数据可用性</div><div class="kpi-value" style="color:var(--info)">98%</div><div class="kpi-meta">AI自动清洗完成</div></div>
+            </div>
+            <div class="single">
+                <div class="research-project">
+                    <div class="rp-id">课题编号: KTR-2026-001</div>
+                    <h5>器官移植术后他克莫司血药浓度与肾功能相关性研究</h5>
+                    <span class="tag tag-info">进行中</span>
+                    <div class="research-stats">
+                        <div class="rs"><div class="v">128</div><div class="l">入组患者</div></div>
+                        <div class="rs"><div class="v">6</div><div class="l">随访月数</div></div>
+                        <div class="rs"><div class="v">98%</div><div class="l">数据完整率</div></div>
+                    </div>
+                    <div style="font-size:11px;color:var(--text3);margin-bottom:6px">课题进度 65%</div>
+                    <div class="progress-bar"><div class="progress-fill" style="width:65%"></div></div>
+                    <div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center">数据收集中 · 预计完成: 2026-09-30</div>
+                </div>
+            </div>
+            <div class="split">
+                <div class="card">
+                    <div class="card-header"><h4>样本筛选与入组</h4></div>
+                    <div class="card-body">
+                        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">
+                            <span class="filter-chip active">术后<6个月</span><span class="filter-chip">年龄>60岁</span><span class="filter-chip" style="border-color:var(--danger);color:#fca5a5">肌酐>120</span><span class="filter-chip">血药浓度<7</span><span class="filter-chip">有并发症</span>
+                        </div>
+                        <div class="btn-group"><button class="btn btn-primary"><iconify-icon icon="mdi:target" class="ic-sm"></iconify-icon> 精确筛选</button><button class="btn btn-success">批量入组</button><button class="btn btn-outline">导出筛选结果</button></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h4>数据导出与清洗</h4></div>
+                    <div class="card-body">
+                        <p style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:12px">• 多格式导出（Excel、CSV、SPSS、R数据集）<br>• 自动脱敏处理，符合隐私保护要求<br>• 支持自定义时间范围和指标筛选<br>• AI异常数据检测与自动清洗</p>
+                        <div class="btn-group"><button class="btn btn-accent"><iconify-icon icon="mdi:export" class="ic-sm"></iconify-icon> 立即导出</button><button class="btn btn-outline">配置导出模板</button></div>
+                    </div>
+                </div>
+            </div>
+            <div class="single card">
+                <div class="card-header"><h4>临床研究工具</h4></div>
+                <div class="card-body">
+                    <div class="tool-grid">
+                        <div class="tool-item"><div class="ti"><iconify-icon icon="mdi:chart-line" class="ic-lg ic-data"></iconify-icon></div><div class="tt">生存分析</div><div class="td">Kaplan-Meier</div></div>
+                        <div class="tool-item"><div class="ti"><iconify-icon icon="mdi:magnify" class="ic-lg ic-cyan"></iconify-icon></div><div class="tt">回归分析</div><div class="td">Cox回归</div></div>
+                        <div class="tool-item"><div class="ti"><iconify-icon icon="mdi:chart-bar" class="ic-lg ic-data"></iconify-icon></div><div class="tt">亚组分析</div><div class="td">分层分析</div></div>
+                        <div class="tool-item"><div class="ti"><iconify-icon icon="mdi:dice-multiple" class="ic-lg ic-ai"></iconify-icon></div><div class="tt">随机对照</div><div class="td">RCT设计</div></div>
+                        <div class="tool-item"><div class="ti"><iconify-icon icon="mdi:dna" class="ic-lg ic-med"></iconify-icon></div><div class="tt">基因组关联</div><div class="td">GWAS分析</div></div>
+                        <div class="tool-item"><div class="ti"><iconify-icon icon="mdi:ruler" class="ic-lg ic-warn"></iconify-icon></div><div class="tt">样本量计算</div><div class="td">效能分析</div></div>
+                        <div class="tool-item"><div class="ti"><iconify-icon icon="mdi:microscope" class="ic-lg ic-cyan"></iconify-icon></div><div class="tt">Meta分析</div><div class="td">系统评价</div></div>
+                        <div class="tool-item"><div class="ti"><iconify-icon icon="mdi:file-document-edit" class="ic-lg ic-pink"></iconify-icon></div><div class="tt">病例报告</div><div class="td">CRF设计</div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="ai-card">
+                <h5><iconify-icon icon="mdi:robot-happy" class="ic-md"></iconify-icon> AI智能选题与假设生成</h5>
+                <p>基于当前随访数据，AI已识别出 3 个潜在研究方向：</p>
+                <div class="ai-alert">
+                    • 老年器官移植患者免疫抑制方案优化<br>
+                    • 术后感染风险预测模型构建<br>
+                    • 血药浓度监测频率个性化调整
+                </div>
+                <div style="margin-top:10px" class="btn-group"><button class="btn" style="background:rgba(255,255,255,.15);color:#fff"><iconify-icon icon="mdi:brain" class="ic-sm"></iconify-icon> 启动AI科研助手</button><button class="btn" style="background:rgba(255,255,255,.15);color:#fff"><iconify-icon icon="mdi:file-document" class="ic-sm"></iconify-icon> 生成研究方案</button></div>
+            </div>
+        </div>
+
+        <!-- ==================== 数据分析页 ==================== -->
+        <div class="page" id="page-analysis">
+            <div class="kpi-row">
+                <div class="kpi-card"><div class="kpi-label">分析报告总数</div><div class="kpi-value">42</div><div class="kpi-meta">本月生成 8 份</div></div>
+                <div class="kpi-card"><div class="kpi-label">自定义看板</div><div class="kpi-value" style="color:var(--accent)">6</div><div class="kpi-meta">可自由配置</div></div>
+                <div class="kpi-card"><div class="kpi-label">定时报表</div><div class="kpi-value" style="color:var(--info)">3</div><div class="kpi-meta">每周一自动生成</div></div>
+                <div class="kpi-card"><div class="kpi-label">数据导出次数</div><div class="kpi-value" style="color:var(--success)">156</div><div class="kpi-meta">本季度累计</div></div>
+            </div>
+            <div class="split">
+                <div class="card">
+                    <div class="card-header"><h4>患者分层分析</h4></div>
+                    <div class="card-body">
+                        <div class="chart-bars" style="height:160px">
+                            <div class="chart-col"><div class="chart-val">42</div><div class="chart-bar green" style="height:120px"></div><div class="chart-lbl">稳定</div></div>
+                            <div class="chart-col"><div class="chart-val">5</div><div class="chart-bar yellow" style="height:35px"></div><div class="chart-lbl">需关注</div></div>
+                            <div class="chart-col"><div class="chart-val">3</div><div class="chart-bar red" style="height:22px"></div><div class="chart-lbl">异常</div></div>
+                            <div class="chart-col"><div class="chart-val">8</div><div class="chart-bar blue" style="height:55px"></div><div class="chart-lbl">术前</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h4>随访完成率趋势</h4></div>
+                    <div class="card-body">
+                        <div class="chart-bars" style="height:160px">
+                            <div class="chart-col"><div class="chart-val">82%</div><div class="chart-bar blue" style="height:115px"></div><div class="chart-lbl">1月</div></div>
+                            <div class="chart-col"><div class="chart-val">85%</div><div class="chart-bar blue" style="height:120px"></div><div class="chart-lbl">2月</div></div>
+                            <div class="chart-col"><div class="chart-val">89%</div><div class="chart-bar blue" style="height:128px"></div><div class="chart-lbl">3月</div></div>
+                            <div class="chart-col"><div class="chart-val">92%</div><div class="chart-bar green" style="height:135px"></div><div class="chart-lbl">4月</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="single card">
+                <div class="card-header"><h4>快速报告生成</h4></div>
+                <div class="card-body">
+                    <div class="btn-group">
+                        <button class="btn btn-primary"><iconify-icon icon="mdi:chart-bar" class="ic-sm"></iconify-icon> 患者分层报告</button>
+                        <button class="btn btn-accent"><iconify-icon icon="mdi:chart-line" class="ic-sm"></iconify-icon> 肌酐趋势报告</button>
+                        <button class="btn btn-warning"><iconify-icon icon="mdi:clipboard-text" class="ic-sm"></iconify-icon> 随访完成率报告</button>
+                        <button class="btn btn-success"><iconify-icon icon="mdi:dna" class="ic-sm"></iconify-icon> 科研数据报告</button>
+                        <button class="btn btn-outline"><iconify-icon icon="mdi:cog" class="ic-sm"></iconify-icon> 自定义报告</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== AI诊断助手页 ==================== -->
+        <div class="page" id="page-ai">
+            <div class="split">
+                <div class="ai-card" style="margin:0">
+                    <h5><iconify-icon icon="mdi:robot-happy" class="ic-md"></iconify-icon> AI 智能诊断工作台</h5>
+                    <p>基于深度学习模型，综合分析患者检验数据、影像资料、用药记录和设备数据，辅助临床决策。</p>
+                    <div class="ai-alert" style="margin-top:12px">
+                        <strong>当前可用能力：</strong><br>
+                        • 排斥反应风险预测（准确率 92.6%）<br>
+                        • 免疫抑制剂剂量优化建议<br>
+                        • 肾功能变化趋势预测<br>
+                        • 多药相互作用分析<br>
+                        • 术后并发症风险评估<br>
+                        • 个性化随访方案生成
+                    </div>
+                    <div style="margin-top:12px" class="btn-group">
+                        <button class="btn" style="background:rgba(255,255,255,.18);color:#fff">选择患者开始分析</button>
+                        <button class="btn" style="background:rgba(255,255,255,.18);color:#fff">批量风险筛查</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h4>最近 AI 分析记录</h4></div>
+                    <div class="card-body">
+                        <div class="timeline-item"><div class="t-date">今日 09:35</div><div class="t-text"><strong>李明</strong> — 排斥反应风险评分 <span style="color:#fca5a5;font-weight:700">78/100</span>，建议24h内复查</div></div>
+                        <div class="timeline-item"><div class="t-date">今日 08:20</div><div class="t-text"><strong>赵玲</strong> — 用药剂量优化建议：他克莫司调整至 2.5mg bid</div></div>
+                        <div class="timeline-item"><div class="t-date">昨日 15:00</div><div class="t-text"><strong>王芳</strong> — 依从性分析：建议启用2次/日强提醒</div></div>
+                        <div class="timeline-item"><div class="t-date">昨日 11:30</div><div class="t-text"><strong>全科</strong> — 月度风险筛查完成，新增高风险 1 例</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 团队协作页 ==================== -->
+        <div class="page" id="page-team">
+            <div class="split">
+                <div class="card">
+                    <div class="card-header"><h4>团队成员</h4><span class="sub">肾移植科</span></div>
+                    <div class="card-body">
+                        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><div class="avatar" style="width:32px;height:32px;font-size:14px">张</div><div><div style="font-size:13px;font-weight:600">张主任</div><div style="font-size:10px;color:var(--text3)">主任医师 · 在线</div></div><span class="tag tag-success" style="margin-left:auto">在线</span></div>
+                        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><div class="avatar" style="width:32px;height:32px;font-size:14px;background:linear-gradient(135deg,var(--success),#6ee7b7)">李</div><div><div style="font-size:13px;font-weight:600">李副主任</div><div style="font-size:10px;color:var(--text3)">副主任医师 · 在线</div></div><span class="tag tag-success" style="margin-left:auto">在线</span></div>
+                        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><div class="avatar" style="width:32px;height:32px;font-size:14px;background:linear-gradient(135deg,var(--warning),#fbbf24)">王</div><div><div style="font-size:13px;font-weight:600">王护士长</div><div style="font-size:10px;color:var(--text3)">护士长 · 离线</div></div><span class="tag tag-warning" style="margin-left:auto">离线</span></div>
+                        <div style="display:flex;align-items:center;gap:10px;padding:8px 0"><div class="avatar" style="width:32px;height:32px;font-size:14px;background:linear-gradient(135deg,var(--info),#67e8f9)">刘</div><div><div style="font-size:13px;font-weight:600">刘研究员</div><div style="font-size:10px;color:var(--text3)">科研助理 · 在线</div></div><span class="tag tag-success" style="margin-left:auto">在线</span></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h4>近期会诊记录</h4></div>
+                    <div class="card-body">
+                        <div class="timeline-item"><div class="t-date">2026-04-01 16:30</div><div class="t-text"><strong>李明病例多学科讨论</strong> · 参与：张主任、李副主任、药学部<br><span style="font-size:10px;color:var(--text3)">结论：增加他克莫司剂量至2.5mg，48h复查</span></div></div>
+                        <div class="timeline-item"><div class="t-date">2026-03-28 14:00</div><div class="t-text"><strong>术前评估联合会诊</strong> · 陈凯术前评估讨论<br><span style="font-size:10px;color:var(--text3)">结论：符合手术条件，排期至4月中旬</span></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 排班与任务页 ==================== -->
+        <div class="page" id="page-schedule">
+            <div class="split">
+                <div class="card">
+                    <div class="card-header"><h4>本周排班表</h4></div>
+                    <div class="card-body np">
+                        <table class="patient-table">
+                            <thead><tr><th>日期</th><th>上午</th><th>下午</th><th>值班</th></tr></thead>
+                            <tbody>
+                                <tr><td>周一</td><td>专病门诊</td><td>远程随访</td><td>—</td></tr>
+                                <tr style="background:rgba(59,130,246,.08)"><td><strong>周二（今日）</strong></td><td>复盘会+门诊</td><td>远程+会诊</td><td>一线</td></tr>
+                                <tr><td>周三</td><td>手术日</td><td>手术日</td><td>—</td></tr>
+                                <tr><td>周四</td><td>教学查房</td><td>科研</td><td>—</td></tr>
+                                <tr><td>周五</td><td>专病门诊</td><td>随访+科会</td><td>二线</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h4>待办任务</h4><span class="sub">5 项待处理</span></div>
+                    <div class="card-body">
+                        <div class="timeline-item"><div class="t-date"><span class="tag tag-danger">紧急</span></div><div class="t-text">李明 24h内肾功能复查确认</div></div>
+                        <div class="timeline-item"><div class="t-date"><span class="tag tag-warning">今日</span></div><div class="t-text">完成 12 人远程随访电话回访</div></div>
+                        <div class="timeline-item"><div class="t-date"><span class="tag tag-warning">今日</span></div><div class="t-text">审核赵玲术后30天检查报告</div></div>
+                        <div class="timeline-item"><div class="t-date"><span class="tag tag-info">本周</span></div><div class="t-text">完成科研课题月度数据录入</div></div>
+                        <div class="timeline-item"><div class="t-date"><span class="tag tag-info">本周</span></div><div class="t-text">陈凯术前评估报告终审</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- 患者详情滑出面板 -->
+<div class="detail-overlay" id="detailOverlay" onclick="closeDetail()"></div>
+<div class="detail-panel" id="detailPanel">
+    <div class="detail-close" onclick="closeDetail()">✕</div>
+    <div class="detail-hero">
+        <h3 id="dpName">李明</h3>
+        <p id="dpInfo">术后6个月 | ID: PT20260125 | 随访医生: 张主任</p>
+    </div>
+    <div class="detail-info-grid">
+        <div class="detail-info-item"><div class="label">性别</div><div class="value">男</div></div>
+        <div class="detail-info-item"><div class="label">年龄</div><div class="value">48岁</div></div>
+        <div class="detail-info-item"><div class="label">手术日期</div><div class="value">2025-09-01</div></div>
+        <div class="detail-info-item"><div class="label">血型</div><div class="value">A型</div></div>
+    </div>
+
+    <div class="detail-section">
+        <h5><iconify-icon icon="mdi:chart-bar" class="ic-md ic-data"></iconify-icon> 最新检查指标</h5>
+        <div class="detail-stat-row">
+            <div class="detail-stat"><div class="val" style="color:#fca5a5">128</div><div class="lbl">肌酐 μmol/L</div><div class="ref">参考: 53-106</div></div>
+            <div class="detail-stat"><div class="val" style="color:#fcd34d">8.2</div><div class="lbl">血药浓度 ng/ml</div><div class="ref">参考: 5-12</div></div>
+            <div class="detail-stat"><div class="val">68.5</div><div class="lbl">体重 kg</div><div class="ref">BMI: 23.1</div></div>
+        </div>
+        <div class="detail-stat-row" style="margin-top:10px">
+            <div class="detail-stat"><div class="val">120/80</div><div class="lbl">血压 mmHg</div></div>
+            <div class="detail-stat"><div class="val">5.8</div><div class="lbl">血糖 mmol/L</div></div>
+            <div class="detail-stat"><div class="val">130</div><div class="lbl">血红蛋白 g/L</div></div>
+        </div>
+    </div>
+
+    <div class="detail-section">
+        <h5><iconify-icon icon="mdi:clipboard-text" class="ic-md ic-data"></iconify-icon> 今日健康数据</h5>
+        <div class="detail-stat-row">
+            <div class="detail-stat"><div class="val">2000</div><div class="lbl">饮水量 ml</div></div>
+            <div class="detail-stat"><div class="val">1800</div><div class="lbl">尿量 ml</div></div>
+            <div class="detail-stat"><div class="val">2</div><div class="lbl">大便 次</div></div>
+        </div>
+        <p style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5">饮食记录：早餐:小米粥+鸡蛋, 午餐:米饭+蔬菜+鱼肉, 晚餐:面条+青菜</p>
+    </div>
+
+    <div class="detail-section">
+        <h5><iconify-icon icon="mdi:tag" class="ic-md ic-warn"></iconify-icon> 症状记录</h5>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+            <span class="tag tag-danger">水肿</span><span class="tag tag-danger">乏力</span><span class="tag tag-success">食欲正常</span><span class="tag tag-success">睡眠良好</span>
+        </div>
+        <p style="font-size:11px;color:var(--text3)">整体感受：一般，乏力程度3分，食欲正常 · 记录: 04-01 14:30</p>
+    </div>
+
+    <div class="detail-section" style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);border:none">
+        <h5 style="color:#fff"><iconify-icon icon="mdi:robot-happy" class="ic-md"></iconify-icon> AI智能分析</h5>
+        <p style="font-size:12px;color:rgba(255,255,255,.92);line-height:1.6">患者近期肌酐水平呈上升趋势（85→98→112→128 μmol/L），结合血药浓度8.2 ng/ml处于治疗窗下限，提示可能存在免疫抑制不足风险。建议考虑增加他克莫司剂量至2.5mg bid，并密切监测血药浓度和肾功能。</p>
+        <div style="background:rgba(255,255,255,.12);padding:10px;border-radius:8px;margin-top:10px;font-size:11px;color:rgba(255,255,255,.9);line-height:1.5">
+            ⚠️ 异常提醒:<br>• 肌酐连续3次上升<br>• 血药浓度低于目标窗<br>• 需关注排斥反应早期征象
+        </div>
+    </div>
+
+    <div class="detail-section">
+        <h5><iconify-icon icon="mdi:chart-line" class="ic-md ic-data"></iconify-icon> 指标趋势 (近7天)</h5>
+        <div class="chart-bars">
+            <div class="chart-col"><div class="chart-val">85</div><div class="chart-bar blue" style="height:35px"></div><div class="chart-lbl">3/25</div></div>
+            <div class="chart-col"><div class="chart-val">92</div><div class="chart-bar blue" style="height:45px"></div><div class="chart-lbl">3/26</div></div>
+            <div class="chart-col"><div class="chart-val">98</div><div class="chart-bar yellow" style="height:55px"></div><div class="chart-lbl">3/27</div></div>
+            <div class="chart-col"><div class="chart-val">105</div><div class="chart-bar yellow" style="height:64px"></div><div class="chart-lbl">3/28</div></div>
+            <div class="chart-col"><div class="chart-val">112</div><div class="chart-bar yellow" style="height:76px"></div><div class="chart-lbl">3/29</div></div>
+            <div class="chart-col"><div class="chart-val">120</div><div class="chart-bar red" style="height:88px"></div><div class="chart-lbl">3/30</div></div>
+            <div class="chart-col"><div class="chart-val">128</div><div class="chart-bar red" style="height:98px"></div><div class="chart-lbl">3/31</div></div>
+        </div>
+    </div>
+
+    <div class="detail-section">
+        <h5><iconify-icon icon="mdi:pill" class="ic-md ic-ai"></iconify-icon> 当前用药方案</h5>
+        <div class="med-row"><div><div class="med-name">他克莫司胶囊</div><div class="med-desc">免疫抑制剂</div></div><div class="med-dose">2mg × 2次/日</div></div>
+        <div class="med-row"><div><div class="med-name">泼尼松片</div><div class="med-desc">糖皮质激素</div></div><div class="med-dose">10mg × 1次/日</div></div>
+        <div class="med-row"><div><div class="med-name">吗替麦考酚酯</div><div class="med-desc">抗代谢药</div></div><div class="med-dose">0.5g × 2次/日</div></div>
+    </div>
+
+    <div class="detail-section">
+        <h5><iconify-icon icon="mdi:stethoscope" class="ic-md ic-cyan"></iconify-icon> 设备同步数据</h5>
+        <div class="detail-stat-row">
+            <div class="detail-stat"><div class="val" style="font-size:14px">120/80</div><div class="lbl">智能血压计</div><div class="ref">心率72次/分</div></div>
+            <div class="detail-stat"><div class="val" style="font-size:14px">68.5kg</div><div class="lbl">智能体重秤</div><div class="ref">BMI 23.1</div></div>
+            <div class="detail-stat"><div class="val" style="font-size:14px">5.8</div><div class="lbl">血糖仪</div><div class="ref">空腹</div></div>
+        </div>
+    </div>
+
+    <div class="detail-section">
+        <h5><iconify-icon icon="mdi:pencil" class="ic-md ic-warn"></iconify-icon> 调药记录</h5>
+        <div class="timeline-item"><div class="t-date">2026-03-25 14:30</div><div class="t-text">他克莫司: 1.5mg → 2mg · 原因: 血药浓度偏低</div></div>
+        <div class="timeline-item"><div class="t-date">2026-03-15 10:00</div><div class="t-text">新加吗替麦考酚酯 0.5g bid · 原因: 强化免疫抑制</div></div>
+    </div>
+
+    <div class="detail-section">
+        <h5><iconify-icon icon="mdi:chat" class="ic-md ic-data"></iconify-icon> 医患沟通</h5>
+        <div style="background:var(--bg);padding:10px;border-radius:8px;margin-bottom:6px"><div style="font-size:10px;color:var(--text3);margin-bottom:3px">患者 (李明) · 04-01 10:30</div><div style="font-size:12px">医生，我最近感觉有些疲惫，需要注意什么吗？</div></div>
+        <div style="background:rgba(59,130,246,.12);padding:10px;border-radius:8px"><div style="font-size:10px;color:var(--primary);margin-bottom:3px">医生 (张主任) · 04-01 11:00</div><div style="font-size:12px">根据检查数据，肌酐水平略有波动。建议保证充足休息，避免过度劳累，按时服药。</div></div>
+    </div>
+
+    <div class="detail-section">
+        <h5><iconify-icon icon="mdi:lightning-bolt" class="ic-md ic-warn"></iconify-icon> 快捷操作</h5>
+        <div class="btn-group">
+            <button class="btn btn-primary"><iconify-icon icon="mdi:chart-bar" class="ic-sm"></iconify-icon> 调整用药</button>
+            <button class="btn btn-warning"><iconify-icon icon="mdi:calendar" class="ic-sm"></iconify-icon> 预约复诊</button>
+            <button class="btn btn-success"><iconify-icon icon="mdi:clipboard-text" class="ic-sm"></iconify-icon> 发起随访</button>
+            <button class="btn btn-accent"><iconify-icon icon="mdi:target" class="ic-sm"></iconify-icon> 生成随访计划</button>
+            <button class="btn btn-outline"><iconify-icon icon="mdi:chat" class="ic-sm"></iconify-icon> 发送消息</button>
+        </div>
+    </div>
+</div>
+
+<!-- 供体详情滑出面板 -->
+<div class="detail-overlay" id="donorOverlay" onclick="closeDonorDetail()"></div>
+<div class="detail-panel" id="donorPanel">
+    <div class="detail-close" onclick="closeDonorDetail()">✕</div>
+    <div class="detail-hero" style="background:linear-gradient(135deg,#065f46,#10b981)">
+        <h3 id="ddName">张某某</h3>
+        <p id="ddInfo">DONOR-2026-0042 | 32岁 | 男 | A型</p>
+        <div style="display:flex;gap:6px;margin-top:8px" id="ddTags">
+            <span class="tag tag-info">活体供体</span>
+            <span class="tag tag-success">亲属</span>
+            <span class="tag tag-success">已评估</span>
+        </div>
+    </div>
+
+    <!-- 基本信息 -->
+    <div class="detail-info-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="detail-info-item"><div class="label">年龄</div><div class="value" id="dd_age">32岁</div></div>
+        <div class="detail-info-item"><div class="label">性别</div><div class="value" id="dd_gender">男</div></div>
+        <div class="detail-info-item"><div class="label">血型</div><div class="value" id="dd_blood">A型</div></div>
+        <div class="detail-info-item"><div class="label">身高</div><div class="value">175 cm</div></div>
+        <div class="detail-info-item"><div class="label">体重</div><div class="value">70 kg</div></div>
+        <div class="detail-info-item"><div class="label">BMI</div><div class="value">22.9</div></div>
+    </div>
+
+    <!-- 医学评估 -->
+    <div class="detail-section">
+        <h5><iconify-icon icon="mdi:dna" class="ic-md ic-cyan"></iconify-icon> 医学评估 (免疫学)</h5>
+        <div class="detail-stat-row">
+            <div class="detail-stat"><div class="val" style="color:#60a5fa">3/6</div><div class="lbl">HLA配型</div><div class="ref">位点匹配</div></div>
+            <div class="detail-stat"><div class="val" style="color:var(--success)">阴性</div><div class="lbl">交叉配血</div><div class="ref">补体依赖</div></div>
+            <div class="detail-stat"><div class="val" style="color:var(--success)">2%</div><div class="lbl">PRA水平</div><div class="ref">参考 &lt;10%</div></div>
+        </div>
+        <div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>群体反应性抗体 (PRA)</span><span class="tag tag-success">阴性</span></div>
+            <div style="font-size:11px;color:var(--text3)">HLA-A: A2/A11 | HLA-B: B35/B60 | HLA-DR: DR4/DR15</div>
+        </div>
+    </div>
+
+    <!-- 肾功能评估 -->
+    <div class="detail-section">
+        <h5><iconify-icon icon="mdi:kidney" class="ic-md ic-med"></iconify-icon> 肾功能评估</h5>
+        <div class="detail-stat-row">
+            <div class="detail-stat"><div class="val" style="color:var(--success)">76</div><div class="lbl">肌酐 μmol/L</div><div class="ref">参考: 44-133</div></div>
+            <div class="detail-stat"><div class="val" style="color:var(--success)">1.05</div><div class="lbl">eGFR mg/dl</div><div class="ref">参考: 0.6-1.2</div></div>
+            <div class="detail-stat"><div class="val" style="color:var(--success)">95%</div><div class="lbl">肾功能</div><div class="ref">正常范围</div></div>
+        </div>
+    </div>
+
+    <!-- 心血管评估 -->
+    <div class="detail-section">
+        <h5><iconify-icon icon="mdi:heart-pulse" class="ic-md ic-risk"></iconify-icon> 心血管评估</h5>
+        <div class="detail-stat-row" style="grid-template-columns:1fr 1fr">
+            <div class="detail-stat"><div class="val" style="font-size:14px;color:var(--success)">窦性心律</div><div class="lbl">心电图 (ECG)</div><div class="ref">未见异常</div></div>
+            <div class="detail-stat"><div class="val" style="color:var(--success)">62%</div><div class="lbl">心超 EF值</div><div class="ref">参考: &gt;55%</div></div>
+        </div>
+    </div>
+
+    <!-- 肾脏影像学 -->
+    <div class="detail-section">
+        <h5><iconify-icon icon="mdi:microscope" class="ic-md ic-cyan"></iconify-icon> 肾脏影像学 (CT)</h5>
+        <div style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:10px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div style="padding:10px;background:var(--surface2);border-radius:6px">
+                    <div style="font-size:11px;color:var(--primary);font-weight:600;margin-bottom:4px">左肾</div>
+                    <div style="font-size:13px;font-weight:600">10.5 × 5.2 × 4.8 cm</div>
+                    <div style="font-size:10px;color:var(--text3);margin-top:2px">形态正常 · 皮质厚度正常</div>
+                </div>
+                <div style="padding:10px;background:var(--surface2);border-radius:6px">
+                    <div style="font-size:11px;color:var(--accent);font-weight:600;margin-bottom:4px">右肾</div>
+                    <div style="font-size:13px;font-weight:600">10.8 × 5.5 × 5.0 cm</div>
+                    <div style="font-size:10px;color:var(--text3);margin-top:2px">形态正常 · 皮质厚度正常</div>
+                </div>
+            </div>
+            <div style="margin-top:8px;padding:8px;background:var(--surface2);border-radius:6px;font-size:11px;color:var(--text2)">
+                <span style="color:var(--success)">✓</span> 肾动脉: 单支，无变异 &nbsp;|&nbsp;
+                <span style="color:var(--success)">✓</span> 肾静脉: 正常 &nbsp;|&nbsp;
+                <span style="color:var(--success)">✓</span> 输尿管: 无异常
+            </div>
+        </div>
+    </div>
+
+    <!-- 实验室检查 -->
+    <div class="detail-section">
+        <h5><iconify-icon icon="mdi:test-tube" class="ic-md ic-ai"></iconify-icon> 实验室检查</h5>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="background:var(--bg);border-radius:8px;padding:10px">
+                <div style="font-size:11px;font-weight:600;color:var(--primary);margin-bottom:6px">血常规</div>
+                <div class="dd-lab-row"><span>白细胞 WBC</span><span style="color:var(--success)">6.8 ×10⁹/L</span></div>
+                <div class="dd-lab-row"><span>血红蛋白 Hb</span><span style="color:var(--success)">142 g/L</span></div>
+                <div class="dd-lab-row"><span>血小板 PLT</span><span style="color:var(--success)">218 ×10⁹/L</span></div>
+            </div>
+            <div style="background:var(--bg);border-radius:8px;padding:10px">
+                <div style="font-size:11px;font-weight:600;color:var(--success);margin-bottom:6px">尿常规</div>
+                <div class="dd-lab-row"><span>尿蛋白</span><span style="color:var(--success)">阴性 (−)</span></div>
+                <div class="dd-lab-row"><span>尿糖</span><span style="color:var(--success)">阴性 (−)</span></div>
+                <div class="dd-lab-row"><span>尿红细胞</span><span style="color:var(--success)">0-2 /HP</span></div>
+            </div>
+            <div style="background:var(--bg);border-radius:8px;padding:10px">
+                <div style="font-size:11px;font-weight:600;color:var(--warning);margin-bottom:6px">肝功能</div>
+                <div class="dd-lab-row"><span>ALT</span><span style="color:var(--success)">22 U/L</span></div>
+                <div class="dd-lab-row"><span>AST</span><span style="color:var(--success)">18 U/L</span></div>
+                <div class="dd-lab-row"><span>白蛋白</span><span style="color:var(--success)">42 g/L</span></div>
+            </div>
+            <div style="background:var(--bg);border-radius:8px;padding:10px">
+                <div style="font-size:11px;font-weight:600;color:var(--accent);margin-bottom:6px">凝血功能</div>
+                <div class="dd-lab-row"><span>PT</span><span style="color:var(--success)">12.5 秒</span></div>
+                <div class="dd-lab-row"><span>APTT</span><span style="color:var(--success)">28 秒</span></div>
+                <div class="dd-lab-row"><span>INR</span><span style="color:var(--success)">1.02</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 传染病筛查 -->
+    <div class="detail-section">
+        <h5><iconify-icon icon="mdi:shield-check" class="ic-md ic-med"></iconify-icon> 传染病筛查</h5>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+            <div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center">
+                <div style="font-size:10px;color:var(--text3);margin-bottom:4px">HBsAg</div>
+                <div style="font-size:14px;font-weight:700;color:var(--success)">阴性</div>
+            </div>
+            <div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center">
+                <div style="font-size:10px;color:var(--text3);margin-bottom:4px">HCV抗体</div>
+                <div style="font-size:14px;font-weight:700;color:var(--success)">阴性</div>
+            </div>
+            <div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center">
+                <div style="font-size:10px;color:var(--text3);margin-bottom:4px">HIV</div>
+                <div style="font-size:14px;font-weight:700;color:var(--success)">阴性</div>
+            </div>
+            <div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center">
+                <div style="font-size:10px;color:var(--text3);margin-bottom:4px">TPPA</div>
+                <div style="font-size:14px;font-weight:700;color:var(--success)">阴性</div>
+            </div>
+        </div>
+        <div style="margin-top:8px;padding:8px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:6px;font-size:11px;color:#6ee7b7;text-align:center">
+            ✅ 所有传染病筛查项目均为阴性
+        </div>
+    </div>
+
+    <!-- 风险评估 -->
+    <div class="detail-section">
+        <h5><iconify-icon icon="mdi:clipboard-check" class="ic-md ic-data"></iconify-icon> 综合风险评估</h5>
+        <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:12px;margin-bottom:12px;text-align:center">
+            <div style="font-size:12px;color:var(--text2);margin-bottom:4px">综合评估结论</div>
+            <div style="font-size:18px;font-weight:700;color:var(--success)">✅ 适宜捐赠</div>
+        </div>
+        <div class="dd-risk-item">
+            <div class="dd-risk-header"><span>医学风险</span><span style="color:var(--success)">低风险</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:15%;background:linear-gradient(90deg,var(--success),#6ee7b7)"></div></div>
+        </div>
+        <div class="dd-risk-item">
+            <div class="dd-risk-header"><span>手术风险</span><span style="color:var(--success)">低风险</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:20%;background:linear-gradient(90deg,var(--success),#6ee7b7)"></div></div>
+        </div>
+        <div class="dd-risk-item">
+            <div class="dd-risk-header"><span>心理评估</span><span style="color:var(--success)">正常</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:10%;background:linear-gradient(90deg,var(--success),#6ee7b7)"></div></div>
+        </div>
+        <div class="dd-risk-item">
+            <div class="dd-risk-header"><span>长期风险</span><span style="color:var(--warning)">中等</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:45%;background:linear-gradient(90deg,var(--warning),#fcd34d)"></div></div>
+        </div>
+    </div>
+
+    <!-- 评估时间线 -->
+    <div class="detail-section">
+        <h5><iconify-icon icon="mdi:calendar" class="ic-md ic-data"></iconify-icon> 评估时间线</h5>
+        <div class="timeline-item"><div class="t-date">2026-01-10</div><div class="t-text">提交捐赠申请，初步信息录入</div></div>
+        <div class="timeline-item"><div class="t-date">2026-01-15</div><div class="t-text">完成血液学检查、HLA配型</div></div>
+        <div class="timeline-item"><div class="t-date">2026-01-22</div><div class="t-text">完成肾脏CT，影像学分析正常</div></div>
+        <div class="timeline-item"><div class="t-date">2026-02-01</div><div class="t-text">伦理委员会审批通过，最终评估完成</div></div>
+    </div>
+
+    <!-- 手术信息 -->
+    <div class="detail-section">
+        <h5><iconify-icon icon="mdi:hospital" class="ic-md ic-data"></iconify-icon> 手术信息</h5>
+        <div class="detail-info-grid" style="grid-template-columns:repeat(2,1fr);padding:0">
+            <div class="detail-info-item"><div class="label">手术日期</div><div class="value">2026-02-15</div></div>
+            <div class="detail-info-item"><div class="label">手术方式</div><div class="value">腹腔镜供肾切取术</div></div>
+            <div class="detail-info-item"><div class="label">主刀医生</div><div class="value">张主任</div></div>
+            <div class="detail-info-item"><div class="label">麻醉方式</div><div class="value">全身麻醉</div></div>
+        </div>
+        <div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px">
+            <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:6px">术前检查清单</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+                <span class="tag tag-success">✓ 心电图</span>
+                <span class="tag tag-success">✓ 胸片</span>
+                <span class="tag tag-success">✓ 血型复核</span>
+                <span class="tag tag-success">✓ 交叉配血</span>
+                <span class="tag tag-success">✓ 知情同意</span>
+                <span class="tag tag-success">✓ 伦理审批</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 关联患者 -->
+    <div class="detail-section">
+        <h5><iconify-icon icon="mdi:account" class="ic-md ic-cyan"></iconify-icon> 关联受体患者</h5>
+        <div style="background:var(--bg);border-radius:8px;padding:12px;display:flex;align-items:center;gap:12px;cursor:pointer" onclick="closeDonorDetail();openDetail('李明')">
+            <div class="avatar">李</div>
+            <div style="flex:1">
+                <div style="font-size:13px;font-weight:600">李明</div>
+                <div style="font-size:11px;color:var(--text3)">PT20260125 | 术后6个月 | 肌酐 128 μmol/L</div>
+            </div>
+            <span class="tag tag-warning">关注</span>
+        </div>
+    </div>
+
+    <!-- 快捷操作 -->
+    <div class="detail-section">
+        <h5><iconify-icon icon="mdi:lightning-bolt" class="ic-md ic-warn"></iconify-icon> 快捷操作</h5>
+        <div class="btn-group">
+            <button class="btn btn-primary"><iconify-icon icon="mdi:chart-bar" class="ic-sm"></iconify-icon> 健康评估</button>
+            <button class="btn btn-warning"><iconify-icon icon="mdi:calendar" class="ic-sm"></iconify-icon> 手术安排</button>
+            <button class="btn btn-success"><iconify-icon icon="mdi:clipboard-text" class="ic-sm"></iconify-icon> 生成报告</button>
+            <button class="btn btn-accent"><iconify-icon icon="mdi:brain" class="ic-sm"></iconify-icon> AI风险评估</button>
+            <button class="btn btn-outline"><iconify-icon icon="mdi:export" class="ic-sm"></iconify-icon> 导出数据</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function switchPage(page){
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    const el=document.getElementById('page-'+page);
+    if(el)el.classList.add('active');
+    const titles={'management':'患者管理','donor':'供体管理','research':'科研功能','analysis':'数据分析','ai':'AI 诊断助手','team':'团队协作','schedule':'排班与任务'};
+    document.getElementById('pageTitle').textContent=titles[page]||page;
+    event.currentTarget.classList.add('active');
+    closeDetail();
+}
+function filterPatients(el){
+    document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+    el.classList.add('active');
+}
+function openDetail(name){
+    document.getElementById('dpName').textContent=name;
+    document.getElementById('detailPanel').classList.add('open');
+    document.getElementById('detailOverlay').classList.add('show');
+}
+function closeDetail(){
+    document.getElementById('detailPanel').classList.remove('open');
+    document.getElementById('detailOverlay').classList.remove('show');
+}
+function openDonorDetail(name,id,age,gender,blood,type,subtype,relation,status){
+    document.getElementById('ddName').textContent=name;
+    document.getElementById('ddInfo').textContent=id+' | '+age+' | '+gender+' | '+blood;
+    document.getElementById('dd_age').textContent=age;
+    document.getElementById('dd_gender').textContent=gender;
+    document.getElementById('dd_blood').textContent=blood;
+    var tagsHtml='<span class="tag tag-info">'+type+'</span>';
+    if(relation&&relation!=='—')tagsHtml+=' <span class="tag tag-'+(relation==='亲属'?'success':'warning')+'">'+relation+'</span>';
+    tagsHtml+=' <span class="tag tag-'+(status==='已评估'||status==='已完成'?'success':'info')+'">'+status+'</span>';
+    document.getElementById('ddTags').innerHTML=tagsHtml;
+    document.getElementById('donorPanel').classList.add('open');
+    document.getElementById('donorOverlay').classList.add('show');
+}
+function closeDonorDetail(){
+    document.getElementById('donorPanel').classList.remove('open');
+    document.getElementById('donorOverlay').classList.remove('show');
+}
+</script>
+</body>
+</html>

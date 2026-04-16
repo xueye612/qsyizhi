@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>肾移植随访系统 - 患者端电脑版</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{
+            --bg:#081131;--bg2:#0f1f52;--bg3:#16306f;
+            --surface:rgba(20,34,86,0.82);--surface2:rgba(28,45,106,0.72);
+            --border:rgba(110,160,255,0.28);--border2:rgba(110,160,255,0.42);--border-glow:rgba(122,173,255,0.62);
+            --text:#f2f6ff;--text2:#c2cff7;--text3:#8fa4e8;
+            --primary:#007cff;--primary2:#0066d6;--accent:#00f2ff;
+            --success:#00ff9d;--warning:#ffd200;--danger:#ff4466;--info:#00f2ff;
+            --radius:14px;
+            --grad:linear-gradient(135deg,#007cff 0%,#00f2ff 60%,#00ff9d 100%);
+            --card-bg:linear-gradient(135deg,rgba(22,36,90,0.95),rgba(26,44,108,0.86));
+            --glow-blue:0 0 20px rgba(99,102,241,0.3);
+            --glow-purple:0 0 20px rgba(224,64,255,0.28);
+            --glow-cyan:0 0 20px rgba(0,242,255,0.28);
+        }
+        /* 大屏高对比主题：亮度更高、对比更强 */
+        body.theme-display{
+            --bg:#0b1f57;--bg2:#163a88;--bg3:#1f56b8;
+            --surface:rgba(20,55,130,0.88);--surface2:rgba(30,70,150,0.8);
+            --border:rgba(140,200,255,0.52);--border2:rgba(140,200,255,0.72);--border-glow:rgba(120,220,255,0.9);
+            --text:#f7fbff;--text2:#d3e8ff;--text3:#a7cfff;
+            --primary:#30a6ff;--primary2:#0f86f4;--accent:#12d6ff;
+            --grad:linear-gradient(135deg,#38a7ff 0%,#19c5ff 52%,#13e0ff 100%);
+            --card-bg:linear-gradient(135deg,rgba(26,64,146,0.96),rgba(33,80,176,0.9));
+        }
+        /* ======== 全局 & 背景 ======== */
+        body{
+            font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+            background:linear-gradient(145deg,#0b1a4f 0%,#122b70 30%,#1a3c8f 60%,#10265f 100%);
+            color:var(--text);overflow:hidden;height:100vh;
+        }
+        body.theme-display{
+            background:linear-gradient(145deg,#12337d 0%,#1750ac 30%,#1c66c9 60%,#134496 100%);
+        }
+        /* 背景网格装饰 */
+        body::before{
+            content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+            background-image:
+                linear-gradient(rgba(122,173,255,0.09) 1px,transparent 1px),
+                linear-gradient(90deg,rgba(122,173,255,0.09) 1px,transparent 1px);
+            background-size:60px 60px;
+        }
+        /* 背景光晕 */
+        body::after{
+            content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+            background:
+                radial-gradient(ellipse 700px 460px at 15% 20%, rgba(99,102,241,0.16) 0%,transparent 70%),
+                radial-gradient(ellipse 560px 560px at 85% 80%, rgba(139,92,246,0.12) 0%,transparent 70%),
+                radial-gradient(ellipse 450px 340px at 50% 10%, rgba(6,182,212,0.10) 0%,transparent 70%),
+                radial-gradient(ellipse 360px 360px at 70% 40%, rgba(139,92,246,0.08) 0%,transparent 70%);
+        }
+        .app{display:grid;grid-template-columns:230px 1fr;grid-template-rows:58px 1fr;height:100vh;position:relative;z-index:1}
+
+        /* ======== 侧边栏 ======== */
+        .sidebar{
+            grid-row:1/3;
+            background:linear-gradient(180deg,rgba(11,23,62,0.96) 0%,rgba(18,33,80,0.95) 100%);
+            border-right:1px solid var(--border);
+            backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+            display:flex;flex-direction:column;overflow-y:auto;
+            box-shadow:2px 0 30px rgba(0,0,0,0.3);
+        }
+        .sidebar-brand{padding:16px 18px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border)}
+        .sidebar-brand .logo{
+            width:40px;height:40px;background:var(--grad);border-radius:12px;
+            display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;font-weight:700;
+            box-shadow:0 0 20px rgba(102,126,234,0.4);animation:logoPulse 3s ease-in-out infinite;
+        }
+        @keyframes logoPulse{0%,100%{box-shadow:0 0 20px rgba(102,126,234,0.4)}50%{box-shadow:0 0 30px rgba(102,126,234,0.6),0 0 60px rgba(118,75,162,0.2)}}
+        .sidebar-brand h2{font-size:14px;line-height:1.3}
+        .sidebar-brand small{font-size:9px;color:var(--text3)}
+        .nav-section{padding:10px 0}
+        .nav-title{padding:4px 18px;font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:2px}
+        .nav-item{
+            display:flex;align-items:center;gap:10px;padding:10px 18px;font-size:13px;color:var(--text2);
+            cursor:pointer;transition:all .25s;border-left:3px solid transparent;position:relative;
+        }
+        .nav-item:hover{background:rgba(99,102,241,0.08);color:var(--text)}
+        .nav-item.active{
+            background:linear-gradient(90deg,rgba(59,130,246,0.22),rgba(6,182,212,0.08));
+            color:#bfe7ff;border-left-color:var(--primary);font-weight:600;
+        }
+        .nav-item.active::after{
+            content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+            width:3px;height:20px;background:var(--primary);border-radius:0 3px 3px 0;
+            box-shadow:0 0 10px var(--primary),0 0 20px rgba(6,182,212,0.35);
+        }
+        .nav-item .icon{font-size:17px;width:22px;text-align:center;filter:drop-shadow(0 0 3px currentColor)}
+        .nav-item .badge{position:absolute;right:14px;background:var(--danger);color:#fff;font-size:9px;padding:1px 5px;border-radius:8px;box-shadow:0 0 8px rgba(239,68,68,0.4)}
+        .divider{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:4px 14px}
+        .sidebar-footer{margin-top:auto;padding:14px 18px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px}
+        .avatar{width:36px;height:36px;background:var(--grad);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;box-shadow:0 0 12px rgba(102,126,234,0.3)}
+        .sidebar-footer .name{font-size:12px;font-weight:600}.sidebar-footer .sub{font-size:9px;color:var(--text3)}
+
+        /* ======== 顶栏 ======== */
+        .topbar{
+            background:rgba(18,34,84,0.9);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+            border-bottom:1px solid var(--border);padding:0 24px;
+            display:flex;align-items:center;justify-content:space-between;
+        }
+        .topbar h3{font-size:15px;background:linear-gradient(90deg,#e8ecf8,#a5d8ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .topbar-right{display:flex;align-items:center;gap:10px}
+        .topbar-btn{
+            width:36px;height:36px;border-radius:10px;
+            background:rgba(15,22,55,0.6);border:1px solid var(--border);
+            display:flex;align-items:center;justify-content:center;cursor:pointer;
+            font-size:15px;color:var(--text2);position:relative;transition:all .3s;
+            backdrop-filter:blur(10px);
+        }
+        .topbar-btn:hover{border-color:var(--primary);color:var(--primary);box-shadow:var(--glow-purple);transform:translateY(-1px)}
+        .topbar-btn .dot{position:absolute;top:4px;right:4px;width:8px;height:8px;background:var(--danger);border-radius:50%;border:2px solid rgba(10,16,45,0.8);animation:riskBlink 2s ease-in-out infinite}
+
+        /* ======== 主内容区 ======== */
+        .main{
+            overflow-y:auto;padding:22px;
+            background:transparent;
+            position:relative;
+        }
+        /* 主内容区浮动光晕 */
+        .main::before{
+            content:'';position:fixed;top:50%;right:10%;width:300px;height:300px;
+            background:radial-gradient(circle,rgba(139,92,246,0.04),transparent 70%);
+            border-radius:50%;pointer-events:none;animation:floatOrb 15s ease-in-out infinite;
+        }
+        @keyframes floatOrb{0%,100%{transform:translate(0,0)}25%{transform:translate(-30px,20px)}50%{transform:translate(20px,-30px)}75%{transform:translate(-20px,-20px)}}
+        .page{display:none}.page.active{display:block}
+
+        /* ======== KPI 卡片 ======== */
+        .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+        .kpi{
+            background:var(--card-bg);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+            border:1px solid var(--border);border-radius:var(--radius);
+            padding:18px 20px;position:relative;overflow:hidden;
+            transition:all .35s cubic-bezier(.4,0,.2,1);
+        }
+        .kpi:hover{transform:translateY(-4px);border-color:var(--border-glow);box-shadow:0 8px 32px rgba(0,0,0,0.3),0 0 20px rgba(99,102,241,0.1)}
+        .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+        .kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;filter:blur(6px);opacity:0.6}
+        .kpi:nth-child(1)::before,.kpi:nth-child(1)::after{background:linear-gradient(90deg,var(--primary),var(--accent))}
+        .kpi:nth-child(2)::before,.kpi:nth-child(2)::after{background:linear-gradient(90deg,var(--success),#6ee7b7)}
+        .kpi:nth-child(3)::before,.kpi:nth-child(3)::after{background:linear-gradient(90deg,var(--info),#67e8f9)}
+        .kpi:nth-child(4)::before,.kpi:nth-child(4)::after{background:linear-gradient(90deg,var(--warning),#fbbf24)}
+        .kpi .label{font-size:11px;color:var(--text2);margin-bottom:6px;letter-spacing:0.5px}
+        .kpi .val{font-size:32px;font-weight:800;letter-spacing:-1px}
+        .kpi .val[data-glow="purple"]{color:#c4b5fd;text-shadow:0 0 20px rgba(139,92,246,0.5),0 0 40px rgba(139,92,246,0.2)}
+        .kpi .val[data-glow="green"]{color:#6ee7b7;text-shadow:0 0 20px rgba(16,185,129,0.5),0 0 40px rgba(16,185,129,0.2)}
+        .kpi .val[data-glow="cyan"]{color:#67e8f9;text-shadow:0 0 20px rgba(6,182,212,0.5),0 0 40px rgba(6,182,212,0.2)}
+        .kpi .val[data-glow="yellow"]{color:#fcd34d;text-shadow:0 0 20px rgba(245,158,11,0.5),0 0 40px rgba(245,158,11,0.2)}
+        .kpi .val[data-glow="red"]{color:#fca5a5;text-shadow:0 0 20px rgba(239,68,68,0.5),0 0 40px rgba(239,68,68,0.2)}
+        .kpi .meta{font-size:10px;color:var(--text3);margin-top:6px}
+
+        /* ======== 通用卡片 ======== */
+        .card{
+            background:var(--card-bg);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+            border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;
+            transition:all .35s cubic-bezier(.4,0,.2,1);position:relative;
+        }
+        .card:hover{border-color:var(--border2);box-shadow:0 8px 32px rgba(0,0,0,0.2),0 0 16px rgba(99,102,241,0.08);transform:translateY(-3px)}
+        .card-h{
+            padding:14px 18px;border-bottom:1px solid var(--border);
+            display:flex;align-items:center;justify-content:space-between;
+            background:linear-gradient(135deg,rgba(99,102,241,0.05),transparent);
+        }
+        .card-h h4{font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+        .card-h h4 iconify-icon{filter:drop-shadow(0 0 4px currentColor)}
+        .card-h .sub{font-size:10px;color:var(--text3)}
+        .card-b{padding:16px 18px}.card-b.np{padding:0}
+        .split{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+        .single{margin-bottom:20px}
+
+        /* 标签 */
+        .tag{display:inline-block;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:600}
+        .tag-s{background:rgba(16,185,129,.12);color:#6ee7b7;box-shadow:inset 0 0 8px rgba(16,185,129,0.1)}
+        .tag-w{background:rgba(245,158,11,.12);color:#fcd34d;box-shadow:inset 0 0 8px rgba(245,158,11,0.1)}
+        .tag-d{background:rgba(239,68,68,.12);color:#fca5a5;box-shadow:inset 0 0 8px rgba(239,68,68,0.1);animation:riskBlink 2s ease-in-out infinite}
+        .tag-i{background:rgba(6,182,212,.12);color:#67e8f9;box-shadow:inset 0 0 8px rgba(6,182,212,0.1)}
+        
+
+        /* 按钮 */
+        .btn{
+            padding:8px 16px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;
+            border:none;transition:all .25s;display:inline-flex;align-items:center;gap:5px;
+        }
+        .btn-p{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;box-shadow:0 2px 12px rgba(37,99,235,0.35)}
+        .btn-p:hover{box-shadow:0 4px 20px rgba(6,182,212,0.45);transform:translateY(-1px)}
+        .btn-s{background:linear-gradient(135deg,var(--success),#34d399);color:#fff;box-shadow:0 2px 12px rgba(16,185,129,0.3)}
+        .btn-w{background:linear-gradient(135deg,var(--warning),#fbbf24);color:#fff}.btn-d{background:linear-gradient(135deg,var(--danger),#f87171);color:#fff}
+        .btn-o{background:rgba(99,102,241,0.08);border:1px solid var(--border);color:var(--text2);backdrop-filter:blur(8px)}
+        .btn-o:hover{border-color:var(--primary);color:var(--primary);box-shadow:var(--glow-purple)}
+        .btn-group{display:flex;gap:8px;flex-wrap:wrap}
+
+        /* ======== 提醒卡片 ======== */
+        .reminder{
+            background:rgba(10,16,50,0.5);border:1px solid var(--border);border-radius:12px;
+            padding:13px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;
+            transition:all .3s;backdrop-filter:blur(3px);
+        }
+        .reminder:hover{border-color:var(--border-glow);box-shadow:0 4px 20px rgba(0,0,0,0.2),0 0 12px rgba(99,102,241,0.08);transform:translateX(4px)}
+        .reminder .r-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
+        .reminder .r-icon iconify-icon{filter:drop-shadow(0 0 6px currentColor)}
+        .reminder .r-body{flex:1}
+        .reminder .r-title{font-size:13px;font-weight:600}
+        .reminder .r-sub{font-size:10px;color:var(--text3);margin-top:3px}
+        .reminder .r-time{font-size:11px;color:var(--primary);font-weight:600}
+
+        /* ======== 健康指标卡 ======== */
+        .health-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+        .health-item{
+            background:rgba(10,16,50,0.5);border-radius:12px;padding:16px;text-align:center;
+            border:1px solid var(--border);transition:all .3s;backdrop-filter:blur(3px);
+        }
+        .health-item:hover{border-color:var(--border-glow);box-shadow:0 0 16px rgba(99,102,241,0.1);transform:translateY(-2px)}
+        .health-item .hi-val{font-size:28px;font-weight:800;margin:6px 0}
+        .health-item .hi-lbl{font-size:10px;color:var(--text3);letter-spacing:0.5px}
+        .health-item .hi-unit{font-size:10px;color:var(--text2)}
+
+        /* ======== 表单 ======== */
+        .form-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+        .form-item{background:rgba(18,34,88,0.78);border:1px solid var(--border);border-radius:12px;padding:12px;backdrop-filter:blur(2px)}
+        .form-item label{font-size:10px;color:var(--text3);display:block;margin-bottom:4px}
+        .form-item input,.form-item select,.form-item textarea{
+            width:100%;background:rgba(6,11,30,0.6);border:1px solid var(--border);
+            border-radius:8px;padding:8px 12px;color:var(--text);font-size:12px;outline:none;transition:all .25s;
+        }
+        .form-item input:focus,.form-item textarea:focus{border-color:var(--primary);box-shadow:0 0 12px rgba(6,182,212,0.22)}
+
+        /* ======== AI 模块 - 视觉中心 ======== */
+        .ai-card{
+            background:linear-gradient(135deg,rgba(33,96,206,0.34) 0%,rgba(20,132,210,0.30) 44%,rgba(14,181,212,0.28) 100%);
+            border:1px solid rgba(67,159,255,0.38);
+            border-radius:var(--radius);padding:22px;color:#fff;
+            position:relative;overflow:hidden;
+            box-shadow:0 0 30px rgba(37,99,235,0.20),0 0 60px rgba(6,182,212,0.10),inset 0 1px 0 rgba(255,255,255,0.12);
+            backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+        }
+        .ai-card::before{
+            content:'';position:absolute;inset:0;
+            background:linear-gradient(45deg,transparent 30%,rgba(255,255,255,0.03) 50%,transparent 70%);
+            background-size:200% 200%;animation:aiShimmer 4s ease-in-out infinite;
+        }
+        .ai-card::after{
+            content:'';position:absolute;top:-50%;right:-50%;width:100%;height:100%;
+            background:radial-gradient(circle,rgba(56,189,248,0.14),transparent 70%);
+            animation:aiGlow 6s ease-in-out infinite;
+        }
+        @keyframes aiShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+        @keyframes aiGlow{0%,100%{opacity:0.3;transform:scale(1)}50%{opacity:0.6;transform:scale(1.1)}}
+        .ai-card h5{
+            font-size:16px;margin-bottom:8px;display:flex;align-items:center;gap:8px;
+            position:relative;z-index:1;
+        }
+        .ai-card h5 iconify-icon{
+            font-size:24px;filter:drop-shadow(0 0 8px rgba(59,130,246,0.65));
+            animation:aiIconPulse 2s ease-in-out infinite;
+        }
+        @keyframes aiIconPulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 8px rgba(59,130,246,0.65))}50%{transform:scale(1.1);filter:drop-shadow(0 0 14px rgba(6,182,212,0.9))}}
+        .ai-card .ai-badge{
+            display:inline-flex;align-items:center;gap:4px;padding:3px 10px;
+            background:rgba(255,255,255,0.12);border-radius:20px;font-size:10px;
+            border:1px solid rgba(255,255,255,0.15);margin-left:8px;
+        }
+        .ai-card p{font-size:12px;opacity:.93;line-height:1.7;position:relative;z-index:1}
+        .ai-box{
+            background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.08);
+            padding:14px;border-radius:10px;margin-top:10px;font-size:11px;line-height:1.6;
+            position:relative;z-index:1;backdrop-filter:blur(8px);
+        }
+
+        /* ======== 时间线 ======== */
+        .tl{position:relative;padding-left:20px;padding-bottom:14px;border-left:2px solid rgba(99,102,241,0.2);margin-left:4px}
+        .tl::before{
+            content:'';position:absolute;left:-5px;top:2px;width:8px;height:8px;border-radius:50%;
+            background:var(--primary);box-shadow:0 0 8px rgba(139,92,246,0.5);
+        }
+        .tl .t-d{font-size:9px;color:var(--text3)}.tl .t-t{font-size:12px;margin-top:3px}
+
+        /* ======== 图表柱状图 ======== */
+        .bars{height:130px;display:flex;align-items:flex-end;justify-content:space-around;padding:8px 4px 0;border-bottom:1px solid var(--border)}
+        .bcol{display:flex;flex-direction:column;align-items:center;gap:3px}
+        .bbar{width:22px;border-radius:5px 5px 0 0;transition:height .8s cubic-bezier(.4,0,.2,1);position:relative}
+        .bbar::after{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0.4;filter:blur(4px)}
+        .bbar.purple{background:linear-gradient(to top,var(--primary),#a78bfa)}.bbar.purple::after{background:inherit}
+        .bbar.green{background:linear-gradient(to top,var(--success),#6ee7b7)}.bbar.green::after{background:inherit}
+        .bbar.blue{background:linear-gradient(to top,var(--info),#67e8f9)}.bbar.blue::after{background:inherit}
+        .bbar.red{background:linear-gradient(to top,var(--danger),#f87171)}.bbar.red::after{background:inherit}
+        .bbar.yellow{background:linear-gradient(to top,var(--warning),#fbbf24)}.bbar.yellow::after{background:inherit}
+        .blbl{font-size:8px;color:var(--text3)}.bval{font-size:9px;color:var(--text2);font-weight:600}
+
+        /* ======== 药物卡 ======== */
+        .med{
+            background:rgba(10,16,50,0.5);border:1px solid var(--border);border-radius:12px;
+            padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;
+            transition:all .3s;backdrop-filter:blur(8px);
+        }
+        .med:hover{border-color:var(--border-glow);transform:translateX(4px)}
+        .med .m-name{font-size:13px;font-weight:600}.med .m-desc{font-size:10px;color:var(--text3);margin-top:2px}
+        .med .m-dose{font-size:14px;font-weight:700;color:#c4b5fd;text-shadow:0 0 10px rgba(139,92,246,0.3)}
+
+        /* ======== 个人中心 ======== */
+        .profile-header{
+            text-align:center;padding:36px 24px;
+            background:linear-gradient(135deg,rgba(102,126,234,0.3),rgba(118,75,162,0.35),rgba(139,92,246,0.3));
+            border:1px solid rgba(139,92,246,0.25);
+            border-radius:var(--radius);margin-bottom:20px;position:relative;overflow:hidden;
+            box-shadow:0 0 40px rgba(139,92,246,0.1);backdrop-filter:blur(16px);
+        }
+        .profile-header::before{
+            content:'';position:absolute;inset:0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),
+                linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);
+            background-size:30px 30px;
+        }
+        .profile-avatar{
+            width:84px;height:84px;border-radius:50%;
+            background:rgba(255,255,255,0.15);backdrop-filter:blur(8px);
+            display:inline-flex;align-items:center;justify-content:center;
+            font-size:36px;color:#fff;margin-bottom:12px;
+            border:3px solid rgba(255,255,255,0.25);
+            box-shadow:0 0 24px rgba(139,92,246,0.3);
+        }
+        .profile-header h3{color:#fff;font-size:22px;text-shadow:0 0 20px rgba(139,92,246,0.3)}
+        .profile-header p{color:rgba(255,255,255,.8);font-size:12px}
+        .badge-row{display:flex;justify-content:center;gap:24px;margin-top:16px}
+        .badge-item{text-align:center}
+        .badge-item .bv{font-size:24px;font-weight:800;color:#fff;text-shadow:0 0 16px rgba(255,255,255,0.3)}
+        .badge-item .bl{font-size:10px;color:rgba(255,255,255,.65)}
+
+        /* ======== 标签选项 ======== */
+        .symptom-tag{
+            padding:7px 16px;border-radius:10px;font-size:12px;cursor:pointer;
+            border:1px solid var(--border);color:var(--text2);transition:all .25s;
+            backdrop-filter:blur(8px);background:rgba(10,16,50,0.3);
+        }
+        .symptom-tag:hover{border-color:var(--primary);color:var(--primary);box-shadow:0 0 12px rgba(139,92,246,0.15)}
+        .symptom-tag.active{
+            background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;
+            border-color:transparent;box-shadow:0 2px 16px rgba(139,92,246,0.4);
+        }
+
+        /* ======== 动画系统 ======== */
+        @keyframes cardFadeIn{from{opacity:0;transform:translateY(16px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+        @keyframes riskBlink{0%,100%{opacity:1}50%{opacity:0.5}}
+
+        .card,.kpi{animation:cardFadeIn .5s cubic-bezier(.4,0,.2,1) both}
+        .kpi:nth-child(1){animation-delay:.05s}.kpi:nth-child(2){animation-delay:.1s}.kpi:nth-child(3){animation-delay:.15s}.kpi:nth-child(4){animation-delay:.2s}
+        .reminder,.med{animation:cardFadeIn .4s ease both}
+
+        /* ======== Iconify图标 + 发光 ======== */
+        iconify-icon{vertical-align:middle;display:inline-flex}
+        .ic-sm{font-size:16px}.ic-md{font-size:20px}.ic-lg{font-size:24px}
+        .ic-ai{color:#93c5fd;filter:drop-shadow(0 0 4px rgba(59,130,246,0.45))}
+        .ic-risk{color:#fca5a5;filter:drop-shadow(0 0 4px rgba(239,68,68,0.4))}
+        .ic-data{color:#67e8f9;filter:drop-shadow(0 0 4px rgba(6,182,212,0.45))}
+        .ic-med{color:#6ee7b7;filter:drop-shadow(0 0 4px rgba(16,185,129,0.4))}
+        .ic-warn{color:#fcd34d;filter:drop-shadow(0 0 4px rgba(245,158,11,0.4))}
+        .ic-cyan{color:#67e8f9;filter:drop-shadow(0 0 4px rgba(6,182,212,0.4))}
+        
+
+        /* ======== 滚动条 ======== */
+        ::-webkit-scrollbar{width:6px}
+        ::-webkit-scrollbar-track{background:transparent}
+        ::-webkit-scrollbar-thumb{background:rgba(99,102,241,0.2);border-radius:3px}
+        ::-webkit-scrollbar-thumb:hover{background:rgba(99,102,241,0.35)}
+
+        /* ======== 响应式 ======== */
+        @media(max-width:1200px){.kpi-row,.health-grid{grid-template-columns:repeat(2,1fr)}.form-row{grid-template-columns:1fr}}
+        @media(max-width:768px){.app{grid-template-columns:1fr}.sidebar{display:none}.split{grid-template-columns:1fr}}
+    </style>
+    <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+</head>
+<body>
+<div class="app">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="logo">肾</div>
+            <div><h2>肾移植随访系统</h2><small>患者端电脑版 v2.0</small></div>
+        </div>
+        <nav class="nav-section">
+            <div class="nav-title">核心功能</div>
+            <div class="nav-item active" onclick="go('home')"><span class="icon"><iconify-icon icon="mdi:home" class="ic-md ic-ai"></iconify-icon></span>健康首页</div>
+            <div class="nav-item" onclick="go('data')"><span class="icon"><iconify-icon icon="mdi:pencil" class="ic-md ic-data"></iconify-icon></span>数据录入</div>
+            <div class="divider"></div>
+            <div class="nav-title">随访管理</div>
+            <div class="nav-item" onclick="go('reminder')"><span class="icon"><iconify-icon icon="mdi:alarm" class="ic-md ic-warn"></iconify-icon></span>提醒中心</div>
+            <div class="nav-item" onclick="go('medication')"><span class="icon"><iconify-icon icon="mdi:pill" class="ic-md ic-ai"></iconify-icon></span>用药管理</div>
+            <div class="divider"></div>
+            <div class="nav-title">个人中心</div>
+            <div class="nav-item" onclick="go('profile')"><span class="icon"><iconify-icon icon="mdi:account" class="ic-md ic-ai"></iconify-icon></span>个人信息</div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="avatar">李</div>
+            <div><div class="name">李明</div><div class="sub">PT20260125 · 术后6个月</div></div>
+        </div>
+    </aside>
+
+    <header class="topbar">
+        <h3 id="pageTitle">健康首页</h3>
+        <div class="topbar-right">
+            <div class="topbar-btn" id="themeToggleBtn" title="切换大屏高对比模式" onclick="toggleThemeMode()"><iconify-icon icon="mdi:television-play" class="ic-md"></iconify-icon></div>
+            <div class="topbar-btn" title="通知"><iconify-icon icon="mdi:bell" class="ic-md"></iconify-icon><span class="dot"></span></div>
+            <div class="topbar-btn" title="联系医生"><iconify-icon icon="mdi:chat" class="ic-md"></iconify-icon></div>
+            <div class="topbar-btn" title="紧急呼叫"><iconify-icon icon="mdi:alarm-light" class="ic-md" style="color:var(--danger)"></iconify-icon></div>
+        </div>
+    </header>
+
+    <main class="main">
+        <!-- ===== 健康首页 ===== -->
+        <div class="page active" id="page-home">
+            <div class="kpi-row">
+                <div class="kpi"><div class="label"><iconify-icon icon="mdi:water" class="ic-sm ic-cyan"></iconify-icon> 今日饮水</div><div class="val" data-glow="cyan" data-count="2000">0<span style="font-size:14px;opacity:.7"> ml</span></div><div class="meta">目标 2500ml · 完成80%</div></div>
+                <div class="kpi"><div class="label"><iconify-icon icon="mdi:scale" class="ic-sm ic-med"></iconify-icon> 体重</div><div class="val" data-glow="green" data-count="68.5" data-decimal="1">0<span style="font-size:14px;opacity:.7"> kg</span></div><div class="meta">BMI 23.1 · 正常</div></div>
+                <div class="kpi"><div class="label"><iconify-icon icon="mdi:cup-water" class="ic-sm ic-ai"></iconify-icon> 今日尿量</div><div class="val" data-glow="purple" data-count="1800">0<span style="font-size:14px;opacity:.7"> ml</span></div><div class="meta">出入量比 0.9</div></div>
+                <div class="kpi"><div class="label"><iconify-icon icon="mdi:pill" class="ic-sm ic-warn"></iconify-icon> 服药完成率</div><div class="val" data-glow="yellow" data-count="83">0<span style="font-size:14px;opacity:.7">%</span></div><div class="meta">今日: 5/6 剂次已完成</div></div>
+            </div>
+
+            <div class="split">
+                <div>
+                    <div class="card single">
+                        <div class="card-h"><h4><iconify-icon icon="mdi:alarm" class="ic-md ic-warn"></iconify-icon> 今日提醒</h4></div>
+                        <div class="card-b">
+<div class="reminder"><div class="r-icon" style="background:rgba(239,68,68,.15)"><iconify-icon icon="mdi:pill" class="ic-lg ic-risk"></iconify-icon></div><div class="r-body"><div class="r-title">他克莫司 2mg</div><div class="r-sub">免疫抑制剂 · 每日2次</div></div><div class="r-time">14:00</div></div>
+                            <div class="reminder"><div class="r-icon" style="background:rgba(245,158,11,.15)"><iconify-icon icon="mdi:pill" class="ic-lg ic-warn"></iconify-icon></div><div class="r-body"><div class="r-title">泼尼松 10mg</div><div class="r-sub">糖皮质激素 · 每日1次</div></div><div class="r-time">08:00 ✅</div></div>
+                            <div class="reminder"><div class="r-icon" style="background:rgba(59,130,246,.15)"><iconify-icon icon="mdi:hospital" class="ic-lg ic-data"></iconify-icon></div><div class="r-body"><div class="r-title">肾功能复查预约</div><div class="r-sub">医嘱: 48h内完成肌酭复查</div></div><div class="r-time">04-03</div></div>
+                        </div>
+                    </div>
+                    <div class="card single">
+                        <div class="card-h"><h4><iconify-icon icon="mdi:chart-bar" class="ic-md ic-data"></iconify-icon> 最新检查指标</h4><span class="sub">2026-03-31</span></div>
+                        <div class="card-b">
+                            <div class="health-grid">
+                                <div class="health-item"><div class="hi-lbl">肌酐</div><div class="hi-val" style="color:#fca5a5;text-shadow:0 0 12px rgba(239,68,68,0.4)" data-count="128">0</div><div class="hi-unit">μmol/L ↑</div></div>
+                                <div class="health-item"><div class="hi-lbl">血药浓度</div><div class="hi-val" style="color:#fcd34d;text-shadow:0 0 12px rgba(245,158,11,0.4)" data-count="8.2" data-decimal="1">0</div><div class="hi-unit">ng/ml</div></div>
+                                <div class="health-item"><div class="hi-lbl">血压</div><div class="hi-val">120/80</div><div class="hi-unit">mmHg</div></div>
+                                <div class="health-item"><div class="hi-lbl">血糖</div><div class="hi-val">5.8</div><div class="hi-unit">mmol/L</div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="ai-card single">
+                        <h5>
+                            <iconify-icon icon="mdi:robot-happy" class="ic-lg"></iconify-icon>
+                            AI 健康分析
+                            <span class="ai-badge"><iconify-icon icon="mdi:creation" style="font-size:12px"></iconify-icon> 实时分析中</span>
+                        </h5>
+                        <p>根据您近期检查数据和健康信息，AI系统推出以下个性化建议：</p>
+                        <div class="ai-box">
+                            <iconify-icon icon="mdi:alert" style="font-size:14px;color:#fcd34d;filter:drop-shadow(0 0 4px rgba(245,158,11,0.5))"></iconify-icon> 肌酐水平近期呈上升趋势（85→98→112→128 μmol/L），建议您：<br>
+                            <iconify-icon icon="mdi:chevron-right" style="font-size:12px;opacity:.6"></iconify-icon> 严格按时服用免疫抑制剂<br>
+                            <iconify-icon icon="mdi:chevron-right" style="font-size:12px;opacity:.6"></iconify-icon> 避免剧烈运动和过度劳累<br>
+                            <iconify-icon icon="mdi:chevron-right" style="font-size:12px;opacity:.6"></iconify-icon> 每日饮水目标提升至2500ml<br>
+                            <iconify-icon icon="mdi:chevron-right" style="font-size:12px;opacity:.6"></iconify-icon> 48h内前往医院复查肾功能<br>
+                            <iconify-icon icon="mdi:chevron-right" style="font-size:12px;opacity:.6"></iconify-icon> 如出现水肿加重、尿量减少，请立即就医
+                        </div>
+                    </div>
+                    <div class="card single">
+                        <div class="card-h"><h4><iconify-icon icon="mdi:chart-line" class="ic-md ic-data"></iconify-icon> 肌酐趋势</h4><span class="sub">近7天</span></div>
+                        <div class="card-b">
+                            <div class="bars">
+                                <div class="bcol"><div class="bval">85</div><div class="bbar purple" style="height:30px"></div><div class="blbl">3/25</div></div>
+                                <div class="bcol"><div class="bval">92</div><div class="bbar purple" style="height:42px"></div><div class="blbl">3/26</div></div>
+                                <div class="bcol"><div class="bval">98</div><div class="bbar yellow" style="height:52px"></div><div class="blbl">3/27</div></div>
+                                <div class="bcol"><div class="bval">105</div><div class="bbar yellow" style="height:60px"></div><div class="blbl">3/28</div></div>
+                                <div class="bcol"><div class="bval">112</div><div class="bbar yellow" style="height:72px"></div><div class="blbl">3/29</div></div>
+                                <div class="bcol"><div class="bval">120</div><div class="bbar red" style="height:86px"></div><div class="blbl">3/30</div></div>
+                                <div class="bcol"><div class="bval">128</div><div class="bbar red" style="height:95px"></div><div class="blbl">3/31</div></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-h"><h4><iconify-icon icon="mdi:stethoscope" class="ic-md ic-cyan"></iconify-icon> 我的医生</h4></div>
+                        <div class="card-b" style="display:flex;align-items:center;gap:12px">
+                            <div class="avatar" style="width:44px;height:44px;font-size:18px;background:linear-gradient(135deg,#3b82f6,#8b5cf6)">张</div>
+                            <div style="flex:1"><div style="font-size:14px;font-weight:600">张主任</div><div style="font-size:11px;color:var(--text3)">肾移植科 · 主任医师 · 随访医生</div></div>
+                            <button class="btn btn-p"><iconify-icon icon="mdi:chat" class="ic-sm"></iconify-icon> 联系医生</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="split">
+                <div class="card">
+                    <div class="card-h"><h4><iconify-icon icon="mdi:clipboard-text" class="ic-md ic-cyan"></iconify-icon> 随访任务</h4><span class="sub">3 项待完成</span></div>
+                    <div class="card-b">
+                        <div class="tl"><div class="t-d"><span class="tag tag-d">紧急</span> 截止: 04-03</div><div class="t-t">完成肾功能复查并上传报告</div></div>
+                        <div class="tl"><div class="t-d"><span class="tag tag-w">本周</span></div><div class="t-t">每日健康数据录入（饮水/体重/尿量）</div></div>
+                        <div class="tl"><div class="t-d"><span class="tag tag-i">本月</span></div><div class="t-t">完成患者满意度调查问卷</div></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-h"><h4><iconify-icon icon="mdi:cloud-upload" class="ic-md ic-data"></iconify-icon> 报告上传</h4><span class="sub">支持OCR自动识别</span></div>
+                    <div class="card-b" style="text-align:center;padding:20px">
+                        <div style="border:2px dashed var(--border);border-radius:12px;padding:30px;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">
+                            <div style="font-size:36px;margin-bottom:8px"><iconify-icon icon="mdi:file-document" style="font-size:36px;color:var(--text3)"></iconify-icon></div>
+                            <div style="font-size:13px;color:var(--text2)">点击或拖拽上传检查报告</div>
+                            <div style="font-size:10px;color:var(--text3);margin-top:4px">支持 JPG / PNG / PDF · AI自动识别数据</div>
+                        </div>
+                        <div class="btn-group" style="justify-content:center;margin-top:12px">
+                            <button class="btn btn-p"><iconify-icon icon="mdi:camera" class="ic-sm"></iconify-icon> 拍照上传</button>
+                            <button class="btn btn-o"><iconify-icon icon="mdi:folder" class="ic-sm"></iconify-icon> 选择文件</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 数据录入 ===== -->
+        <div class="page" id="page-data">
+            <div class="split">
+                <div class="card">
+                    <div class="card-h"><h4><iconify-icon icon="mdi:pencil" class="ic-md ic-data"></iconify-icon> 每日健康数据 — 2026年4月2日</h4></div>
+                    <div class="card-b">
+                        <div class="form-row">
+                            <div class="form-item"><label>饮水量 (ml)</label><input type="number" value="2000" placeholder="输入饮水量"></div>
+                            <div class="form-item"><label>尿量 (ml)</label><input type="number" value="1800" placeholder="输入尿量"></div>
+                            <div class="form-item"><label>体重 (kg)</label><input type="number" value="68.5" step="0.1" placeholder="输入体重"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-item"><label>大便次数</label><input type="number" value="2" placeholder="输入次数"></div>
+                            <div class="form-item"><label>体温 (℃)</label><input type="number" value="36.5" step="0.1" placeholder="输入体温"></div>
+                            <div class="form-item"><label>血压 (mmHg)</label><input type="text" value="120/80" placeholder="如 120/80"></div>
+                        </div>
+                        <div class="form-row" style="grid-template-columns:1fr">
+                            <div class="form-item"><label>今日饮食记录</label><textarea rows="2" placeholder="记录今日三餐饮食">早餐:小米粥+鸡蛋, 午餐:米饭+蔬菜+鱼肉, 晚餐:面条+青菜</textarea></div>
+                        </div>
+                        <div class="form-row" style="grid-template-columns:1fr">
+                            <div class="form-item"><label>整体感受</label>
+                                <div style="display:flex;gap:8px;margin-top:6px">
+                                    <span class="symptom-tag">😃 很好</span><span class="symptom-tag active">🙂 一般</span><span class="symptom-tag">😐 不太好</span><span class="symptom-tag">😞 较差</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="btn-group" style="margin-top:8px"><button class="btn btn-p"><iconify-icon icon="mdi:content-save" class="ic-sm"></iconify-icon> 保存数据</button><button class="btn btn-o"><iconify-icon icon="mdi:chart-bar" class="ic-sm"></iconify-icon> 查看趋势</button></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="card single">
+                        <div class="card-h"><h4><iconify-icon icon="mdi:chart-bar" class="ic-md ic-data"></iconify-icon> 历史数据趋势</h4><span class="sub">近7天饮水量</span></div>
+                        <div class="card-b">
+                            <div class="bars" style="height:120px">
+                                <div class="bcol"><div class="bval">2200</div><div class="bbar blue" style="height:88px"></div><div class="blbl">3/27</div></div>
+                                <div class="bcol"><div class="bval">1800</div><div class="bbar blue" style="height:72px"></div><div class="blbl">3/28</div></div>
+                                <div class="bcol"><div class="bval">2100</div><div class="bbar blue" style="height:84px"></div><div class="blbl">3/29</div></div>
+                                <div class="bcol"><div class="bval">1900</div><div class="bbar blue" style="height:76px"></div><div class="blbl">3/30</div></div>
+                                <div class="bcol"><div class="bval">2000</div><div class="bbar blue" style="height:80px"></div><div class="blbl">3/31</div></div>
+                                <div class="bcol"><div class="bval">2000</div><div class="bbar blue" style="height:80px"></div><div class="blbl">4/1</div></div>
+                                <div class="bcol"><div class="bval">2000</div><div class="bbar green" style="height:80px"></div><div class="blbl">4/2</div></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-h"><h4><iconify-icon icon="mdi:calendar" class="ic-md ic-data"></iconify-icon> 数据日历</h4></div>
+                        <div class="card-b">
+                            <p style="font-size:12px;color:var(--text2);line-height:1.8">
+                                连续记录天数: <strong style="color:var(--success)">28天</strong><br>
+                                本月完成率: <strong style="color:var(--primary)">93.3%</strong><br>
+                                漏记提醒: 3月29日 大便次数未录入
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 提醒中心 ===== -->
+        <div class="page" id="page-reminder">
+            <div class="split">
+                <div class="card">
+                    <div class="card-h"><h4><iconify-icon icon="mdi:pill" class="ic-md ic-ai"></iconify-icon> 用药提醒</h4></div>
+                    <div class="card-b">
+                        <div class="reminder"><div class="r-icon" style="background:rgba(239,68,68,.15)"><iconify-icon icon="mdi:pill" class="ic-lg ic-risk"></iconify-icon></div><div class="r-body"><div class="r-title">他克莫司 2mg</div><div class="r-sub">每日2次 · 08:00 / 20:00</div></div><div><div class="r-time">08:00 ✅</div><div class="r-time" style="color:var(--warning)">20:00 待</div></div></div>
+                        <div class="reminder"><div class="r-icon" style="background:rgba(245,158,11,.15)"><iconify-icon icon="mdi:pill" class="ic-lg ic-warn"></iconify-icon></div><div class="r-body"><div class="r-title">泼尼松 10mg</div><div class="r-sub">每日1次 · 08:00</div></div><div class="r-time">08:00 ✅</div></div>
+                        <div class="reminder"><div class="r-icon" style="background:rgba(139,92,246,.15)"><iconify-icon icon="mdi:pill" class="ic-lg ic-ai"></iconify-icon></div><div class="r-body"><div class="r-title">吗替麦考酚酯 0.5g</div><div class="r-sub">每日2次 · 08:00 / 20:00</div></div><div><div class="r-time">08:00 ✅</div><div class="r-time" style="color:var(--warning)">20:00 待</div></div></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="card single">
+                        <div class="card-h"><h4><iconify-icon icon="mdi:calendar-check" class="ic-md ic-data"></iconify-icon> 预约提醒</h4></div>
+                        <div class="card-b">
+                            <div class="reminder"><div class="r-icon" style="background:rgba(59,130,246,.15)"><iconify-icon icon="mdi:hospital" class="ic-lg ic-data"></iconify-icon></div><div class="r-body"><div class="r-title">肾功能复查</div><div class="r-sub">hljxykj医院肾移植科 · 张主任</div></div><div class="r-time">04-03<br><span style="font-size:9px;color:var(--text3)">需空腹</span></div></div>
+                            <div class="reminder"><div class="r-icon" style="background:rgba(16,185,129,.15)"><iconify-icon icon="mdi:hospital" class="ic-lg ic-med"></iconify-icon></div><div class="r-body"><div class="r-title">术后半年大复查</div><div class="r-sub">肾活检 + 全套血液检查</div></div><div class="r-time">04-15</div></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-h"><h4><iconify-icon icon="mdi:book-open-variant" class="ic-md ic-med"></iconify-icon> 健康教育</h4></div>
+                        <div class="card-b">
+                            <div class="reminder"><div class="r-icon" style="background:rgba(6,182,212,.15)"><iconify-icon icon="mdi:book-open-page-variant" class="ic-lg ic-cyan"></iconify-icon></div><div class="r-body"><div class="r-title">肾移植术后饮食指南</div><div class="r-sub">了解哪些食物适合术后恢复</div></div><div><button class="btn btn-o" style="font-size:10px">阅读</button></div></div>
+                            <div class="reminder"><div class="r-icon" style="background:rgba(139,92,246,.15)"><iconify-icon icon="mdi:book-open-page-variant" class="ic-lg ic-ai"></iconify-icon></div><div class="r-body"><div class="r-title">免疫抑制剂用药须知</div><div class="r-sub">正确服药，保护移植肾</div></div><div><button class="btn btn-o" style="font-size:10px">阅读</button></div></div>
+                            <div class="reminder"><div class="r-icon" style="background:rgba(16,185,129,.15)"><iconify-icon icon="mdi:book-open-page-variant" class="ic-lg ic-med"></iconify-icon></div><div class="r-body"><div class="r-title">术后运动康复建议</div><div class="r-sub">循序渐进的运动方案</div></div><div><button class="btn btn-o" style="font-size:10px">阅读</button></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 用药管理 ===== -->
+        <div class="page" id="page-medication">
+            <div class="kpi-row">
+                <div class="kpi"><div class="label"><iconify-icon icon="mdi:pill" class="ic-sm ic-ai"></iconify-icon> 当前用药种类</div><div class="val" data-glow="purple" data-count="3">0</div><div class="meta">免疫抑制 + 激素</div></div>
+                <div class="kpi"><div class="label"><iconify-icon icon="mdi:chart-donut" class="ic-sm ic-warn"></iconify-icon> 服药依从率</div><div class="val" data-glow="yellow" data-count="83">0<span style="font-size:14px;opacity:.7">%</span></div><div class="meta">近30天平均</div></div>
+                <div class="kpi"><div class="label"><iconify-icon icon="mdi:swap-vertical" class="ic-sm ic-cyan"></iconify-icon> 调药次数</div><div class="val" data-glow="cyan" data-count="2">0</div><div class="meta">近30天</div></div>
+                <div class="kpi"><div class="label"><iconify-icon icon="mdi:calendar-check" class="ic-sm ic-med"></iconify-icon> 连续服药天数</div><div class="val" data-glow="green" data-count="26">0</div><div class="meta">保持记录！</div></div>
+            </div>
+            <div class="split">
+                <div class="card">
+                    <div class="card-h"><h4><iconify-icon icon="mdi:pill" class="ic-md ic-ai"></iconify-icon> 当前用药方案</h4></div>
+                    <div class="card-b">
+                        <div class="med"><div><div class="m-name">他克莫司胶囊</div><div class="m-desc">免疫抑制剂 · 早晚各1次 · 饭前1小时</div></div><div class="m-dose">2mg × 2次/日</div></div>
+                        <div class="med"><div><div class="m-name">泼尼松片</div><div class="m-desc">糖皮质激素 · 早餐后 · 不要突然停药</div></div><div class="m-dose">10mg × 1次/日</div></div>
+                        <div class="med"><div><div class="m-name">吗替麦考酚酯胶囊</div><div class="m-desc">抗代谢药 · 早晚各1次 · 与他克莫司间隔2h</div></div><div class="m-dose">0.5g × 2次/日</div></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-h"><h4><iconify-icon icon="mdi:pencil" class="ic-md ic-warn"></iconify-icon> 调药记录</h4></div>
+                    <div class="card-b">
+                        <div class="tl"><div class="t-d">2026-03-25 — 张主任</div><div class="t-t">他克莫司: 1.5mg → <strong style="color:var(--primary)">2mg</strong> · 原因: 血药浓度偏低</div></div>
+                        <div class="tl"><div class="t-d">2026-03-15 — 张主任</div><div class="t-t">新增吗替麦考酚酯 0.5g bid · 原因: 加强免疫抑制</div></div>
+                        <div class="tl"><div class="t-d">2026-02-01 — 张主任</div><div class="t-t">泼尼松: 15mg → <strong style="color:var(--success)">10mg</strong> · 原因: 逐步减量</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 个人信息 ===== -->
+        <div class="page" id="page-profile">
+            <div class="profile-header">
+                <div class="profile-avatar">李</div>
+                <h3>李明</h3>
+                <p>PT20260125 · 肾移植术后6个月 · A型血</p>
+                <div class="badge-row">
+                    <div class="badge-item"><div class="bv">182</div><div class="bl">随访天数</div></div>
+                    <div class="badge-item"><div class="bv">156</div><div class="bl">服药天数</div></div>
+                    <div class="badge-item"><div class="bv">12</div><div class="bl">上传报告</div></div>
+                    <div class="badge-item"><div class="bv">28</div><div class="bl">连续记录</div></div>
+                </div>
+            </div>
+            <div class="split">
+                <div class="card">
+                    <div class="card-h"><h4><iconify-icon icon="mdi:clipboard-text" class="ic-md ic-data"></iconify-icon> 基本信息</h4></div>
+                    <div class="card-b">
+                        <div class="form-row" style="grid-template-columns:1fr 1fr">
+                            <div class="form-item"><label>姓名</label><input value="李明" readonly></div>
+                            <div class="form-item"><label>性别</label><input value="男" readonly></div>
+                        </div>
+                        <div class="form-row" style="grid-template-columns:1fr 1fr">
+                            <div class="form-item"><label>年龄</label><input value="48岁" readonly></div>
+                            <div class="form-item"><label>手术日期</label><input value="2025-09-01" readonly></div>
+                        </div>
+                        <div class="form-row" style="grid-template-columns:1fr 1fr">
+                            <div class="form-item"><label>随访医生</label><input value="张主任" readonly></div>
+                            <div class="form-item"><label>联系电话</label><input value="138****5678" readonly></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-h"><h4><iconify-icon icon="mdi:cog" class="ic-md ic-data"></iconify-icon> 设置</h4></div>
+                    <div class="card-b">
+                        <div class="reminder"><div class="r-icon" style="background:rgba(59,130,246,.15)"><iconify-icon icon="mdi:bell" class="ic-lg ic-data"></iconify-icon></div><div class="r-body"><div class="r-title">通知设置</div><div class="r-sub">用药提醒、预约提醒、异常提醒</div></div><div><button class="btn btn-o" style="font-size:10px">管理</button></div></div>
+                        <div class="reminder"><div class="r-icon" style="background:rgba(139,92,246,.15)"><iconify-icon icon="mdi:lock" class="ic-lg ic-ai"></iconify-icon></div><div class="r-body"><div class="r-title">隐私设置</div><div class="r-sub">数据分享范围、家属权限</div></div><div><button class="btn btn-o" style="font-size:10px">管理</button></div></div>
+                        <div class="reminder"><div class="r-icon" style="background:rgba(16,185,129,.15)"><iconify-icon icon="mdi:cellphone" class="ic-lg ic-med"></iconify-icon></div><div class="r-body"><div class="r-title">设备管理</div><div class="r-sub">已连接 3 台设备</div></div><div><button class="btn btn-o" style="font-size:10px">管理</button></div></div>
+                        <div class="reminder"><div class="r-icon" style="background:rgba(245,158,11,.15)"><iconify-icon icon="mdi:help-circle" class="ic-lg ic-warn"></iconify-icon></div><div class="r-body"><div class="r-title">帮助与反馈</div><div class="r-sub">使用指南、常见问题</div></div><div><button class="btn btn-o" style="font-size:10px">查看</button></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+function go(page){
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    const el=document.getElementById('page-'+page);
+    if(el)el.classList.add('active');
+    const t={'home':'健康首页','data':'数据录入','reminder':'提醒中心','medication':'用药管理','profile':'个人信息'};
+    document.getElementById('pageTitle').textContent=t[page]||page;
+    event.currentTarget.classList.add('active');
+    // 切换页面时重新触发数字滚动
+    setTimeout(()=>runCounters(el),100);
+}
+
+function syncThemeToggleUI(){
+    const btn=document.getElementById('themeToggleBtn');
+    if(!btn)return;
+    const isDisplay=document.body.classList.contains('theme-display');
+    btn.style.borderColor=isDisplay?'var(--accent)':'var(--border)';
+    btn.style.boxShadow=isDisplay?'0 0 14px rgba(18,214,255,0.45)':'none';
+    btn.title=isDisplay?'当前：大屏高对比（点击切回标准）':'当前：标准驾驶舱（点击切到大屏高对比）';
+}
+
+function toggleThemeMode(){
+    document.body.classList.toggle('theme-display');
+    const isDisplay=document.body.classList.contains('theme-display');
+    localStorage.setItem('patientThemeMode',isDisplay?'display':'standard');
+    syncThemeToggleUI();
+}
+
+/* ======== 数字滚动动画 ======== */
+function animateCount(el){
+    const target=parseFloat(el.dataset.count);
+    if(isNaN(target))return;
+    const decimal=parseInt(el.dataset.decimal)||0;
+    const suffix=el.querySelector('span');
+    const suffixHTML=suffix?suffix.outerHTML:'';
+    const duration=1200;
+    const start=performance.now();
+    function step(now){
+        const progress=Math.min((now-start)/duration,1);
+        const eased=1-Math.pow(1-progress,3); // easeOutCubic
+        const current=(target*eased).toFixed(decimal);
+        el.innerHTML=current+suffixHTML;
+        if(progress<1)requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+function runCounters(scope){
+    const root=scope||document;
+    root.querySelectorAll('[data-count]').forEach(el=>{
+        // 仅对可见元素执行
+        if(el.offsetParent!==null||el.closest('.page.active')){
+            animateCount(el);
+        }
+    });
+}
+
+/* ======== 卡片交错渐入 ======== */
+function staggerCards(){
+    const activePage=document.querySelector('.page.active');
+    if(!activePage)return;
+    const items=activePage.querySelectorAll('.card,.kpi,.reminder,.med,.ai-card');
+    items.forEach((el,i)=>{
+        el.style.animationDelay=(i*0.06)+'s';
+    });
+}
+
+/* ======== 初始化 ======== */
+document.addEventListener('DOMContentLoaded',()=>{
+    const savedMode=localStorage.getItem('patientThemeMode');
+    if(savedMode==='display')document.body.classList.add('theme-display');
+    syncThemeToggleUI();
+    staggerCards();
+    runCounters(document.querySelector('.page.active'));
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1634 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>肾移植随访系统 · 患者管理工作台</title>
+  <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#f5f7fa;
+      --panel:#ffffff;
+      --panel2:#f7f9fc;
+      --text:#0f172a;
+      --muted:#64748b;
+      --border:#e2e8f0;
+      --shadow:0 10px 30px rgba(0,0,0,.06);
+      --blue:#1677ff;
+      --cyan:#06b6d4;
+      --red:#ef4444;
+      --green:#16a34a;
+      --yellow:#f59e0b;
+      --orange:#f97316;
+      --radius:12px;
+      --fz-title:16px;
+      --fz-label:14px;
+      --fz-desc:12px;
+    }
+    html,body{height:100%}
+    body{font-family:system-ui,-apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+
+    .app{display:grid;grid-template-columns:276px 1fr;grid-template-rows:56px 1fr;height:100%}
+    .sidebar{grid-row:1/3;background:linear-gradient(180deg,#ffffff 0%, #f5f7fa 100%);border-right:1px solid rgba(148,163,184,.22);display:flex;flex-direction:column;min-width:0}
+    .brand{height:48px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid rgba(148,163,184,.25)}
+    .brand .logo{width:28px;height:28px;border-radius:9px;background:var(--blue);box-shadow:none}
+    .brand .t{min-width:0}
+    .brand .t .h{font-size:14px;font-weight:800;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .brand .t .s{display:none}
+
+    .nav{padding:10px 10px 14px;overflow:auto}
+    .nav::-webkit-scrollbar{width:6px}
+    .nav::-webkit-scrollbar-thumb{background:rgba(148,163,184,.45);border-radius:8px}
+    .nav-group{margin-bottom:10px}
+    .nav-group__head{
+      display:flex;align-items:center;gap:8px;
+      padding:10px 10px;border-radius:10px;
+      font-size:13px;font-weight:900;color:#0b1220;
+      cursor:pointer;user-select:none;
+      background:transparent;
+      border:1px solid transparent;
+    }
+    .nav-group__head iconify-icon{font-size:18px;color:rgba(22,119,255,.85)}
+    .nav-group__head .chev{margin-left:auto;color:#94a3b8;font-weight:900;transition:transform .2s ease}
+    .nav-group[data-open="1"] .nav-group__head .chev{transform:rotate(180deg)}
+
+    /* 子菜单：卡片容器 + 展开动画 */
+    .nav-group__items{
+      margin-top:8px;
+      background:rgba(255,255,255,.70);
+      border:1px solid rgba(148,163,184,.22);
+      border-radius:12px;
+      padding:8px 8px;
+      height:0;
+      overflow:hidden;
+      opacity:0;
+      transform:translateY(-6px);
+      transition:opacity .25s ease, transform .25s ease;
+      pointer-events:none;
+    }
+    .nav-group[data-open="1"] .nav-group__items{
+      opacity:1;
+      transform:translateY(0);
+      pointer-events:auto;
+    }
+    .nav-item{
+      position:relative;
+      display:flex;align-items:center;gap:8px;
+      padding:8px 10px;border-radius:10px;
+      font-size:13px;color:#1f2937;font-weight:700;
+      cursor:pointer;user-select:none;
+      transition:transform .2s ease, background-color .2s ease, color .2s ease;
+      will-change:transform;
+    }
+    .nav-item:hover{background:rgba(22,119,255,.08)}
+    .nav-item:hover{transform:translateX(4px)}
+    .nav-item[data-active="1"]{background:rgba(22,119,255,.12);color:#0b1b40;font-weight:700}
+    .nav-item[data-active="1"] .i{color:var(--blue)}
+    .nav-item[data-active="1"]::after{
+      content:"";
+      position:absolute;
+      left:6px;
+      top:6px;
+      bottom:6px;
+      width:3px;
+      border-radius:999px;
+      background:rgba(22,119,255,.85);
+    }
+    .nav-item .i{width:20px;display:inline-flex;align-items:center;justify-content:center;color:var(--muted)}
+    .nav-item iconify-icon{font-size:18px}
+
+    /* 层级缩进（一级/二级/三级） */
+    .nav-l1{padding-left:10px}
+    .nav-l2{padding-left:24px}
+    .nav-l3{padding-left:36px}
+    .nav-l2 iconify-icon,.nav-l3 iconify-icon{font-size:16px}
+
+    /* 引导线与节点（树结构路径） */
+    .nav-sub{
+      position:relative;
+    }
+    .nav-sub::before{
+      content:"";
+      position:absolute;
+      left:14px;
+      top:6px;
+      bottom:6px;
+      width:2px;
+      background:rgba(148,163,184,.35);
+      border-radius:2px;
+    }
+    .nav-sub::after{
+      content:"";
+      position:absolute;
+      left:14px;
+      top:50%;
+      width:10px;
+      height:2px;
+      background:rgba(148,163,184,.35);
+      transform:translateY(-50%);
+      border-radius:2px;
+    }
+    .nav-sub .i{
+      position:relative;
+      z-index:1;
+    }
+    .nav-sub .i::before{
+      content:"";
+      position:absolute;
+      left:-10px;
+      top:50%;
+      width:6px;
+      height:6px;
+      border-radius:50%;
+      background:#fff;
+      border:2px solid rgba(22,119,255,.30);
+      transform:translateY(-50%);
+    }
+
+    .topbar{background:var(--panel);border-bottom:1px solid rgba(148,163,184,.25);display:flex;align-items:center;gap:12px;padding:0 16px}
+    .topbar-left{display:flex;flex-direction:column;gap:2px;min-width:0}
+    .topbar-title{display:flex;align-items:baseline;gap:10px;min-width:0}
+    .topbar-title h1{font-size:20px;font-weight:700;letter-spacing:.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .crumb{font-size:12px;color:var(--muted);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .topbar-mid{flex:1;display:flex;justify-content:center}
+    .gsearch{
+      width:min(640px, 100%);
+      display:flex;align-items:center;gap:8px;
+      background:#fff;border:1px solid rgba(148,163,184,.35);
+      border-radius:999px;
+      padding:8px 12px;
+    }
+    .gsearch iconify-icon{color:rgba(100,116,139,.9);font-size:18px}
+    .gsearch input{border:none;outline:none;background:transparent;width:100%;font-size:14px}
+    .topbar-right{display:flex;align-items:center;gap:10px}
+    .iconbtn{border:1px solid rgba(148,163,184,.35);background:#fff;border-radius:10px;padding:8px 10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+    .iconbtn iconify-icon{font-size:18px;color:#334155}
+    .userpill{display:flex;align-items:center;gap:8px;border:1px solid rgba(148,163,184,.35);background:#fff;border-radius:999px;padding:7px 10px;font-size:12px;color:#334155;font-weight:600}
+    .userpill iconify-icon{font-size:18px;color:#334155}
+    .clock{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--muted)}
+
+    .main{min-height:0;overflow:hidden;display:flex;flex-direction:column}
+    .page{flex:1;min-height:0;overflow:auto;padding:16px 16px 18px}
+    .page::-webkit-scrollbar{width:8px}
+    .page::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px}
+
+    .toolbar{
+      display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:16px 16px;
+      box-shadow:var(--shadow);
+    }
+    .toolbar .seg{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .field{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:8px 10px}
+    .field label{font-size:12px;color:var(--muted);font-weight:800}
+    .field input,.field select{border:none;background:transparent;outline:none;font-size:13px;min-width:160px}
+    .chipset{display:flex;gap:6px;align-items:center}
+    .chip{
+      border:1px solid var(--border);
+      background:var(--panel2);
+      padding:6px 10px;border-radius:999px;
+      font-size:12px;font-weight:800;color:#0b1220;
+      cursor:pointer;user-select:none;
+    }
+    .chip[data-on="1"]{border-color:rgba(37,99,235,.35);background:rgba(37,99,235,.10);color:#0b1b40}
+    .btn{
+      border:1px solid var(--border);
+      background:var(--panel);
+      padding:9px 12px;border-radius:10px;
+      font-size:13px;font-weight:900;
+      cursor:pointer;user-select:none;
+      display:inline-flex;align-items:center;gap:8px;
+    }
+    .btn iconify-icon{font-size:16px}
+    .btn:hover{border-color:#cbd5e1}
+    .btn.primary{background:var(--blue);border-color:rgba(22,119,255,.35);color:#fff}
+    .btn.primary:hover{filter:brightness(1.02)}
+    .btn.primary:hover{filter:brightness(1.02)}
+    .btn.danger{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.06);color:#991b1b}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+
+    .layout70{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;margin-top:16px;min-height:0}
+    .card{background:var(--panel);border:none;border-radius:14px;box-shadow:var(--shadow);min-width:0}
+    .card-h{padding:14px 16px;border-bottom:1px solid rgba(148,163,184,.25);display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .card-h .t{font-size:16px;font-weight:700}
+    .card-h .s{font-size:var(--fz-desc);color:var(--muted);font-weight:750}
+    .card-b{padding:16px 16px;min-height:0}
+
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    thead th{
+      text-align:left;
+      font-size:14px;color:#334155;font-weight:600;
+      padding:10px 10px;border-bottom:1px solid var(--border);
+      background:#f3f4f6;
+      position:sticky;top:0;z-index:2;
+    }
+    tbody td{padding:10px 10px;border-bottom:1px solid rgba(148,163,184,.28);font-size:14px;font-weight:500;color:#0b1220;vertical-align:middle}
+    tbody tr{cursor:pointer}
+    tbody tr:hover{background:rgba(22,119,255,.045)}
+    tbody tr[data-selected="1"]{background:rgba(22,119,255,.12)}
+    .muted{color:var(--muted);font-weight:750}
+    .tag{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:800;border:1px solid var(--border);background:var(--panel2)}
+    .tag.red{border-color:rgba(239,68,68,.22);background:rgba(239,68,68,.08);color:#b91c1c}
+    .tag.yellow{border-color:rgba(245,158,11,.22);background:rgba(245,158,11,.10);color:#92400e}
+    .tag.green{border-color:rgba(22,163,74,.22);background:rgba(22,163,74,.10);color:#166534}
+    .tag.blue{border-color:rgba(22,119,255,.22);background:rgba(22,119,255,.08);color:#0b1b40}
+    .tag.cyan{border-color:rgba(6,182,212,.22);background:rgba(6,182,212,.08);color:#0b2a33}
+    .tag.gray{border-color:rgba(100,116,139,.18);background:rgba(100,116,139,.08);color:#334155}
+    .risk-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700;color:#0b1220;background:#fff;border:1px solid rgba(148,163,184,.28)}
+    .risk-pill.high{background:rgba(239,68,68,.10);border-color:rgba(239,68,68,.22);color:#b91c1c}
+    .risk-pill.mid{background:rgba(249,115,22,.12);border-color:rgba(249,115,22,.22);color:#9a3412}
+    .risk-pill.low{background:rgba(22,163,74,.12);border-color:rgba(22,163,74,.22);color:#166534}
+
+    /* 顶部患者信息卡 */
+    .patient-hero{display:flex;align-items:stretch;justify-content:space-between;gap:14px;padding:16px 16px}
+    .patient-hero__left{display:flex;flex-direction:column;gap:10px;min-width:0}
+    .patient-hero__name{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+    .patient-hero__name .n{font-size:18px;font-weight:800;color:#0b1220}
+    .patient-hero__meta{font-size:13px;color:var(--muted);font-weight:400}
+    .patient-hero__meta b{color:#0b1220;font-weight:600}
+    .patient-hero__badges{display:flex;gap:8px;flex-wrap:wrap}
+    .patient-hero__right{margin-left:auto;display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;justify-content:flex-end}
+    .metric{min-width:140px;padding:10px 12px;border-radius:12px;background:rgba(22,119,255,.04);border:1px solid rgba(22,119,255,.14)}
+    .metric .k{font-size:12px;color:var(--muted);font-weight:400}
+    .metric .v{margin-top:4px;font-size:22px;font-weight:800;color:#0b1220}
+    .metric .u{font-size:12px;color:var(--muted);font-weight:400;margin-left:6px}
+    .metric .s{margin-top:4px;font-size:12px;color:var(--muted);font-weight:400}
+
+    /* 右侧操作区 */
+    .ops{display:flex;flex-direction:column;gap:12px}
+    .ops .hint{font-size:12px;color:var(--muted);font-weight:750;line-height:1.4}
+    .ops .stack{display:flex;flex-direction:column;gap:8px}
+    .ops .kv{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);font-weight:750}
+    .ops .kv b{color:#0b1220}
+    .ops-card{border:1px solid var(--border);border-radius:12px;background:#fff;padding:10px 10px}
+    .ops-card__h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+    .ops-card__h .t{font-size:14px;font-weight:900;color:#0b1220}
+    .ops-card__h .s{font-size:12px;color:var(--muted);font-weight:750}
+    .ops-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);font-weight:750;padding:6px 0;border-top:1px dashed rgba(148,163,184,.35)}
+    .ops-row:first-of-type{border-top:none;padding-top:0}
+    .ops-row b{color:#0b1220}
+    .ops-badges{display:flex;gap:8px;flex-wrap:wrap}
+    .ops-list{display:flex;flex-direction:column;gap:6px}
+    .ops-item{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:#0b1220;line-height:1.35}
+    .ops-item .dot{margin-top:5px;width:6px;height:6px;border-radius:50%;background:rgba(22,119,255,.55);flex:0 0 auto}
+    .ops-item .t{font-weight:850}
+    .ops-item .m{color:var(--muted);font-weight:750}
+    .btn-group{display:flex;flex-direction:column;gap:8px}
+    .btn-split{height:1px;background:rgba(148,163,184,.35);margin:2px 0}
+    .ops-timeline{position:relative;margin-top:6px;padding-left:14px}
+    .ops-timeline::before{content:"";position:absolute;left:4px;top:4px;bottom:4px;width:2px;background:rgba(148,163,184,.28);border-radius:2px}
+    .ops-tl-item{position:relative;padding:6px 0 6px 0}
+    .ops-tl-item::before{content:"";position:absolute;left:-12px;top:12px;width:8px;height:8px;border-radius:999px;background:#fff;border:2px solid rgba(22,119,255,.45)}
+    .ops-tl-item .h{font-size:12px;font-weight:850;color:#0b1220}
+    .ops-tl-item .d{margin-top:2px;font-size:12px;color:var(--muted);font-weight:750;line-height:1.35}
+
+    /* 抽屉 */
+    .drawer-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.28);display:none;z-index:50}
+    .drawer{position:fixed;top:0;right:0;height:100%;width:520px;max-width:92vw;background:var(--panel);border-left:1px solid var(--border);box-shadow:0 12px 40px rgba(0,0,0,.22);transform:translateX(110%);transition:transform .25s ease;z-index:60;display:flex;flex-direction:column;min-width:0}
+    .drawer[data-open="1"]{transform:translateX(0)}
+    .drawer-backdrop[data-open="1"]{display:block}
+    .drawer-h{padding:16px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+    .drawer-h .ttl{min-width:0}
+    .drawer-h .ttl .h{font-size:16px;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .drawer-h .ttl .m{font-size:12px;color:var(--muted);margin-top:4px}
+    .drawer-h .x{border:1px solid var(--border);background:var(--panel2);border-radius:10px;padding:8px 10px;font-size:12px;font-weight:900;cursor:pointer}
+    .drawer-tabs{display:flex;gap:6px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--border)}
+    .drawer-tab{padding:7px 10px;border-radius:999px;border:1px solid var(--border);background:var(--panel2);font-size:12px;font-weight:900;color:#0b1220;cursor:pointer}
+    .drawer-tab[data-on="1"]{background:rgba(37,99,235,.10);border-color:rgba(37,99,235,.22);color:#0b1b40}
+    .drawer-b{padding:16px 16px;overflow:auto;min-height:0}
+    .drawer-b::-webkit-scrollbar{width:8px}
+    .drawer-b::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px}
+
+    .form{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+    .form .full{grid-column:1/-1}
+    .ctrl{display:flex;flex-direction:column;gap:6px}
+    .ctrl .l{font-size:12px;color:var(--muted);font-weight:900}
+    .ctrl input,.ctrl select,.ctrl textarea{
+      border:1px solid var(--border);
+      background:#fff;
+      border-radius:10px;
+      padding:9px 10px;
+      font-size:13px;
+      outline:none;
+    }
+    .ctrl textarea{min-height:72px;resize:vertical}
+    .err{font-size:12px;color:var(--red);font-weight:800;margin-top:2px;display:none}
+    .ctrl[data-err="1"] .err{display:block}
+    .ctrl[data-err="1"] input,.ctrl[data-err="1"] select,.ctrl[data-err="1"] textarea{border-color:rgba(239,68,68,.6);background:rgba(239,68,68,.03)}
+
+    .section{border:1px solid var(--border);border-radius:12px;background:var(--panel2);padding:10px 10px}
+    .section-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+    .section-h .t{font-size:13px;font-weight:950}
+    .section-h .s{font-size:12px;color:var(--muted)}
+    .list{display:flex;flex-direction:column;gap:8px}
+    .item{background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 10px}
+    .item .r1{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .item .r1 .k{font-size:13px;font-weight:950}
+    .item .r1 .t{font-size:12px;color:var(--muted);font-weight:750}
+    .item .r2{margin-top:6px;font-size:12px;color:#0b1220;line-height:1.45}
+
+    /* 占位页面 */
+    .empty{
+      background:var(--panel);
+      border:1px dashed #cbd5e1;
+      border-radius:var(--radius);
+      padding:28px 18px;
+      box-shadow:var(--shadow);
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.6;
+    }
+    .empty b{color:#0b1220}
+
+    @media (max-width:1100px){
+      .app{grid-template-columns:1fr}
+      .sidebar{display:none}
+      .layout70{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div class="t">
+          <div class="h">患者管理工作台</div>
+          <div class="s">录入 · 查询 · 编辑 · 补录</div>
+        </div>
+      </div>
+      <nav class="nav" id="nav"></nav>
+    </aside>
+
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-title">
+          <h1 id="pageTitle">患者列表</h1>
+        </div>
+        <div class="crumb" id="breadcrumb">工作台 / 患者管理 / 患者列表</div>
+      </div>
+      <div class="topbar-mid">
+        <div class="gsearch" role="search">
+          <iconify-icon icon="mdi:magnify"></iconify-icon>
+          <input id="globalSearch" placeholder="全局搜索：姓名 / 患者ID / 关键词" autocomplete="off" />
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="iconbtn" id="btnNotify" title="通知"><iconify-icon icon="mdi:bell-outline"></iconify-icon></button>
+        <div class="userpill" title="当前用户">
+          <iconify-icon icon="mdi:account-circle-outline"></iconify-icon>
+          <span id="userName">医生</span>
+        </div>
+        <span class="clock" id="clock">—</span>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="page" id="page">
+        <!-- 内容由 JS 渲染 -->
+      </div>
+    </main>
+  </div>
+
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <aside class="drawer" id="drawer">
+    <div class="drawer-h">
+      <div class="ttl">
+        <div class="h" id="drawerTitle">患者详情</div>
+        <div class="m" id="drawerMeta">—</div>
+      </div>
+      <button class="x" id="drawerClose">关闭</button>
+    </div>
+    <div class="drawer-tabs" id="drawerTabs"></div>
+    <div class="drawer-b" id="drawerBody"></div>
+  </aside>
+
+  <script>
+    // =========================
+    // 简易数据层（localStorage）
+    // =========================
+    const LS_KEY = "renal_workbench_v1";
+    const CURRENT_USER = "本机用户";
+    function nowIso(){ return new Date().toISOString(); }
+    function loadState(){
+      try{
+        const raw = localStorage.getItem(LS_KEY);
+        if(!raw) return null;
+        return JSON.parse(raw);
+      }catch(e){ return null; }
+    }
+    function saveState(st){
+      localStorage.setItem(LS_KEY, JSON.stringify(st));
+    }
+    function seedIfEmpty(){
+      const st = loadState();
+      if(st && Array.isArray(st.patients) && st.patients.length) return st;
+      const demo = {
+        patients: [
+          { id:"P20260415001", name:"王芳", sex:"女", age:46, phone:"13800000001", surgeryDate:"2026-03-12", donorInfo:"DCD · 血型O", status:"术后", flags:{abnormal:true}, updatedAt:nowIso(),
+            records:{ labs:[{ts:"2026-04-14", scr:109, tac:7.6, egfr:59, prot:9.4}], vitals:[{ts:"2026-04-14", temp:36.8, sbp:128, dbp:78, weight:56.4}], meds:[{ts:"2026-04-14", name:"他克莫司", dose:"1mg", freq:"bid", note:"按时服用"}] },
+            notes:{ preop:"", intraop:"", postop:"", risk:"Scr 波动需关注", plan:"个性化随访：48h 复测 Scr/eGFR" }
+          },
+          { id:"P20260415002", name:"赵玲", sex:"女", age:39, phone:"13800000002", surgeryDate:"2026-02-20", donorInfo:"活体 · 亲属供体", status:"术后", flags:{abnormal:false}, updatedAt:nowIso(),
+            records:{ labs:[{ts:"2026-04-14", scr:85, tac:6.8, egfr:72, prot:6.1}], vitals:[], meds:[] },
+            notes:{ preop:"术前评估：血压控制良好", intraop:"", postop:"", risk:"", plan:"" }
+          },
+          { id:"P20260415003", name:"李明", sex:"男", age:52, phone:"13800000003", surgeryDate:"2026-04-01", donorInfo:"DCD · 血型A", status:"术后", flags:{abnormal:true}, updatedAt:nowIso(),
+            records:{ labs:[{ts:"2026-04-14", scr:128, tac:8.2, egfr:48, prot:12.9}], vitals:[{ts:"2026-04-14", temp:37.6, sbp:142, dbp:86, weight:71.2}], meds:[] },
+            notes:{ preop:"", intraop:"", postop:"术后第14天 Scr 仍高", risk:"需排查排斥/感染", plan:"完善尿检+超声" }
+          },
+          { id:"P20260415004", name:"陈凯", sex:"男", age:28, phone:"13800000004", surgeryDate:"2026-01-09", donorInfo:"活体 · 配偶", status:"术后", flags:{abnormal:false}, updatedAt:nowIso(),
+            records:{ labs:[{ts:"2026-04-14", scr:92, tac:7.1, egfr:68, prot:7.0}], vitals:[], meds:[] },
+            notes:{ preop:"", intraop:"", postop:"", risk:"", plan:"" }
+          },
+        ],
+        audit: []
+      };
+      saveState(demo);
+      return demo;
+    }
+
+    let state = seedIfEmpty();
+    let selectedId = null;
+    let route = { page:"patients.list", drawerOpen:false, drawerTab:"basic" };
+
+    // =========================
+    // 菜单（树形，可折叠）
+    // =========================
+    const MENU = [
+      {
+        groupKey:"wb",
+        group:"工作台",
+        icon:"mdi:view-dashboard-outline",
+        items:[
+          { key:"wb.todo", label:"今日待办", icon:"mdi:checkbox-marked-circle-outline" },
+          { key:"wb.abnormal", label:"异常患者", icon:"mdi:alert-circle-outline" },
+          { key:"wb.recent", label:"最近更新", icon:"mdi:history" },
+        ]
+      },
+      {
+        groupKey:"patients",
+        group:"患者管理",
+        icon:"mdi:account-heart-outline",
+        items:[
+          { key:"patients.list", label:"患者列表", icon:"mdi:format-list-bulleted" },
+          { key:"patients.new", label:"新增患者", icon:"mdi:account-plus-outline" },
+          { key:"patients.tags", label:"患者标签", icon:"mdi:tag-outline" },
+        ]
+      },
+      {
+        groupKey:"follow",
+        group:"随访管理",
+        icon:"mdi:clipboard-text-outline",
+        items:[
+          { key:"follow.tasks", label:"随访任务", icon:"mdi:calendar-check-outline" },
+          { key:"follow.records", label:"随访记录", icon:"mdi:note-text-outline" },
+          { key:"follow.plan", label:"监护计划", icon:"mdi:shield-account-outline" },
+          { key:"follow.wxlog", label:"企业微信推送记录", icon:"mdi:wechat" },
+        ]
+      },
+      {
+        groupKey:"report",
+        group:"报告中心",
+        icon:"mdi:file-document-outline",
+        items:[
+          { key:"report.upload", label:"报告上传", icon:"mdi:upload-outline" },
+          { key:"report.parse", label:"报告解析", icon:"mdi:file-search-outline" },
+          { key:"report.trend", label:"指标趋势", icon:"mdi:chart-line" },
+          { key:"report.archive", label:"数据归档", icon:"mdi:archive-outline" },
+        ]
+      },
+      {
+        groupKey:"ai",
+        group:"AI辅助",
+        icon:"mdi:robot-outline",
+        items:[
+          { key:"ai.chat", label:"AI问诊", icon:"mdi:chat-processing-outline" },
+          { key:"ai.risk", label:"风险识别", icon:"mdi:shield-alert-outline" },
+          { key:"ai.alert", label:"异常报警", icon:"mdi:bell-alert-outline" },
+          { key:"ai.interpret", label:"指标解读", icon:"mdi:information-outline" },
+          { key:"ai.intervene", label:"AI干预记录", icon:"mdi:clipboard-pulse-outline" },
+        ]
+      },
+      {
+        groupKey:"donor",
+        group:"供体管理",
+        icon:"mdi:heart-pulse",
+        items:[
+          { key:"donor.info", label:"供体信息", icon:"mdi:heart-outline" },
+          { key:"donor.family", label:"家属信息", icon:"mdi:account-group-outline" },
+          { key:"donor.audit", label:"审核流程", icon:"mdi:clipboard-check-outline" },
+        ]
+      },
+      {
+        groupKey:"settle",
+        group:"结算中心",
+        icon:"mdi:currency-cny",
+        items:[
+          { key:"settle.pay", label:"抚恤金支付", icon:"mdi:credit-card-outline" },
+          { key:"settle.receiver", label:"受体费用管理", icon:"mdi:receipt-text-outline" },
+          { key:"settle.fund", label:"资金监管", icon:"mdi:bank-outline" },
+          { key:"settle.recon", label:"对账系统", icon:"mdi:clipboard-list-outline" },
+        ]
+      },
+      {
+        groupKey:"research",
+        group:"科研分析",
+        icon:"mdi:flask-outline",
+        items:[
+          { key:"research.db", label:"科研数据库", icon:"mdi:database-outline" },
+          { key:"research.filter", label:"患者筛选", icon:"mdi:filter-variant" },
+          { key:"research.survey", label:"问卷管理", icon:"mdi:clipboard-text-outline" },
+          { key:"research.export", label:"数据导出", icon:"mdi:download-outline" },
+          { key:"research.stats", label:"统计分析", icon:"mdi:chart-box-outline" },
+        ]
+      },
+      {
+        groupKey:"sys",
+        group:"系统管理",
+        icon:"mdi:cog-outline",
+        items:[
+          { key:"sys.users", label:"用户管理", icon:"mdi:account-multiple-outline" },
+          { key:"sys.roles", label:"角色权限", icon:"mdi:lock-outline" },
+          { key:"sys.consent", label:"知情同意", icon:"mdi:file-sign" },
+          { key:"sys.audit", label:"操作日志", icon:"mdi:clipboard-list-outline" },
+          { key:"sys.cfg", label:"系统配置", icon:"mdi:tune-variant" },
+        ]
+      }
+    ];
+
+    function buildNav(){
+      const root = document.getElementById("nav");
+      root.innerHTML = MENU.map((g, gi) => {
+        const itemsHtml = g.items.map((it) => navItemHtml(it, 0)).join("");
+        const keys = g.items.map((x)=>x.key).join(",");
+        return `
+          <section class="nav-group" data-gi="${gi}" data-gk="${escapeAttr(g.groupKey||String(gi))}" data-keys="${escapeAttr(keys)}" data-open="${gi===0?1:0}">
+            <div class="nav-group__head" data-act="toggleGroup">
+              <iconify-icon icon="${escapeAttr(g.icon||'mdi:folder-outline')}"></iconify-icon>
+              <span>${escapeHtml(g.group)}</span>
+              <span class="chev">▾</span>
+            </div>
+            <div class="nav-group__items">${itemsHtml}</div>
+          </section>
+        `;
+      }).join("");
+      // 初始化：将默认展开组的 items 设为 auto 高度
+      root.querySelectorAll(".nav-group").forEach((sec) => {
+        const items = sec.querySelector(".nav-group__items");
+        if(!items) return;
+        if(sec.dataset.open === "1"){
+          items.style.height = "auto";
+          items.style.opacity = "1";
+          items.style.transform = "translateY(0)";
+          items.style.pointerEvents = "auto";
+        }else{
+          items.style.height = "0px";
+        }
+      });
+
+      function animateGroup(sec, open){
+        const items = sec.querySelector(".nav-group__items");
+        if(!items) return;
+        items.getAnimations().forEach((a)=>a.cancel());
+
+        if(open){
+          sec.dataset.open = "1";
+          // 先设为 0，测量目标高度
+          items.style.pointerEvents = "auto";
+          items.style.opacity = "1";
+          items.style.transform = "translateY(0)";
+          items.style.height = "auto";
+          const target = items.scrollHeight;
+          items.style.height = "0px";
+          items.style.opacity = "0";
+          items.style.transform = "translateY(-6px)";
+          const anim = items.animate(
+            [
+              { height:"0px", opacity:0, transform:"translateY(-6px)" },
+              { height: `${target}px`, opacity:1, transform:"translateY(0)" }
+            ],
+            { duration: 280, easing: "cubic-bezier(.2,.8,.2,1)" }
+          );
+          anim.onfinish = ()=>{
+            items.style.height = "auto";
+            items.style.opacity = "1";
+            items.style.transform = "translateY(0)";
+            items.style.pointerEvents = "auto";
+          };
+        }else{
+          // 从当前高度收起到 0
+          const cur = items.getBoundingClientRect().height;
+          const anim = items.animate(
+            [
+              { height:`${cur}px`, opacity:1, transform:"translateY(0)" },
+              { height:"0px", opacity:0, transform:"translateY(-6px)" }
+            ],
+            { duration: 220, easing: "cubic-bezier(.4,0,.2,1)" }
+          );
+          anim.onfinish = ()=>{
+            sec.dataset.open = "0";
+            items.style.height = "0px";
+            items.style.opacity = "0";
+            items.style.transform = "translateY(-6px)";
+            items.style.pointerEvents = "none";
+          };
+        }
+      }
+
+      function closeOtherGroups(exceptSec){
+        root.querySelectorAll(".nav-group").forEach((sec)=>{
+          if(sec === exceptSec) return;
+          if(sec.dataset.open === "1") animateGroup(sec, false);
+        });
+      }
+
+      root.addEventListener("click", (e) => {
+        const head = e.target.closest(".nav-group__head");
+        if(head){
+          const sec = head.closest(".nav-group");
+          const willOpen = sec.dataset.open !== "1";
+          if(willOpen) closeOtherGroups(sec);
+          animateGroup(sec, willOpen);
+          return;
+        }
+        const item = e.target.closest(".nav-item");
+        if(item){
+          const key = item.dataset.key;
+          navigate(key);
+        }
+      });
+    }
+    function iconForKey(key){
+      if(key.startsWith("wb.")) return "mdi:view-dashboard-outline";
+      if(key.startsWith("patients")) return "mdi:account-heart-outline";
+      if(key.startsWith("donor.")) return "mdi:heart-pulse";
+      if(key.startsWith("follow.")) return "mdi:clipboard-text-outline";
+      if(key.startsWith("ai.")) return "mdi:robot-outline";
+      if(key.startsWith("report.")) return "mdi:file-document-outline";
+      if(key.startsWith("research.")) return "mdi:flask-outline";
+      if(key.startsWith("settle.")) return "mdi:currency-cny";
+      if(key.startsWith("sys.")) return "mdi:cog-outline";
+      return "mdi:circle-small";
+    }
+    function navItemHtml(it, level){
+      const padCls = level>0 ? " nav-sub" : "";
+      const lvl = ` nav-l${Math.min(3, level+1)}`;
+      const icon = it.icon || iconForKey(it.key);
+      const child = (it.children && it.children.length) ? it.children.map((c)=>navItemHtml(c, level+1)).join("") : "";
+      return `
+        <div class="nav-item${padCls}${lvl}" data-key="${it.key}">
+          <span class="i"><iconify-icon icon="${escapeAttr(icon)}"></iconify-icon></span>
+          <span>${escapeHtml(it.label)}</span>
+        </div>
+        ${child}
+      `;
+    }
+
+    // =========================
+    // 路由/页面渲染
+    // =========================
+    function setActiveNav(){
+      document.querySelectorAll(".nav-item").forEach((el) => {
+        el.dataset.active = (el.dataset.key === route.page) ? "1" : "0";
+      });
+      // 默认只展开当前所在分组
+      document.querySelectorAll(".nav-group").forEach((sec) => {
+        const keys = String(sec.dataset.keys || "");
+        const open = keys.split(",").includes(route.page);
+        sec.dataset.open = open ? "1" : "0";
+        const items = sec.querySelector(".nav-group__items");
+        if(items){
+          if(open){
+            items.style.height = "auto";
+            items.style.opacity = "1";
+            items.style.transform = "translateY(0)";
+            items.style.pointerEvents = "auto";
+          }else{
+            items.style.height = "0px";
+            items.style.opacity = "0";
+            items.style.transform = "translateY(-6px)";
+            items.style.pointerEvents = "none";
+          }
+        }
+      });
+      const titleMap = {
+        "patients.list":"患者列表",
+        "patients.new":"新增患者",
+        "patients.tags":"患者标签",
+        "wb.todo":"今日待办",
+        "wb.abnormal":"异常患者",
+        "wb.recent":"最近更新",
+        "follow.tasks":"随访任务",
+        "follow.records":"随访记录",
+        "follow.plan":"监护计划",
+        "follow.wxlog":"企业微信推送记录",
+        "report.upload":"报告上传",
+        "report.parse":"报告解析",
+        "report.trend":"指标趋势",
+        "report.archive":"数据归档",
+        "ai.chat":"AI问诊",
+        "ai.risk":"风险识别",
+        "ai.alert":"异常报警",
+        "ai.interpret":"指标解读",
+        "ai.intervene":"AI干预记录",
+        "donor.info":"供体信息",
+        "donor.family":"家属信息",
+        "donor.audit":"审核流程",
+        "settle.pay":"抚恤金支付",
+        "settle.receiver":"受体费用管理",
+        "settle.fund":"资金监管",
+        "settle.recon":"对账系统",
+        "research.db":"科研数据库",
+        "research.filter":"患者筛选",
+        "research.survey":"问卷管理",
+        "research.export":"数据导出",
+        "research.stats":"统计分析",
+        "sys.users":"用户管理",
+        "sys.roles":"角色权限",
+        "sys.consent":"知情同意",
+        "sys.audit":"操作日志",
+        "sys.cfg":"系统配置"
+      };
+      const t = titleMap[route.page] || (route.page.startsWith("patients.detail") ? "患者详情" : "功能模块");
+      document.getElementById("pageTitle").textContent = t;
+      document.getElementById("breadcrumb").textContent = buildBreadcrumb(route.page, t);
+      const gs = document.getElementById("globalSearch");
+      if(gs){
+        gs.value = route.page === "patients.list" ? (ui.q || "") : "";
+      }
+    }
+
+    function buildBreadcrumb(pageKey, leaf){
+      const groupName = (() => {
+        const g = MENU.find((x)=> (x.items||[]).some((it)=>it.key===pageKey));
+        return g ? g.group : "功能";
+      })();
+      return `工作台 / ${groupName} / ${leaf}`;
+    }
+
+    function navigate(pageKey){
+      route.page = pageKey;
+      if(pageKey.startsWith("patients.detail")){
+        openDrawerForSelected(pageKey.split(".").slice(2).join(".") || "basic");
+      }else{
+        closeDrawer();
+      }
+      render();
+    }
+
+    // =========================
+    // 工具：排序/过滤/格式
+    // =========================
+    function byUpdatedDesc(a,b){ return String(b.updatedAt||"").localeCompare(String(a.updatedAt||"")); }
+    function fmtDate(s){ return s ? String(s) : "—"; }
+    function latestLab(p){
+      const labs = p?.records?.labs || [];
+      if(!labs.length) return null;
+      const last = labs[labs.length - 1];
+      return last || null;
+    }
+    function prevLab(p){
+      const labs = p?.records?.labs || [];
+      if(labs.length < 2) return null;
+      return labs[labs.length - 2] || null;
+    }
+    function statusTag(p){
+      const abn = !!(p && p.flags && p.flags.abnormal);
+      const last = latestLab(p);
+      const scr = last && Number.isFinite(Number(last.scr)) ? Number(last.scr) : null;
+      const egfr = last && Number.isFinite(Number(last.egfr)) ? Number(last.egfr) : null;
+      if(abn || (scr != null && scr >= 134) || (egfr != null && egfr < 45)) return `<span class="tag red">异常</span>`;
+      if((scr != null && scr >= 115) || (egfr != null && egfr < 60)) return `<span class="tag yellow">关注</span>`;
+      return `<span class="tag green">正常</span>`;
+    }
+    function riskHint(p){
+      const t = statusTag(p);
+      if(t.includes("异常")) return { lvl:"高", cls:"tag red" };
+      if(t.includes("关注")) return { lvl:"中", cls:"tag yellow" };
+      return { lvl:"低", cls:"tag green" };
+    }
+    function fmtTs(s){
+      if(!s) return "—";
+      return String(s).slice(0,19).replace("T"," ");
+    }
+    function recentAbnormalItems(p){
+      const items = [];
+      const last = latestLab(p);
+      const prev = prevLab(p);
+      if(last){
+        const scr = Number.isFinite(Number(last.scr)) ? Number(last.scr) : null;
+        const egfr = Number.isFinite(Number(last.egfr)) ? Number(last.egfr) : null;
+        const tac = Number.isFinite(Number(last.tac)) ? Number(last.tac) : null;
+        const prot = Number.isFinite(Number(last.prot)) ? Number(last.prot) : null;
+        const scrPrev = prev && Number.isFinite(Number(prev.scr)) ? Number(prev.scr) : null;
+        const egfrPrev = prev && Number.isFinite(Number(prev.egfr)) ? Number(prev.egfr) : null;
+        const tacPrev = prev && Number.isFinite(Number(prev.tac)) ? Number(prev.tac) : null;
+
+        if(scr != null){
+          if(scrPrev != null && scr - scrPrev >= 10) items.push({ k:"Scr升高", m:`${scrPrev} → ${scr}` });
+          else if(scr >= 134) items.push({ k:"Scr偏高", m:`${scr}` });
+        }
+        if(egfr != null){
+          if(egfrPrev != null && egfrPrev - egfr >= 8) items.push({ k:"eGFR下降", m:`${egfrPrev} → ${egfr}` });
+          else if(egfr < 45) items.push({ k:"eGFR偏低", m:`${egfr}` });
+        }
+        if(tac != null){
+          if(tacPrev != null && tacPrev - tac >= 1.2) items.push({ k:"Tac下降", m:`${tacPrev} → ${tac}` });
+          else if(tac < 5.0) items.push({ k:"Tac偏低", m:`${tac}` });
+        }
+        if(prot != null && prot >= 10) items.push({ k:"蛋白尿升高", m:`${prot}%` });
+      }
+      if(p?.flags?.abnormal && !items.length) items.push({ k:"存在异常标记", m:"请查看详情确认原因" });
+      return items.slice(0, 4);
+    }
+    function patientAuditTrail(p){
+      const arr = (state.audit || []).filter((x)=>String(x.msg||"").includes(p.id));
+      return arr.slice(0, 3);
+    }
+    function postopDays(surgeryDate){
+      if(!surgeryDate) return null;
+      const d0 = new Date(String(surgeryDate));
+      if(Number.isNaN(d0.getTime())) return null;
+      const now = new Date();
+      const diff = Math.floor((now.getTime() - d0.getTime()) / (24*3600*1000));
+      return Number.isFinite(diff) ? Math.max(0, diff) : null;
+    }
+    function riskLevelOf(p){
+      const t = statusTag(p);
+      if(t.includes("异常")) return "high";
+      if(t.includes("关注")) return "mid";
+      return "low";
+    }
+    function riskLabelCn(lvl){
+      if(lvl==="high") return "高风险";
+      if(lvl==="mid") return "中风险";
+      return "低风险";
+    }
+
+    // =========================
+    // 页面：患者列表（核心）
+    // =========================
+    let ui = { q:"", status:"all", abn:false, sort:"updated", };
+    function renderPatientsList(){
+      const patients = [...state.patients];
+      let list = patients;
+      const q = (ui.q || "").trim().toLowerCase();
+      if(q){
+        list = list.filter((p) => String(p.name||"").toLowerCase().includes(q) || String(p.id||"").toLowerCase().includes(q));
+      }
+      if(ui.status !== "all"){
+        list = list.filter((p) => p.status === ui.status);
+      }
+      if(ui.abn){
+        list = list.filter((p) => p.flags && p.flags.abnormal);
+      }
+      if(ui.sort === "updated") list.sort(byUpdatedDesc);
+      if(ui.sort === "surgeryAsc") list.sort((a,b)=>String(a.surgeryDate||"").localeCompare(String(b.surgeryDate||"")));
+      if(ui.sort === "surgeryDesc") list.sort((a,b)=>String(b.surgeryDate||"").localeCompare(String(a.surgeryDate||"")));
+
+      const sel = list.find((p)=>p.id===selectedId) ? selectedId : null;
+      if(sel==null && list[0]) selectedId = list[0].id;
+
+      const selected = state.patients.find((p)=>p.id===selectedId) || null;
+      const opsDisabled = !selected;
+
+      return `
+        <div class="toolbar">
+          <div class="seg">
+            <div class="field">
+              <label>搜索</label>
+              <input id="qInput" placeholder="姓名 / 患者ID" value="${escapeHtml(ui.q)}" />
+            </div>
+            <div class="field">
+              <label>状态</label>
+              <select id="statusSel">
+                <option value="all" ${ui.status==="all"?"selected":""}>全部</option>
+                <option value="术前" ${ui.status==="术前"?"selected":""}>术前</option>
+                <option value="术后" ${ui.status==="术后"?"selected":""}>术后</option>
+              </select>
+            </div>
+            <div class="chipset">
+              <span class="chip" id="abnChip" data-on="${ui.abn?1:0}">异常</span>
+            </div>
+            <div class="field">
+              <label>排序</label>
+              <select id="sortSel">
+                <option value="updated" ${ui.sort==="updated"?"selected":""}>最近更新</option>
+                <option value="surgeryDesc" ${ui.sort==="surgeryDesc"?"selected":""}>手术时间（新→旧）</option>
+                <option value="surgeryAsc" ${ui.sort==="surgeryAsc"?"selected":""}>手术时间（旧→新）</option>
+              </select>
+            </div>
+          </div>
+          <span class="spacer"></span>
+          <button class="btn primary" id="btnNew"><iconify-icon icon="mdi:account-plus-outline"></iconify-icon>新增患者</button>
+          <button class="btn" id="btnEdit" ${opsDisabled?"disabled":""}><iconify-icon icon="mdi:pencil-outline"></iconify-icon>编辑患者</button>
+          <button class="btn" id="btnAppend" ${opsDisabled?"disabled":""}><iconify-icon icon="mdi:note-plus-outline"></iconify-icon>补录数据</button>
+        </div>
+
+        ${selected ? (() => {
+          const last = latestLab(selected);
+          const scr = last && Number.isFinite(Number(last.scr)) ? Number(last.scr) : null;
+          const egfr = last && Number.isFinite(Number(last.egfr)) ? Number(last.egfr) : null;
+          const days = postopDays(selected.surgeryDate);
+          const lvl = riskLevelOf(selected);
+          return `
+            <div class="card" style="margin-top:16px">
+              <div class="patient-hero">
+                <div class="patient-hero__left">
+                  <div class="patient-hero__name">
+                    <div class="n">${escapeHtml(selected.name)} <span class="muted" style="font-size:12px;font-weight:400">（${escapeHtml(selected.id)}）</span></div>
+                    <span class="risk-pill ${lvl}">${riskLabelCn(lvl)}</span>
+                  </div>
+                  <div class="patient-hero__meta">
+                    <b>${escapeHtml(selected.sex||"—")}</b> / <b>${Number.isFinite(selected.age)?selected.age:"—"}</b> 岁
+                    ${days!=null ? ` / 术后 <b>${days}</b> 天` : ``}
+                  </div>
+                  <div class="patient-hero__badges">
+                    <span class="tag blue">${escapeHtml(selected.status||"—")}</span>
+                    ${statusTag(selected)}
+                    <span class="${riskHint(selected).cls}">风险 ${riskHint(selected).lvl}</span>
+                  </div>
+                </div>
+                <div class="patient-hero__right">
+                  <div class="metric">
+                    <div class="k">Scr</div>
+                    <div class="v">${scr!=null ? scr : "—"}<span class="u">μmol/L</span></div>
+                    <div class="s">最近一次检验</div>
+                  </div>
+                  <div class="metric">
+                    <div class="k">eGFR</div>
+                    <div class="v">${egfr!=null ? egfr : "—"}<span class="u">ml/min</span></div>
+                    <div class="s">最近一次检验</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        })() : ``}
+
+        <div class="layout70">
+          <div class="card">
+            <div class="card-h">
+              <div>
+                <div class="t">患者列表</div>
+                <div class="s">支持搜索/筛选/排序 · 点击行打开详情抽屉</div>
+              </div>
+              <div class="s">共 <b>${list.length}</b> 人</div>
+            </div>
+            <div class="card-b" style="padding:0">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:160px">患者ID</th>
+                    <th style="width:120px">姓名</th>
+                    <th style="width:70px">性别</th>
+                    <th style="width:70px">年龄</th>
+                    <th style="width:110px">患者状态</th>
+                    <th style="width:150px">手术时间</th>
+                    <th>供体信息</th>
+                    <th style="width:120px">状态标签</th>
+                    <th style="width:150px">最近更新</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${list.map((p)=>`
+                    <tr data-id="${p.id}" data-selected="${p.id===selectedId?1:0}">
+                      <td>${escapeHtml(p.id)}</td>
+                      <td>${escapeHtml(p.name)}</td>
+                      <td class="muted">${escapeHtml(p.sex||"—")}</td>
+                      <td class="muted">${Number.isFinite(p.age)?p.age:"—"}</td>
+                      <td>${escapeHtml(p.status||"—")}</td>
+                      <td class="muted">${escapeHtml(fmtDate(p.surgeryDate))}</td>
+                      <td class="muted">${escapeHtml(p.donorInfo||"—")}</td>
+                      <td>${statusTag(p)}</td>
+                      <td class="muted">${escapeHtml((p.updatedAt||"").slice(0,19).replace("T"," "))}</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            ${selected ? `
+              <div class="card">
+                <div class="card-h">
+                  <div>
+                    <div class="t">患者状态</div>
+                    <div class="s">${selected.flags?.abnormal ? "异常需处理" : "随访稳定"}</div>
+                  </div>
+                </div>
+                <div class="card-b">
+                  <div class="ops-badges">
+                    <span class="tag blue">${escapeHtml(selected.status||"—")}</span>
+                    ${statusTag(selected)}
+                    <span class="${riskHint(selected).cls}">风险 ${riskHint(selected).lvl}</span>
+                  </div>
+                  <div class="ops-row" style="border-top:none;padding-top:10px"><span>手术时间</span><b>${escapeHtml(fmtDate(selected.surgeryDate))}</b></div>
+                  <div class="ops-row"><span>联系方式</span><b>${escapeHtml(selected.phone||"—")}</b></div>
+                </div>
+              </div>
+
+              <div class="card" style="margin-top:16px">
+                <div class="card-h">
+                  <div>
+                    <div class="t">风险摘要</div>
+                    <div class="s">异常指标清单（最近检验）</div>
+                  </div>
+                </div>
+                <div class="card-b">
+                  <div class="ops-list">
+                    ${(() => {
+                      const items = recentAbnormalItems(selected);
+                      if(!items.length) return `<div class="muted">暂无明显异常</div>`;
+                      return items.map((it)=>`
+                        <div class="ops-item">
+                          <iconify-icon icon="mdi:alert-circle-outline" style="color:rgba(249,115,22,.9);font-size:16px;margin-top:1px"></iconify-icon>
+                          <div><span class="t">${escapeHtml(it.k)}</span> <span class="m">${escapeHtml(it.m||"")}</span></div>
+                        </div>
+                      `).join("");
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              <div class="card" style="margin-top:16px">
+                <div class="card-h">
+                  <div>
+                    <div class="t">操作区</div>
+                    <div class="s">查看 / 编辑 / 补录 / 删除</div>
+                  </div>
+                </div>
+                <div class="card-b">
+                  <div class="btn-group">
+                    <button class="btn primary" id="opsOpenDetail"><iconify-icon icon="mdi:account-box-outline"></iconify-icon>查看详情</button>
+                    <button class="btn" id="opsEdit"><iconify-icon icon="mdi:pencil-outline"></iconify-icon>编辑患者</button>
+                    <button class="btn" id="opsAppend"><iconify-icon icon="mdi:note-plus-outline"></iconify-icon>补录数据</button>
+                    <div class="btn-split" aria-hidden="true"></div>
+                    <button class="btn danger" id="opsDelete"><iconify-icon icon="mdi:trash-can-outline"></iconify-icon>删除（危险）</button>
+                  </div>
+                  <div class="ops-timeline" style="margin-top:14px">
+                    ${(() => {
+                      const ops = patientAuditTrail(selected);
+                      if(!ops.length) return `<div class="muted">暂无操作记录</div>`;
+                      return ops.map((x)=>`
+                        <div class="ops-tl-item">
+                          <div class="h">${escapeHtml(fmtTs(x.ts))}</div>
+                          <div class="d">${escapeHtml(x.msg||"")} · ${escapeHtml(x.by||"—")}</div>
+                        </div>
+                      `).join("");
+                    })()}
+                  </div>
+                </div>
+              </div>
+            ` : `
+              <div class="card">
+                <div class="card-h">
+                  <div>
+                    <div class="t">操作区</div>
+                    <div class="s">请先在左侧列表选择患者</div>
+                  </div>
+                </div>
+                <div class="card-b">
+                  <div class="muted">暂无选中患者</div>
+                </div>
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================
+    // 页面：新增患者（表单）
+    // =========================
+    function renderPatientsNew(){
+      return `
+        <div class="card">
+          <div class="card-h">
+            <div>
+              <div class="t">新增患者</div>
+              <div class="s">必填项完整后可保存（本地存储）</div>
+            </div>
+          </div>
+          <div class="card-b">
+            ${patientFormHtml({mode:"new"})}
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================
+    // 表单：新增/编辑（共用）
+    // =========================
+    function patientFormHtml({mode, patient}){
+      const p = patient || { id:"", name:"", sex:"", age:"", phone:"", surgeryDate:"", donorInfo:"", status:"术后", flags:{abnormal:false} };
+      return `
+        <div class="form" id="patientForm" data-mode="${mode}">
+          <div class="ctrl" data-f="name"><div class="l">姓名 *</div><input value="${escapeAttr(p.name||"")}" placeholder="例如：王芳" /><div class="err">请填写姓名</div></div>
+          <div class="ctrl" data-f="sex"><div class="l">性别 *</div>
+            <select>
+              <option value="" ${!p.sex?"selected":""}>请选择</option>
+              <option value="男" ${p.sex==="男"?"selected":""}>男</option>
+              <option value="女" ${p.sex==="女"?"selected":""}>女</option>
+            </select>
+            <div class="err">请选择性别</div>
+          </div>
+          <div class="ctrl" data-f="age"><div class="l">年龄 *</div><input value="${escapeAttr(p.age??"")}" placeholder="例如：46" /><div class="err">请输入年龄</div></div>
+          <div class="ctrl" data-f="id"><div class="l">患者ID *</div><input value="${escapeAttr(p.id||"")}" placeholder="例如：P20260415001" ${mode==="edit"?"disabled":""}/><div class="err">请输入唯一患者ID</div></div>
+          <div class="ctrl" data-f="surgeryDate"><div class="l">手术时间 *</div><input type="date" value="${escapeAttr(p.surgeryDate||"")}" /><div class="err">请选择手术时间</div></div>
+          <div class="ctrl" data-f="status"><div class="l">状态 *</div>
+            <select>
+              <option value="术前" ${p.status==="术前"?"selected":""}>术前</option>
+              <option value="术后" ${p.status==="术后"?"selected":""}>术后</option>
+            </select>
+            <div class="err">请选择状态</div>
+          </div>
+          <div class="ctrl full" data-f="donorInfo"><div class="l">供体信息 *</div><input value="${escapeAttr(p.donorInfo||"")}" placeholder="例如：DCD · 血型O" /><div class="err">请填写供体信息</div></div>
+          <div class="ctrl full" data-f="phone"><div class="l">联系方式 *</div><input value="${escapeAttr(p.phone||"")}" placeholder="例如：13800000001" /><div class="err">请填写联系方式</div></div>
+          <div class="ctrl full" data-f="abn"><div class="l">异常标记</div>
+            <select>
+              <option value="0" ${p.flags?.abnormal? "": "selected"}>否</option>
+              <option value="1" ${p.flags?.abnormal? "selected": ""}>是</option>
+            </select>
+          </div>
+          <div class="full" style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px">
+            <button class="btn" id="btnCancelForm">取消</button>
+            <button class="btn primary" id="btnSaveForm">${mode==="edit"?"保存修改":"保存患者"}</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================
+    // 抽屉：患者详情（含多Tab）
+    // =========================
+    const DRAWER_TABS = [
+      { k:"basic", t:"基本信息" },
+      { k:"preop", t:"术前评估" },
+      { k:"intraop", t:"术中记录" },
+      { k:"postop", t:"术后随访" },
+      { k:"meds", t:"用药管理" },
+      { k:"monitor", t:"指标监测" },
+      { k:"risk", t:"风险预警" },
+      { k:"plan", t:"随访计划" }
+    ];
+
+    function openDrawerForSelected(tabKey="basic"){
+      const p = state.patients.find((x)=>x.id===selectedId);
+      if(!p) return;
+      route.drawerOpen = true;
+      route.drawerTab = tabKey || "basic";
+      renderDrawer(p);
+      document.getElementById("drawer").dataset.open = "1";
+      document.getElementById("drawerBackdrop").dataset.open = "1";
+    }
+    function closeDrawer(){
+      route.drawerOpen = false;
+      document.getElementById("drawer").dataset.open = "0";
+      document.getElementById("drawerBackdrop").dataset.open = "0";
+    }
+    function renderDrawer(p){
+      document.getElementById("drawerTitle").textContent = `${p.name} · ${p.id}`;
+      document.getElementById("drawerMeta").textContent = `${p.sex||"—"} · ${Number.isFinite(p.age)?p.age:"—"}岁 · ${p.status||"—"} · 手术 ${fmtDate(p.surgeryDate)}`;
+
+      const tabsEl = document.getElementById("drawerTabs");
+      tabsEl.innerHTML = DRAWER_TABS.map((x)=>`<div class="drawer-tab" data-k="${x.k}" data-on="${x.k===route.drawerTab?1:0}">${x.t}</div>`).join("");
+      tabsEl.onclick = (e)=>{
+        const t = e.target.closest(".drawer-tab");
+        if(!t) return;
+        route.drawerTab = t.dataset.k;
+        renderDrawer(p);
+      };
+
+      document.getElementById("drawerBody").innerHTML = drawerTabHtml(p, route.drawerTab);
+      hookDrawerTabHandlers(p);
+    }
+
+    function drawerTabHtml(p, tab){
+      if(tab==="basic"){
+        return `
+          <div class="section">
+            <div class="section-h">
+              <div class="t">基本信息</div>
+              <div class="s">可在“编辑患者”中修改</div>
+            </div>
+            <div class="kv"><span>姓名</span><b>${escapeHtml(p.name)}</b></div>
+            <div class="kv"><span>性别/年龄</span><b>${escapeHtml(p.sex||"—")} · ${Number.isFinite(p.age)?p.age:"—"}岁</b></div>
+            <div class="kv"><span>患者ID</span><b>${escapeHtml(p.id)}</b></div>
+            <div class="kv"><span>状态</span><b>${escapeHtml(p.status||"—")}</b></div>
+            <div class="kv"><span>手术时间</span><b>${escapeHtml(fmtDate(p.surgeryDate))}</b></div>
+            <div class="kv"><span>供体信息</span><b>${escapeHtml(p.donorInfo||"—")}</b></div>
+            <div class="kv"><span>联系方式</span><b>${escapeHtml(p.phone||"—")}</b></div>
+            <div class="kv"><span>异常标记</span><b>${p.flags?.abnormal ? "是" : "否"}</b></div>
+          </div>
+        `;
+      }
+      if(tab==="preop") return notesEditorHtml("术前评估", "preop", p.notes?.preop || "");
+      if(tab==="intraop") return notesEditorHtml("术中记录", "intraop", p.notes?.intraop || "");
+      if(tab==="postop") return notesEditorHtml("术后随访", "postop", p.notes?.postop || "");
+      if(tab==="risk") return notesEditorHtml("风险预警", "risk", p.notes?.risk || "");
+      if(tab==="plan") return notesEditorHtml("随访计划（个性化）", "plan", p.notes?.plan || "");
+
+      if(tab==="monitor"){
+        const labs = p.records?.labs || [];
+        return `
+          <div class="section">
+            <div class="section-h">
+              <div class="t">检验指标</div>
+              <div class="s">Scr / Tac / eGFR / 蛋白尿</div>
+              <button class="btn primary" id="btnAddLab">新增一条</button>
+            </div>
+            <div class="list">
+              ${labs.length ? labs.slice().reverse().map((r)=>recordCard("检验", r.ts, `Scr ${val(r.scr)} · eGFR ${val(r.egfr)} · Tac ${val(r.tac)} · 蛋白 ${val(r.prot)}%`)).join("") : `<div class="muted">暂无记录</div>`}
+            </div>
+          </div>
+          <div class="section" style="margin-top:10px">
+            <div class="section-h">
+              <div class="t">生命体征</div>
+              <div class="s">体温 / 血压 / 体重</div>
+              <button class="btn primary" id="btnAddVital">新增一条</button>
+            </div>
+            <div class="list">
+              ${(p.records?.vitals||[]).length ? (p.records.vitals.slice().reverse().map((r)=>recordCard("体征", r.ts, `体温 ${val(r.temp)}℃ · 血压 ${val(r.sbp)}/${val(r.dbp)} · 体重 ${val(r.weight)}kg`)).join("")) : `<div class="muted">暂无记录</div>`}
+            </div>
+          </div>
+        `;
+      }
+
+      if(tab==="meds"){
+        const meds = p.records?.meds || [];
+        return `
+          <div class="section">
+            <div class="section-h">
+              <div class="t">用药记录</div>
+              <div class="s">名称 / 剂量 / 频次</div>
+              <button class="btn primary" id="btnAddMed">新增一条</button>
+            </div>
+            <div class="list">
+              ${meds.length ? meds.slice().reverse().map((r)=>recordCard("用药", r.ts, `${escapeHtml(r.name||"—")} · ${escapeHtml(r.dose||"—")} · ${escapeHtml(r.freq||"—")} ${r.note?`· ${escapeHtml(r.note)}`:""}`)).join("") : `<div class="muted">暂无记录</div>`}
+            </div>
+          </div>
+        `;
+      }
+      return `<div class="empty">模块 <b>${escapeHtml(tab)}</b> 尚未实现详细功能，可在此基础上迭代。</div>`;
+    }
+
+    function notesEditorHtml(title, key, val0){
+      return `
+        <div class="section">
+          <div class="section-h">
+            <div class="t">${escapeHtml(title)}</div>
+            <div class="s">支持编辑保存</div>
+          </div>
+          <div class="ctrl full" style="gap:8px">
+            <div class="l">内容</div>
+            <textarea id="noteText" data-k="${key}">${escapeHtml(val0)}</textarea>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-top:10px">
+            <button class="btn primary" id="btnSaveNote">保存</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function recordCard(title, ts, body){
+      return `
+        <div class="item">
+          <div class="r1">
+            <div class="k">${escapeHtml(title)}</div>
+            <div class="t">${escapeHtml(ts||"—")}</div>
+          </div>
+          <div class="r2">${escapeHtml(body)}</div>
+        </div>
+      `;
+    }
+    function val(v){ return (v==null||v==="") ? "—" : String(v); }
+
+    function hookDrawerTabHandlers(p){
+      const root = document.getElementById("drawerBody");
+      const btnSaveNote = root.querySelector("#btnSaveNote");
+      if(btnSaveNote){
+        btnSaveNote.onclick = ()=>{
+          const ta = root.querySelector("#noteText");
+          const k = ta.dataset.k;
+          p.notes = p.notes || {};
+          p.notes[k] = ta.value || "";
+          p.updatedAt = nowIso();
+          p.updatedBy = CURRENT_USER;
+          audit(`更新 ${p.id} · ${k}`);
+          persist();
+          renderDrawer(p);
+          render();
+        };
+      }
+
+      const addLab = root.querySelector("#btnAddLab");
+      if(addLab){
+        addLab.onclick = ()=>{
+          const ts = prompt("日期（YYYY-MM-DD）", new Date().toISOString().slice(0,10));
+          if(!ts) return;
+          const scr = prompt("肌酐 Scr", "");
+          const egfr = prompt("eGFR", "");
+          const tac = prompt("Tac 谷浓度", "");
+          const prot = prompt("蛋白尿（%）", "");
+          p.records = p.records || { labs:[], vitals:[], meds:[] };
+          p.records.labs = p.records.labs || [];
+          p.records.labs.push({ ts, scr: numOr(scr), egfr: numOr(egfr), tac: numOr(tac), prot: numOr(prot) });
+          p.updatedAt = nowIso();
+          p.updatedBy = CURRENT_USER;
+          p.flags = p.flags || {};
+          if(numOr(scr) != null && numOr(scr) >= 115) p.flags.abnormal = true;
+          audit(`补录检验 ${p.id} · ${ts}`);
+          persist();
+          renderDrawer(p);
+          render();
+        };
+      }
+
+      const addVital = root.querySelector("#btnAddVital");
+      if(addVital){
+        addVital.onclick = ()=>{
+          const ts = prompt("日期（YYYY-MM-DD）", new Date().toISOString().slice(0,10));
+          if(!ts) return;
+          const temp = prompt("体温（℃）", "");
+          const sbp = prompt("收缩压", "");
+          const dbp = prompt("舒张压", "");
+          const weight = prompt("体重（kg）", "");
+          p.records = p.records || { labs:[], vitals:[], meds:[] };
+          p.records.vitals = p.records.vitals || [];
+          p.records.vitals.push({ ts, temp: numOr(temp), sbp: numOr(sbp), dbp: numOr(dbp), weight: numOr(weight) });
+          p.updatedAt = nowIso();
+          p.updatedBy = CURRENT_USER;
+          audit(`补录体征 ${p.id} · ${ts}`);
+          persist();
+          renderDrawer(p);
+          render();
+        };
+      }
+
+      const addMed = root.querySelector("#btnAddMed");
+      if(addMed){
+        addMed.onclick = ()=>{
+          const ts = prompt("日期（YYYY-MM-DD）", new Date().toISOString().slice(0,10));
+          if(!ts) return;
+          const name = prompt("药品名称", "");
+          if(!name) return;
+          const dose = prompt("剂量", "");
+          const freq = prompt("频次", "");
+          const note = prompt("备注（可选）", "") || "";
+          p.records = p.records || { labs:[], vitals:[], meds:[] };
+          p.records.meds = p.records.meds || [];
+          p.records.meds.push({ ts, name, dose, freq, note });
+          p.updatedAt = nowIso();
+          p.updatedBy = CURRENT_USER;
+          audit(`补录用药 ${p.id} · ${ts}`);
+          persist();
+          renderDrawer(p);
+          render();
+        };
+      }
+    }
+
+    function numOr(s){
+      if(s == null) return null;
+      const t = String(s).trim();
+      if(!t) return null;
+      const n = Number(t);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function audit(msg){
+      state.audit = state.audit || [];
+      state.audit.unshift({ ts: nowIso(), msg, by: CURRENT_USER });
+      state.audit = state.audit.slice(0, 200);
+    }
+    function persist(){ saveState(state); }
+
+    // =========================
+    // 页面渲染入口
+    // =========================
+    function render(){
+      setActiveNav();
+      const page = document.getElementById("page");
+      if(route.page === "patients.list") page.innerHTML = renderPatientsList();
+      else if(route.page === "patients.new") page.innerHTML = renderPatientsNew();
+      else page.innerHTML = `<div class="empty">模块 <b>${escapeHtml(route.page)}</b> 为占位页。你提供的菜单结构已建立，后续可按优先级逐步实现。</div>`;
+      hookPageHandlers();
+    }
+
+    function hookPageHandlers(){
+      if(route.page === "patients.list"){
+        const q = document.getElementById("qInput");
+        if(q) q.oninput = (e)=>{ ui.q = e.target.value; render(); };
+        const st = document.getElementById("statusSel");
+        if(st) st.onchange = (e)=>{ ui.status = e.target.value; render(); };
+        const sort = document.getElementById("sortSel");
+        if(sort) sort.onchange = (e)=>{ ui.sort = e.target.value; render(); };
+        const abn = document.getElementById("abnChip");
+        if(abn) abn.onclick = ()=>{ ui.abn = !ui.abn; render(); };
+
+        const btnNew = document.getElementById("btnNew");
+        if(btnNew) btnNew.onclick = ()=>navigate("patients.new");
+        const btnEdit = document.getElementById("btnEdit");
+        if(btnEdit) btnEdit.onclick = ()=>startEditSelected();
+        const btnAppend = document.getElementById("btnAppend");
+        if(btnAppend) btnAppend.onclick = ()=>openDrawerForSelected("monitor");
+
+        document.querySelectorAll("tbody tr[data-id]").forEach((tr)=>{
+          tr.onclick = ()=>{
+            selectedId = tr.dataset.id;
+            openDrawerForSelected("basic");
+            render();
+          };
+        });
+
+        const opsOpenDetail = document.getElementById("opsOpenDetail");
+        if(opsOpenDetail) opsOpenDetail.onclick = ()=>openDrawerForSelected("basic");
+        const opsEdit = document.getElementById("opsEdit");
+        if(opsEdit) opsEdit.onclick = ()=>startEditSelected();
+        const opsAppend = document.getElementById("opsAppend");
+        if(opsAppend) opsAppend.onclick = ()=>openDrawerForSelected("monitor");
+        const opsDelete = document.getElementById("opsDelete");
+        if(opsDelete) opsDelete.onclick = ()=>deleteSelected();
+      }
+
+      if(route.page === "patients.new"){
+        bindPatientForm({mode:"new"});
+      }
+    }
+
+    // =========================
+    // 顶部栏：全局搜索/通知
+    // =========================
+    (function hookTopbar(){
+      const gs = document.getElementById("globalSearch");
+      if(gs){
+        gs.addEventListener("keydown", (e)=>{
+          if(e.key !== "Enter") return;
+          const q = (gs.value || "").trim();
+          if(!q) return;
+          ui.q = q;
+          if(route.page !== "patients.list"){
+            navigate("patients.list");
+          }else{
+            render();
+          }
+        });
+      }
+      const n = document.getElementById("btnNotify");
+      if(n){
+        n.onclick = ()=>alert("通知中心：占位（可接入消息/提醒）。");
+      }
+      const u = document.getElementById("userName");
+      if(u) u.textContent = CURRENT_USER === "本机用户" ? "医生" : CURRENT_USER;
+    })();
+
+    function bindPatientForm({mode, patient}){
+      const root = document.getElementById("patientForm");
+      if(!root) return;
+      const get = (f)=>{
+        const c = root.querySelector(`.ctrl[data-f="${f}"]`);
+        const el = c && c.querySelector("input,select,textarea");
+        return { c, el, v: el ? el.value : "" };
+      };
+      const setErr = (f,on)=>{
+        const c = root.querySelector(`.ctrl[data-f="${f}"]`);
+        if(c) c.dataset.err = on ? "1" : "0";
+      };
+
+      const cancel = document.getElementById("btnCancelForm");
+      if(cancel) cancel.onclick = ()=>navigate("patients.list");
+
+      const save = document.getElementById("btnSaveForm");
+      if(save) save.onclick = ()=>{
+        const name = get("name").v.trim();
+        const sex = get("sex").v.trim();
+        const age = Number(get("age").v);
+        const id = get("id").v.trim();
+        const surgeryDate = get("surgeryDate").v.trim();
+        const status = get("status").v.trim();
+        const donorInfo = get("donorInfo").v.trim();
+        const phone = get("phone").v.trim();
+        const abn = get("abn").v === "1";
+
+        let ok = true;
+        setErr("name", !name); ok = ok && !!name;
+        setErr("sex", !sex); ok = ok && !!sex;
+        setErr("age", !(Number.isFinite(age) && age>0 && age<130)); ok = ok && (Number.isFinite(age) && age>0 && age<130);
+        setErr("id", !id); ok = ok && !!id;
+        setErr("surgeryDate", !surgeryDate); ok = ok && !!surgeryDate;
+        setErr("donorInfo", !donorInfo); ok = ok && !!donorInfo;
+        setErr("phone", !phone); ok = ok && !!phone;
+
+        if(!ok) return;
+
+        if(mode==="new"){
+          if(state.patients.some((p)=>p.id===id)){
+            alert("患者ID已存在，请更换。");
+            setErr("id", true);
+            return;
+          }
+          const p = {
+            id, name, sex, age, surgeryDate, donorInfo, phone,
+            status,
+            flags:{ abnormal: abn },
+            updatedAt: nowIso(),
+            updatedBy: CURRENT_USER,
+            records:{ labs:[], vitals:[], meds:[] },
+            notes:{ preop:"", intraop:"", postop:"", risk:"", plan:"" }
+          };
+          state.patients.unshift(p);
+          selectedId = id;
+          audit(`新增患者 ${id}`);
+          persist();
+          navigate("patients.list");
+          openDrawerForSelected("basic");
+          render();
+        }else{
+          const p = state.patients.find((x)=>x.id===patient.id);
+          if(!p) return;
+          p.name=name;p.sex=sex;p.age=age;p.surgeryDate=surgeryDate;p.donorInfo=donorInfo;p.phone=phone;p.status=status;
+          p.flags = p.flags || {}; p.flags.abnormal = abn;
+          p.updatedAt = nowIso();
+          p.updatedBy = CURRENT_USER;
+          audit(`编辑患者 ${p.id}`);
+          persist();
+          navigate("patients.list");
+          openDrawerForSelected("basic");
+          render();
+        }
+      };
+    }
+
+    function startEditSelected(){
+      const p = state.patients.find((x)=>x.id===selectedId);
+      if(!p) return;
+      document.getElementById("pageTitle").textContent = "编辑患者";
+      document.getElementById("breadcrumb").textContent = buildBreadcrumb("patients.list", "编辑患者");
+      document.getElementById("page").innerHTML = `
+        <div class="card">
+          <div class="card-h">
+            <div>
+              <div class="t">编辑患者</div>
+              <div class="s">患者ID不可修改</div>
+            </div>
+          </div>
+          <div class="card-b">
+            ${patientFormHtml({mode:"edit", patient:p})}
+          </div>
+        </div>
+      `;
+      bindPatientForm({mode:"edit", patient:p});
+    }
+
+    function deleteSelected(){
+      const p = state.patients.find((x)=>x.id===selectedId);
+      if(!p) return;
+      const ok = confirm(`确认删除患者：${p.name}（${p.id}）？此操作不可逆。`);
+      if(!ok) return;
+      state.patients = state.patients.filter((x)=>x.id!==selectedId);
+      audit(`删除患者 ${p.id}`);
+      persist();
+      selectedId = state.patients[0]?.id || null;
+      closeDrawer();
+      render();
+    }
+
+    // =========================
+    // 抽屉关闭
+    // =========================
+    document.getElementById("drawerClose").onclick = ()=>closeDrawer();
+    document.getElementById("drawerBackdrop").onclick = ()=>closeDrawer();
+    window.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeDrawer(); });
+
+    // =========================
+    // Clock
+    // =========================
+    function tick(){
+      const d = new Date();
+      const s = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}`;
+      document.getElementById("clock").textContent = s;
+    }
+    setInterval(tick, 1000); tick();
+
+    // =========================
+    // 安全转义
+    // =========================
+    function escapeHtml(s){
+      return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
+    }
+    function escapeAttr(s){ return escapeHtml(s); }
+
+    // init
+    buildNav();
+    route.page = "patients.list";
+    setActiveNav();
+    render();
+  </script>
+</body>
+</html>
+
