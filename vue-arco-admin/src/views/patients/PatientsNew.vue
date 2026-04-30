@@ -152,6 +152,7 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue';
 import { useRouter } from 'vue-router';
+import { Message } from '@arco-design/web-vue';
 import MedStatCard from '@/components/MedStatCard.vue';
 import MedAiSuggest from '@/components/MedAiSuggest.vue';
 import PatientCard from '@/components/PatientCard.vue';
@@ -228,7 +229,7 @@ const aiItems = computed(() => [
 ]);
 
 function save() {
-  window.alert('已保存（模拟）。后续可接入接口/本地存储。');
+  Message.success('已保存（演示数据，存储于浏览器本地）');
 }
 
 function reset() {

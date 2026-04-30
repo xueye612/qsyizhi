@@ -53,17 +53,64 @@
         </div>
 
         <div class="topbar-right">
-          <a-button type="text" class="iconbtn" @click="notify">
-            <IconNotification />
-          </a-button>
-          <a-dropdown>
-            <a-button type="text" class="userbtn">
-              <IconUser />
-              <span class="uname">医生</span>
+          <a-popover trigger="click" position="br" content-class="notify-pop">
+            <a-badge :count="unreadCount" :offset="[-4, 4]" :dot="false">
+              <a-button type="text" class="iconbtn" aria-label="通知中心">
+                <IconNotification />
+              </a-button>
+            </a-badge>
+            <template #content>
+              <div class="notify-panel">
+                <div class="notify-head">
+                  <div class="t">通知中心</div>
+                  <a-link :hoverable="false" :disabled="!unreadCount" @click="markAllRead">全部已读</a-link>
+                </div>
+                <div v-if="!notifyList.length" class="notify-empty">暂无通知</div>
+                <a-list v-else :bordered="false" :max-height="380" size="small">
+                  <a-list-item
+                    v-for="n in notifyList"
+                    :key="n.id"
+                    class="notify-item"
+                    :class="{ unread: !n.read }"
+                    @click="onNotifyClick(n)"
+                  >
+                    <a-list-item-meta :title="n.title" :description="n.desc">
+                      <template #avatar>
+                        <a-avatar :style="{ background: notifyColor(n.kind) }" :size="32">
+                          {{ notifyEmoji(n.kind) }}
+                        </a-avatar>
+                      </template>
+                    </a-list-item-meta>
+                    <template #extra>
+                      <span class="notify-ts">{{ n.ts.slice(5) }}</span>
+                    </template>
+                  </a-list-item>
+                </a-list>
+                <div class="notify-foot">
+                  <a-link :hoverable="false" @click="resetDemoAndNotify">重置演示数据</a-link>
+                </div>
+              </div>
+            </template>
+          </a-popover>
+
+          <a-dropdown trigger="click" position="br">
+            <a-button type="text" class="userbtn" aria-label="账号菜单">
+              <a-avatar :size="28" :style="{ background: '#1677FF' }">医</a-avatar>
+              <span class="uname">陈主任</span>
             </a-button>
             <template #content>
-              <a-doption disabled>账号：医生</a-doption>
-              <a-doption disabled>角色：临床用户</a-doption>
+              <a-doption disabled>账号：chen.zhuren</a-doption>
+              <a-doption disabled>角色：临床主任</a-doption>
+              <a-doption disabled>科室：器官移植中心</a-doption>
+              <a-divider style="margin: 4px 0" />
+              <a-doption @click="goPersonal">个人中心</a-doption>
+              <a-doption @click="goSettings">系统配置</a-doption>
+              <a-doption @click="resetDemoAndNotify">重置演示数据</a-doption>
+              <a-divider style="margin: 4px 0" />
+              <a-doption @click="onLogout">
+                <template #icon><IconExport /></template>
+                退出登录
+              </a-doption>
             </template>
           </a-dropdown>
           <div class="clock">{{ clock }}</div>
@@ -80,9 +127,12 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { Message, Modal } from '@arco-design/web-vue';
 import { MENU } from '@/menu/menu';
 import SidebarMenu from '@/components/SidebarMenu.vue';
-import { IconMenuFold, IconMenuUnfold, IconNotification, IconSearch, IconUser } from '@arco-design/web-vue/es/icon';
+import { IconExport, IconMenuFold, IconMenuUnfold, IconNotification, IconSearch } from '@arco-design/web-vue/es/icon';
+import { seedNotifications, type NotifyItem, type NotifyKind } from '@/mock/notifications';
+import { resetAllDemoStores } from '@/utils/demoStore';
 
 const route = useRoute();
 const router = useRouter();
@@ -131,8 +181,69 @@ function onMenuItemClick(key: string) {
   router.push(routePathFromKey(key));
 }
 
-function notify() {
-  window.alert('通知中心：占位（可接入消息/提醒）。');
+/* ===== 通知中心 ===== */
+const notifyList = ref<NotifyItem[]>(seedNotifications());
+const unreadCount = computed(() => notifyList.value.filter((n) => !n.read).length);
+
+function notifyColor(kind: NotifyKind) {
+  switch (kind) {
+    case 'alert':
+      return '#F53F3F';
+    case 'task':
+      return '#FF7D00';
+    case 'system':
+      return '#86909C';
+    case 'message':
+      return '#1677FF';
+    default:
+      return '#1677FF';
+  }
+}
+function notifyEmoji(kind: NotifyKind) {
+  switch (kind) {
+    case 'alert':
+      return '!';
+    case 'task':
+      return '√';
+    case 'system':
+      return 'S';
+    case 'message':
+      return 'M';
+    default:
+      return 'i';
+  }
+}
+function markAllRead() {
+  notifyList.value = notifyList.value.map((n) => ({ ...n, read: true }));
+  Message.success('已标记全部为已读');
+}
+function onNotifyClick(n: NotifyItem) {
+  notifyList.value = notifyList.value.map((x) => (x.id === n.id ? { ...x, read: true } : x));
+  if (n.link) router.push(n.link);
+}
+
+/* ===== 用户菜单 ===== */
+function goPersonal() {
+  Message.info('个人中心：演示模式，暂未开放');
+}
+function goSettings() {
+  router.push(routePathFromKey('sys.cfg'));
+}
+function onLogout() {
+  Modal.confirm({
+    title: '退出登录',
+    content: '当前为演示模式，确认退出后将刷新页面以重置状态。',
+    okText: '退出',
+    cancelText: '取消',
+    onOk() {
+      window.location.reload();
+    }
+  });
+}
+function resetDemoAndNotify() {
+  const keys = resetAllDemoStores();
+  notifyList.value = seedNotifications();
+  Message.success(`已重置 ${keys.length} 个演示数据集`);
 }
 
 function goPatientsListWithQuery() {
@@ -234,5 +345,22 @@ onUnmounted(() => {
   padding:12px 16px 16px;
   overflow:auto;
 }
+
+.notify-panel{
+  width: 360px;
+}
+.notify-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding: 10px 12px 6px;
+  border-bottom: 1px solid rgba(148,163,184,0.18);
+}
+.notify-head .t{font-weight:700;color:#0f172a;font-size:14px}
+.notify-empty{padding:30px 12px;text-align:center;color:var(--med-muted);font-size:13px}
+.notify-item{cursor:pointer;padding:10px 12px}
+.notify-item.unread{background:rgba(22,119,255,0.04)}
+.notify-ts{font-size:12px;color:var(--med-muted);font-variant-numeric:tabular-nums}
+.notify-foot{padding:8px 12px;border-top:1px solid rgba(148,163,184,0.18);text-align:right}
 </style>
 

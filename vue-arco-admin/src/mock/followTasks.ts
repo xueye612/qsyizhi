@@ -18,7 +18,9 @@ export type FollowTaskRow = {
   lastContact: string;
 };
 
-const owners = ['李敏（随访护士）', '王浩（主治医师）', '陈静（个案管理师）', '赵磊（住院总）'];
+import { dateStr, expandSeed, pickFrom, pickName, patientIdAt, dateTimeStr } from './seedHelpers';
+
+const owners = ['李敏（随访护士）', '王浩（主治医师）', '陈静（个案管理师）', '赵磊（住院总）', '周洋（主管医师）', '韩雪（随访护士）'];
 
 export function seedFollowTasks(): FollowTaskRow[] {
   const base: FollowTaskRow[] = [
@@ -30,7 +32,7 @@ export function seedFollowTasks(): FollowTaskRow[] {
       surgeryDate: '2026-02-10',
       planDate: '2026-04-16',
       taskType: '门诊复查',
-      owner: owners[1],
+      owner: owners[1]!,
       status: '待执行',
       priority: '高',
       riskTag: '高危',
@@ -44,7 +46,7 @@ export function seedFollowTasks(): FollowTaskRow[] {
       surgeryDate: '2026-01-22',
       planDate: '2026-04-15',
       taskType: '电话随访',
-      owner: owners[0],
+      owner: owners[0]!,
       status: '已逾期',
       priority: '高',
       riskTag: '关注',
@@ -58,7 +60,7 @@ export function seedFollowTasks(): FollowTaskRow[] {
       surgeryDate: '2025-11-05',
       planDate: '2026-04-17',
       taskType: '微信问卷',
-      owner: owners[2],
+      owner: owners[2]!,
       status: '进行中',
       priority: '中',
       riskTag: '稳定',
@@ -72,7 +74,7 @@ export function seedFollowTasks(): FollowTaskRow[] {
       surgeryDate: '2026-03-01',
       planDate: '2026-04-14',
       taskType: '上门访视',
-      owner: owners[0],
+      owner: owners[0]!,
       status: '已完成',
       priority: '中',
       riskTag: '关注',
@@ -86,7 +88,7 @@ export function seedFollowTasks(): FollowTaskRow[] {
       surgeryDate: '2026-02-28',
       planDate: '2026-04-18',
       taskType: '门诊复查',
-      owner: owners[3],
+      owner: owners[3]!,
       status: '待执行',
       priority: '中',
       riskTag: '稳定',
@@ -100,7 +102,7 @@ export function seedFollowTasks(): FollowTaskRow[] {
       surgeryDate: '2025-12-12',
       planDate: '2026-04-12',
       taskType: '电话随访',
-      owner: owners[1],
+      owner: owners[1]!,
       status: '已逾期',
       priority: '高',
       riskTag: '高危',
@@ -114,7 +116,7 @@ export function seedFollowTasks(): FollowTaskRow[] {
       surgeryDate: '2026-04-01',
       planDate: '2026-04-19',
       taskType: '微信问卷',
-      owner: owners[2],
+      owner: owners[2]!,
       status: '待执行',
       priority: '低',
       riskTag: '稳定',
@@ -128,14 +130,38 @@ export function seedFollowTasks(): FollowTaskRow[] {
       surgeryDate: '2026-01-15',
       planDate: '2026-04-16',
       taskType: '门诊复查',
-      owner: owners[1],
+      owner: owners[1]!,
       status: '进行中',
       priority: '高',
       riskTag: '关注',
       lastContact: '已到院抽血'
     }
   ];
-  return base;
+  const types: FollowTaskRow['taskType'][] = ['电话随访', '门诊复查', '微信问卷', '上门访视'];
+  const statuses: FollowTaskRow['status'][] = ['待执行', '进行中', '已完成', '已逾期', '已取消'];
+  const risks: FollowTaskRow['riskTag'][] = ['稳定', '关注', '高危'];
+  const prios: FollowTaskRow['priority'][] = ['高', '中', '低'];
+  return expandSeed(base, 36, (i) => {
+    const idx = i + 8;
+    const [name] = pickName(idx);
+    const status = pickFrom(statuses, idx * 3 + 1);
+    const risk = pickFrom(risks, idx * 5 + 2);
+    const dayOff = (idx % 14) - 6;
+    return {
+      id: `FT-2026041${5 - (idx % 5)}-${String(100 + idx).padStart(3, '0')}`,
+      patientId: patientIdAt(idx),
+      patientName: name,
+      visitId: `V2026-04${10 + (idx % 8)}-${String(idx).padStart(2, '0')}`,
+      surgeryDate: dateStr(60 + (idx % 120)),
+      planDate: dateStr(-dayOff),
+      taskType: pickFrom(types, idx * 2),
+      owner: pickFrom(owners, idx + 3),
+      status,
+      priority: pickFrom(prios, idx),
+      riskTag: risk,
+      lastContact: status === '已完成' ? `${dateStr(idx % 5 + 1)} 已完成回填` : status === '已逾期' ? '逾期未回访' : '—'
+    };
+  });
 }
 
 export function followTaskKpis(rows: FollowTaskRow[]) {

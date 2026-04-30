@@ -123,6 +123,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, h, resolveComponent, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { Modal, Message } from '@arco-design/web-vue';
 import { IconExclamationCircleFill } from '@arco-design/web-vue/es/icon';
 import PatientCard from '@/components/PatientCard.vue';
 import MedPageHeader from '@/components/MedPageHeader.vue';
@@ -497,10 +498,19 @@ function rowClass(record: any) {
 
 function removeSelected() {
   if (!selected.value) return;
-  const ok = window.confirm(`确认删除患者：${selected.value.name}（${selected.value.id}）？`);
-  if (!ok) return;
-  patients.value = patients.value.filter((p) => p.id !== selected.value!.id);
-  selectedId.value = patients.value[0]?.id || null;
+  const target = selected.value;
+  Modal.warning({
+    title: '删除确认',
+    content: `确认删除患者：${target.name}（${target.id}）？`,
+    okText: '确认删除',
+    cancelText: '取消',
+    hideCancel: false,
+    onOk: () => {
+      patients.value = patients.value.filter((p) => p.id !== target.id);
+      selectedId.value = patients.value[0]?.id || null;
+      Message.success('已删除（演示）');
+    }
+  });
 }
 </script>
 
