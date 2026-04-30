@@ -1,139 +1,126 @@
-<!--
-  ①模块理解：资金监管展示专项资金入金、出金与冻结流水及余额快照（演示）。
-  ②行业调研：专户名称、流水类型、金额、余额、时间。
-  ③页面设计：流水表 + 右侧以「AI辅助建议」提示异常冻结与复核要点（克制风格）。
-  ④页面代码：采用全站轻医疗组件（Med*）统一样式。
--->
+<!-- 资金流水 -->
 <template>
-  <div class="med-page">
-    <MedPageSection>
-      <MedPageHeader title="资金监管" desc="入金 / 出金 / 冻结 · 余额（演示）" />
-      <div data-testid="kpi-region" class="kpi-grid">
-        <MedStatCard label="入金笔数" hint="演示统计" :value="kpi.inflow" tone="success" trend="核对回单" trend-dir="flat" />
-        <MedStatCard label="出金笔数" hint="演示统计" :value="kpi.outflow" tone="warning" trend="关注大额" trend-dir="flat" />
-        <MedStatCard label="冻结笔数" hint="需复核" :value="kpi.frozen" tone="danger" trend="确认条件" trend-dir="flat" />
-        <MedStatCard label="最近余额(万)" hint="末行快照" :value="kpi.lastBalanceWan" tone="primary" trend="按日快照" trend-dir="flat" />
-      </div>
-    </MedPageSection>
-
-    <div class="split">
-      <MedTableCard title="资金流水" desc="点击行选中 · 右侧提示异常冻结与对账要点">
-        <a-table
-          data-testid="biz-table"
-          :data="rows"
-          :columns="columns"
-          :pagination="false"
-          :row-key="(r: SettleFundRow) => r.id"
-          :row-class="rowClass"
-          :scroll="{ x: 960 }"
-          @row-click="onRow"
-        />
-      </MedTableCard>
-
-      <div data-testid="ai-decision" class="ai-col">
-        <MedAiSuggest :items="aiSuggestItems" />
-      </div>
-    </div>
-  </div>
+  <MedCrudPage
+    title="资金流水"
+    desc="入金 / 出金 / 冻结 · 余额追踪"
+    :kpis="kpis"
+    :columns="columns"
+    :fields="fields"
+    :crud="crud"
+    table-title="流水明细"
+    search-placeholder="基金名 / 编号"
+    create-text="新增流水"
+    :scroll-x="1000"
+    can-view
+  >
+    <template #filters>
+      <a-select v-model="filterFlow" class="sel">
+        <a-option value="all">全部类型</a-option>
+        <a-option value="入金">入金</a-option>
+        <a-option value="出金">出金</a-option>
+        <a-option value="冻结">冻结</a-option>
+      </a-select>
+    </template>
+    <template #extra>
+      <MedPageSection title="入金 vs 出金（演示）" desc="按当前列表合计">
+        <MedChartCard :option="chartOption" :height="220" />
+      </MedPageSection>
+    </template>
+  </MedCrudPage>
 </template>
 
 <script setup lang="ts">
 import { computed, h, ref, resolveComponent } from 'vue';
 import type { TableColumnData } from '@arco-design/web-vue';
-import MedPageHeader from '@/components/MedPageHeader.vue';
+import MedCrudPage, { type KpiDef } from '@/components/MedCrudPage.vue';
 import MedPageSection from '@/components/MedPageSection.vue';
-import MedTableCard from '@/components/MedTableCard.vue';
-import MedStatCard from '@/components/MedStatCard.vue';
-import MedAiSuggest from '@/components/MedAiSuggest.vue';
+import MedChartCard from '@/components/MedChartCard.vue';
+import type { FieldDef } from '@/components/MedRecordDrawer.vue';
 import { seedSettleFund, settleFundKpis, type SettleFundRow } from '@/mock/financeMocks';
+import { createDemoStore } from '@/utils/demoStore';
+import { useCrudList } from '@/utils/useCrudList';
 
-const data = ref(seedSettleFund());
-const sel = ref<string | null>(data.value[0]?.id ?? null);
-const kpi = computed(() => settleFundKpis(data.value));
-const rows = computed(() => data.value);
-const cur = computed(() => data.value.find((r) => r.id === sel.value) ?? null);
+const store = createDemoStore<SettleFundRow>('settle.fund', seedSettleFund);
+const filterFlow = ref('all');
 
-const aiTxt = computed(() => {
-  const r = cur.value;
-  if (!r) return '';
-  return `专户「${r.fundName}」${r.flowType} ${r.amountWan} 万元，余额约 ${r.balanceWan} 万，时间 ${r.at}。`;
+const crud = useCrudList<SettleFundRow>({
+  store,
+  idPrefix: 'SF',
+  searchFields: ['id', 'fundName'],
+  customFilter: (r) => filterFlow.value === 'all' || r.flowType === filterFlow.value,
+  csvColumns: [
+    { title: '编号', key: 'id' },
+    { title: '基金名', key: 'fundName' },
+    { title: '类型', key: 'flowType' },
+    { title: '金额(万)', key: 'amountWan' },
+    { title: '余额(万)', key: 'balanceWan' },
+    { title: '时间', key: 'at' }
+  ],
+  exportName: 'settle-fund'
 });
 
-const aiActs = computed(() => {
-  const r = cur.value;
-  if (!r) return [];
-  return [
-    r.flowType === '冻结' ? '冻结流水：确认是否附带司法/风控编号与解冻条件。' : '核对银行回单与系统记账科目是否一致。',
-    '连续大额出金建议触发人工复核（演示占位）。',
-    '演示数据不构成真实资金建议。'
-  ];
-});
+const k = computed(() => settleFundKpis(crud.allRows.value));
+const kpis = computed<KpiDef[]>(() => [
+  { label: '入金条目', value: k.value.inflow, tone: 'success', trend: '资金注入' },
+  { label: '出金条目', value: k.value.outflow, tone: 'warning', trend: '已使用' },
+  { label: '冻结条目', value: k.value.frozen, tone: 'danger', trend: '不可动用' },
+  { label: '当前余额(万)', value: k.value.lastBalanceWan, tone: 'primary', trend: '末次余额' }
+]);
 
-const aiSuggestItems = computed(() => {
-  if (!cur.value) return ['请先从左侧选择一条资金流水。', 'AI辅助建议仅供流程提示。'];
-  return [aiTxt.value, ...aiActs.value].slice(0, 3);
-});
-
-function onRow(r: SettleFundRow) {
-  sel.value = r.id;
-}
-
-function rowClass(r: SettleFundRow) {
-  return r.id === sel.value ? 'row-selected' : '';
-}
+const fields: FieldDef[] = [
+  { key: 'fundName', label: '基金名', required: true },
+  {
+    key: 'flowType',
+    label: '类型',
+    type: 'select',
+    required: true,
+    options: ['入金', '出金', '冻结'].map((v) => ({ label: v, value: v }))
+  },
+  { key: 'amountWan', label: '金额(万)', type: 'number', min: 0, step: 0.1 },
+  { key: 'balanceWan', label: '余额(万)', type: 'number', min: 0, step: 0.1 },
+  { key: 'at', label: '时间', placeholder: '2026-04-20 09:00' }
+];
 
 const columns: TableColumnData[] = [
-  { title: 'ID', dataIndex: 'id', width: 72 },
-  { title: '专户', dataIndex: 'fundName', width: 120 },
+  { title: '编号', dataIndex: 'id', width: 90 },
+  { title: '基金名', dataIndex: 'fundName', width: 160 },
   {
     title: '类型',
     dataIndex: 'flowType',
-    width: 88,
+    width: 90,
     render: ({ record }: { record: SettleFundRow }) => {
       const T = resolveComponent('a-tag') as any;
       const c = record.flowType === '入金' ? 'green' : record.flowType === '出金' ? 'orangered' : 'red';
       return h(T, { color: c }, () => record.flowType);
     }
   },
-  { title: '金额(万)', dataIndex: 'amountWan', width: 100 },
-  { title: '余额(万)', dataIndex: 'balanceWan', width: 100 },
-  { title: '时间', dataIndex: 'at', width: 145 }
+  { title: '金额(万)', dataIndex: 'amountWan', width: 110 },
+  { title: '余额(万)', dataIndex: 'balanceWan', width: 110 },
+  { title: '时间', dataIndex: 'at', width: 160 }
 ];
+
+const chartOption = computed(() => {
+  const rows = crud.rows.value;
+  const inflow = rows.filter((r) => r.flowType === '入金').reduce((s, r) => s + r.amountWan, 0);
+  const outflow = rows.filter((r) => r.flowType === '出金').reduce((s, r) => s + r.amountWan, 0);
+  const frozen = rows.filter((r) => r.flowType === '冻结').reduce((s, r) => s + r.amountWan, 0);
+  return {
+    grid: { left: 36, right: 12, top: 24, bottom: 28 },
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: ['入金', '出金', '冻结'] },
+    yAxis: { type: 'value', axisLabel: { formatter: '{value} 万' } },
+    series: [
+      {
+        type: 'bar',
+        data: [
+          { value: inflow, itemStyle: { color: '#00B42A' } },
+          { value: outflow, itemStyle: { color: '#FF7D00' } },
+          { value: frozen, itemStyle: { color: '#F53F3F' } }
+        ],
+        barWidth: 32
+      }
+    ]
+  };
+});
 </script>
-
-<style scoped>
-.med-page{
-  box-sizing:border-box;
-  padding: var(--med-page-pad);
-  display:flex;
-  flex-direction:column;
-  gap: var(--med-gap);
-  min-width:0;
-}
-.kpi-grid{
-  display:grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--med-gap);
-  align-items: stretch;
-}
-.split{
-  display:flex;
-  gap: var(--med-gap);
-  align-items: stretch;
-  min-width:0;
-}
-.ai-col{
-  width: 360px;
-  flex-shrink:0;
-  display:flex;
-}
-@media (max-width: 1100px){
-  .kpi-grid{grid-template-columns: repeat(2, minmax(0,1fr))}
-  .split{flex-direction: column}
-  .ai-col{width: 100%}
-}
-:deep(.row-selected .arco-table-td){
-  background: rgba(22, 119, 255, 0.06) !important;
-}
-</style>
-
+<style scoped>.sel{width:130px}</style>

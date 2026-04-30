@@ -13,7 +13,7 @@ import PatientsTags from '@/views/patients/PatientsTags.vue';
 import WbTodo from '@/views/workbench/WbTodo.vue';
 import WbAbnormal from '@/views/workbench/WbAbnormal.vue';
 import WbRecent from '@/views/workbench/WbRecent.vue';
-import DonorInfo from '@/views/donor/DonorInfo.vue';
+import DonorInfo from '@/views/modules/DonorInfoView.vue';
 import StandardModuleView from '@/views/StandardModuleView.vue';
 import FollowTasksView from '@/views/modules/FollowTasksView.vue';
 import FollowRecordsView from '@/views/modules/FollowRecordsView.vue';

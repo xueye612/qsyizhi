@@ -84,18 +84,30 @@
         </MedPageSection>
       </div>
     </div>
+
+    <MedRecordDrawer
+      v-model:visible="drawerVisible"
+      :mode="drawerMode"
+      :record="drawerRecord"
+      :fields="fields"
+      :title="drawerMode === 'create' ? '新增标签' : '编辑标签'"
+      @submit="onDrawerSubmit"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { Modal, Message } from '@arco-design/web-vue';
 import type { TableColumnData } from '@arco-design/web-vue';
 import MedPageHeader from '@/components/MedPageHeader.vue';
 import MedPageSection from '@/components/MedPageSection.vue';
 import MedTableCard from '@/components/MedTableCard.vue';
 import MedStatCard from '@/components/MedStatCard.vue';
 import MedAiSuggest from '@/components/MedAiSuggest.vue';
+import MedRecordDrawer, { type FieldDef } from '@/components/MedRecordDrawer.vue';
 import RiskTag from '@/components/RiskTag.vue';
+import { createDemoStore } from '@/utils/demoStore';
 
 type Risk = 'high' | 'mid' | 'low';
 type TagRow = {
@@ -114,19 +126,25 @@ const q = ref('');
 const tier = ref<'all' | 'A' | 'B' | 'C'>('all');
 const risk = ref<'all' | Risk>('all');
 
-const tags = ref<TagRow[]>([
-  { id:'G001', code:'TAG-A1', name:'术后早期高风险', tier:'A', risk:'high', count:18, desc:'术后 1-30 天，Scr 波动明显或异常标记', scope:'术后早期患者', plan:'48h复查 Scr/eGFR，必要时完善尿检+超声' },
-  { id:'G002', code:'TAG-B2', name:'指标波动关注', tier:'B', risk:'mid', count:42, desc:'Scr≥115 或 eGFR<60，趋势波动', scope:'需关注趋势患者', plan:'缩短复查间隔，强化用药依从与感染筛查' },
-  { id:'G003', code:'TAG-C1', name:'随访稳定', tier:'C', risk:'low', count:120, desc:'核心指标稳定，风险低', scope:'常规随访患者', plan:'按常规频次随访，持续记录症状与用药' },
-  { id:'G004', code:'TAG-A2', name:'蛋白尿升高', tier:'A', risk:'high', count:9, desc:'蛋白尿≥10%，需进一步评估', scope:'蛋白尿升高人群', plan:'完善尿检分型，评估肾功能与免疫抑制方案' }
-]);
+function seedTags(): TagRow[] {
+  return [
+    { id:'G001', code:'TAG-A1', name:'术后早期高风险', tier:'A', risk:'high', count:18, desc:'术后 1-30 天，Scr 波动明显或异常标记', scope:'术后早期患者', plan:'48h复查 Scr/eGFR，必要时完善尿检+超声' },
+    { id:'G002', code:'TAG-B2', name:'指标波动关注', tier:'B', risk:'mid', count:42, desc:'Scr≥115 或 eGFR<60，趋势波动', scope:'需关注趋势患者', plan:'缩短复查间隔，强化用药依从与感染筛查' },
+    { id:'G003', code:'TAG-C1', name:'随访稳定', tier:'C', risk:'low', count:120, desc:'核心指标稳定，风险低', scope:'常规随访患者', plan:'按常规频次随访，持续记录症状与用药' },
+    { id:'G004', code:'TAG-A2', name:'蛋白尿升高', tier:'A', risk:'high', count:9, desc:'蛋白尿≥10%，需进一步评估', scope:'蛋白尿升高人群', plan:'完善尿检分型，评估肾功能与免疫抑制方案' },
+    { id:'G005', code:'TAG-B3', name:'BP 异常', tier:'B', risk:'mid', count:55, desc:'家庭血压均值 ≥135/85', scope:'高血压管理', plan:'家庭血压监测、药物滴定、限盐宣教' },
+    { id:'G006', code:'TAG-A3', name:'感染高危', tier:'A', risk:'high', count:14, desc:'CMV/BKV 监测异常', scope:'移植后感染监测', plan:'病毒载量监测，必要时调整免疫抑制' }
+  ];
+}
 
-const selectedId = ref<string | null>(tags.value[0]?.id || null);
-const selected = computed(() => tags.value.find((t) => t.id === selectedId.value) || null);
+const tags = createDemoStore<TagRow>('patients.tags', seedTags);
+
+const selectedId = ref<string | null>(tags.rows.value[0]?.id || null);
+const selected = computed(() => tags.rows.value.find((t) => t.id === selectedId.value) || null);
 
 const rows = computed(() => {
   const qq = q.value.trim().toLowerCase();
-  let list = [...tags.value];
+  let list = [...tags.rows.value];
   if (tier.value !== 'all') list = list.filter((t) => t.tier === tier.value);
   if (risk.value !== 'all') list = list.filter((t) => t.risk === risk.value);
   if (qq) list = list.filter((t) => t.name.toLowerCase().includes(qq) || t.desc.toLowerCase().includes(qq) || t.code.toLowerCase().includes(qq));
@@ -134,7 +152,7 @@ const rows = computed(() => {
 });
 
 const kpi = computed(() => {
-  const all = tags.value;
+  const all = tags.rows.value;
   return { total: all.length, high: all.filter((t) => t.risk === 'high').length, covered: all.reduce((s, t) => s + t.count, 0), ungrouped: 0 };
 });
 
@@ -157,15 +175,65 @@ const columns: TableColumnData[] = [
 function onRowClick(r: any) { selectedId.value = r.id; }
 function rowClass(r: any) { return r.id === selectedId.value ? 'row-selected' : ''; }
 
-function createTag(){ window.alert('新增标签（占位）'); }
-function editTag(){ if (!selected.value) return; window.alert(`编辑标签（占位）：${selected.value.name}`); }
-function applyTag(){ if (!selected.value) return; window.alert('应用到患者（占位）'); }
-function archiveTag(){
+// CRUD via 抽屉
+const drawerVisible = ref(false);
+const drawerMode = ref<'create' | 'edit'>('create');
+const drawerRecord = ref<Partial<TagRow>>({});
+
+const fields: FieldDef[] = [
+  { key: 'code', label: '编码', required: true, placeholder: 'TAG-A1' },
+  { key: 'name', label: '名称', required: true, span: 24 },
+  { key: 'tier', label: '等级', type: 'select', required: true, options: ['A','B','C'].map((v) => ({ label: v, value: v })) },
+  { key: 'risk', label: '风险', type: 'select', required: true, options: [
+    { label: '高', value: 'high' }, { label: '中', value: 'mid' }, { label: '低', value: 'low' }
+  ] },
+  { key: 'count', label: '覆盖人数', type: 'number', min: 0 },
+  { key: 'desc', label: '描述', span: 24, type: 'textarea' },
+  { key: 'scope', label: '适用人群', span: 24 },
+  { key: 'plan', label: '随访建议', span: 24, type: 'textarea' }
+];
+
+function createTag() {
+  drawerMode.value = 'create';
+  drawerRecord.value = { tier: 'A', risk: 'mid', count: 0 };
+  drawerVisible.value = true;
+}
+function editTag() {
   if (!selected.value) return;
-  const ok = window.confirm(`确认归档：${selected.value.name}？`);
-  if (!ok) return;
-  tags.value = tags.value.filter((t) => t.id !== selected.value!.id);
-  selectedId.value = tags.value[0]?.id || null;
+  drawerMode.value = 'edit';
+  drawerRecord.value = { ...selected.value };
+  drawerVisible.value = true;
+}
+function applyTag() {
+  if (!selected.value) return;
+  Message.info(`已将「${selected.value.name}」推送至患者列表批量打标流程（演示）`);
+}
+function archiveTag() {
+  if (!selected.value) return;
+  const target = selected.value;
+  Modal.warning({
+    title: '归档确认',
+    content: `确认归档：${target.name}？归档后将从列表中移除。`,
+    okText: '确认归档',
+    onOk: () => {
+      tags.rows.value = tags.rows.value.filter((t) => t.id !== target.id);
+      selectedId.value = tags.rows.value[0]?.id || null;
+      Message.success('已归档（演示）');
+    }
+  });
+}
+function onDrawerSubmit(payload: Partial<TagRow>) {
+  if (drawerMode.value === 'create') {
+    const id = `G${String(Date.now()).slice(-6)}`;
+    tags.rows.value = [{ ...(payload as TagRow), id }, ...tags.rows.value];
+    selectedId.value = id;
+    Message.success('标签已创建（演示）');
+  } else if (drawerRecord.value.id) {
+    const id = drawerRecord.value.id;
+    tags.rows.value = tags.rows.value.map((t) => (t.id === id ? { ...t, ...payload } as TagRow : t));
+    Message.success('标签已更新（演示）');
+  }
+  drawerVisible.value = false;
 }
 </script>
 

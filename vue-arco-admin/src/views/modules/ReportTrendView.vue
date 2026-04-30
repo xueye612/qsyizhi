@@ -1,173 +1,170 @@
-<!--
-  ①模块理解：指标趋势页支撑移植后关键检验纵向对比，识别 Scr/eGFR/浓度恶化轨迹。
-  ②行业调研：基线值、最近值、变化率、趋势等级、与临床事件关联。
-  ③页面设计：KPI 概览 + 趋势明细表；右侧以「AI辅助建议」解释变化率与复查窗口（克制风格）。
-  ④页面代码：采用全站轻医疗组件（Med*）统一样式。
--->
+<!-- 指标趋势：基线/最新/Δ% / ECharts 趋势曲线 -->
 <template>
-  <div class="med-page">
-    <MedPageSection>
-      <MedPageHeader title="指标趋势监测" desc="关键检验纵向对比 · 变化率 · 分层预警（演示集）" />
-      <div data-testid="kpi-region" class="kpi-grid">
-        <MedStatCard label="在监测条目" hint="患者-指标行" :value="kpi.monitored" tone="primary" trend="覆盖关键指标" trend-dir="flat" />
-        <MedStatCard label="预警条目" hint="alert=预警" :value="kpi.warn" tone="danger" trend="建议缩短复查" trend-dir="flat" />
-        <MedStatCard label="显著恶化" hint="Scr↑>15% 或 eGFR↓>10%" :value="kpi.worsen" tone="danger" trend="优先复核" trend-dir="flat" />
-        <MedStatCard label="数据完整度" hint="近30天有值比例" :value="`${kpi.complete}%`" tone="success" trend="缺失会误判" trend-dir="flat" />
-      </div>
-    </MedPageSection>
-
-    <div class="split">
-      <MedTableCard title="趋势明细" desc="点击行选中 · 右侧解读变化率与建议复查窗口">
-        <a-table
-          data-testid="biz-table"
-          :data="rows"
-          :columns="columns"
-          :pagination="false"
-          :row-key="(r: TrendRow) => r.id"
-          :row-class="rowClass"
-          :scroll="{ x: 1200 }"
-          @row-click="onRow"
-        />
-      </MedTableCard>
-
-      <div data-testid="ai-decision" class="ai-col">
-        <MedAiSuggest :items="aiSuggestItems" />
-      </div>
-    </div>
-  </div>
+  <MedCrudPage
+    title="指标趋势监测"
+    desc="Scr/eGFR/Tac/Hb · 基线对比 · ECharts 趋势曲线"
+    :kpis="kpis"
+    :columns="columns"
+    :fields="fields"
+    :crud="crud"
+    table-title="趋势记录"
+    search-placeholder="患者 / 指标 / 编号"
+    create-text="新增趋势记录"
+    :scroll-x="1300"
+    can-view
+  >
+    <template #filters>
+      <a-select v-model="filterIndicator" class="sel">
+        <a-option value="all">全部指标</a-option>
+        <a-option value="Scr">Scr</a-option>
+        <a-option value="eGFR">eGFR</a-option>
+        <a-option value="Tac">Tac</a-option>
+        <a-option value="Hb">Hb</a-option>
+      </a-select>
+      <a-select v-model="filterAlert" class="sel">
+        <a-option value="all">全部预警</a-option>
+        <a-option value="无">无</a-option>
+        <a-option value="关注">关注</a-option>
+        <a-option value="预警">预警</a-option>
+      </a-select>
+    </template>
+    <template #extra>
+      <MedPageSection :title="`选中：${selName}`" desc="近 4 次实验室结果（基于 seriesHint 拆解）">
+        <MedChartCard :option="chartOption" :height="220" />
+      </MedPageSection>
+    </template>
+  </MedCrudPage>
 </template>
 
 <script setup lang="ts">
 import { computed, h, ref, resolveComponent } from 'vue';
 import type { TableColumnData } from '@arco-design/web-vue';
-import MedPageHeader from '@/components/MedPageHeader.vue';
+import MedCrudPage, { type KpiDef } from '@/components/MedCrudPage.vue';
 import MedPageSection from '@/components/MedPageSection.vue';
-import MedTableCard from '@/components/MedTableCard.vue';
-import MedStatCard from '@/components/MedStatCard.vue';
-import MedAiSuggest from '@/components/MedAiSuggest.vue';
+import MedChartCard from '@/components/MedChartCard.vue';
+import type { FieldDef } from '@/components/MedRecordDrawer.vue';
 import { seedTrendRows, trendKpis, type TrendRow } from '@/mock/reportTrendArchive';
+import { createDemoStore } from '@/utils/demoStore';
+import { useCrudList } from '@/utils/useCrudList';
 
-const data = ref(seedTrendRows());
-const sel = ref<string | null>(data.value[0]?.id ?? null);
-const kpi = computed(() => trendKpis(data.value));
-const rows = computed(() => data.value);
-const cur = computed(() => data.value.find((r) => r.id === sel.value) ?? null);
+const store = createDemoStore<TrendRow>('report.trend', seedTrendRows);
+const filterIndicator = ref('all');
+const filterAlert = ref('all');
 
-const aiTxt = computed(() => {
-  const r = cur.value;
-  if (!r) return '';
-  if (r.indicator === 'Scr' && r.deltaPct > 15) {
-    return `Scr 较基线上升 ${r.deltaPct.toFixed(1)}%，序列「${r.seriesHint}」呈持续上扬，需结合尿量与免疫抑制剂浓度排查急性肾损伤与 CNI 毒性。`;
+const crud = useCrudList<TrendRow>({
+  store,
+  idPrefix: 'TR',
+  searchFields: ['id', 'patientId', 'patientName', 'indicator'],
+  customFilter: (r) =>
+    (filterIndicator.value === 'all' || r.indicator === filterIndicator.value) &&
+    (filterAlert.value === 'all' || r.alert === filterAlert.value),
+  csvColumns: [
+    { title: '编号', key: 'id' },
+    { title: '患者ID', key: 'patientId' },
+    { title: '姓名', key: 'patientName' },
+    { title: '指标', key: 'indicator' },
+    { title: '单位', key: 'unit' },
+    { title: '基线', key: 'baseline' },
+    { title: '最新', key: 'latest' },
+    { title: 'Δ%', key: 'deltaPct' },
+    { title: '趋势', key: 'trend' },
+    { title: '近4次', key: 'seriesHint' },
+    { title: '末次化验', key: 'lastLabDate' },
+    { title: '预警', key: 'alert' }
+  ],
+  exportName: 'report-trend'
+});
+
+const k = computed(() => trendKpis(crud.allRows.value));
+const kpis = computed<KpiDef[]>(() => [
+  { label: '监控指标行', value: k.value.monitored, tone: 'primary', trend: '当前样本' },
+  { label: '预警条目', value: k.value.warn, tone: 'danger', trend: '需复核' },
+  { label: '恶化项目', hint: 'Scr Δ>15% 或 eGFR Δ<-10%', value: k.value.worsen, tone: 'warning', trend: '动态跟进' },
+  { label: '记录完整度', value: `${k.value.complete}%`, tone: 'success', trend: '数据治理' }
+]);
+
+const fields: FieldDef[] = [
+  { key: 'patientId', label: '患者ID', required: true },
+  { key: 'patientName', label: '姓名', required: true },
+  {
+    key: 'indicator',
+    label: '指标',
+    type: 'select',
+    required: true,
+    options: ['Scr', 'eGFR', 'Tac', 'Hb'].map((v) => ({ label: v, value: v }))
+  },
+  { key: 'unit', label: '单位' },
+  { key: 'baseline', label: '基线', type: 'number' },
+  { key: 'latest', label: '最新', type: 'number' },
+  { key: 'deltaPct', label: 'Δ%', type: 'number', step: 0.1 },
+  {
+    key: 'trend',
+    label: '趋势',
+    type: 'select',
+    options: ['上升', '平台', '下降'].map((v) => ({ label: v, value: v }))
+  },
+  { key: 'seriesHint', label: '近 4 次序列', placeholder: '95→102→110→118', span: 24 },
+  { key: 'lastLabDate', label: '末次化验', type: 'date' },
+  {
+    key: 'alert',
+    label: '预警',
+    type: 'select',
+    options: ['无', '关注', '预警'].map((v) => ({ label: v, value: v }))
   }
-  if (r.indicator === 'eGFR' && r.deltaPct < -10) {
-    return `eGFR 较基线下滑 ${Math.abs(r.deltaPct).toFixed(1)}%，提示肾功能储备下降，应核对血压、蛋白尿与感染征象。`;
-  }
-  return `指标「${r.indicator}」变化率在随访观察区间，建议保持既有复查节律并记录症状。`;
-});
-
-const aiActs = computed(() => {
-  const r = cur.value;
-  if (!r) return [];
-  const a: string[] = [];
-  if (r.alert === '预警') a.push('72 小时内复测同源实验室，避免方法学差导致误判。');
-  a.push(`参考序列 ${r.seriesHint}，在时间轴标注用药调整与感染事件（演示）。`);
-  return a;
-});
-
-const aiSuggestItems = computed(() => {
-  const r = cur.value;
-  if (!r) return ['请先从左侧选择一条趋势行。', 'AI辅助建议仅供随访流程提示。'];
-  return [aiTxt.value, ...aiActs.value, 'AI辅助建议仅供提示，不替代临床判断。'].slice(0, 3);
-});
-
-function onRow(r: TrendRow) {
-  sel.value = r.id;
-}
-
-function rowClass(r: TrendRow) {
-  return r.id === sel.value ? 'row-selected' : '';
-}
+];
 
 const columns: TableColumnData[] = [
-  { title: '行ID', dataIndex: 'id', width: 90 },
-  { title: '患者ID', dataIndex: 'patientId', width: 118 },
-  { title: '姓名', dataIndex: 'patientName', width: 72 },
+  { title: '编号', dataIndex: 'id', width: 100 },
+  { title: '患者ID', dataIndex: 'patientId', width: 130 },
+  { title: '姓名', dataIndex: 'patientName', width: 80 },
+  { title: '指标', dataIndex: 'indicator', width: 90 },
+  { title: '单位', dataIndex: 'unit', width: 100 },
+  { title: '基线', dataIndex: 'baseline', width: 80 },
+  { title: '最新', dataIndex: 'latest', width: 80 },
   {
-    title: '指标',
-    dataIndex: 'indicator',
-    width: 72,
-    render: ({ record }: { record: TrendRow }) => {
-      const T = resolveComponent('a-tag') as any;
-      return h(T, { color: 'arcoblue' }, () => record.indicator);
-    }
-  },
-  { title: '基线', dataIndex: 'baseline', width: 72 },
-  { title: '最近', dataIndex: 'latest', width: 72 },
-  {
-    title: '变化率',
+    title: 'Δ%',
     dataIndex: 'deltaPct',
-    width: 88,
-    render: ({ record }: { record: TrendRow }) => `${record.deltaPct > 0 ? '+' : ''}${record.deltaPct.toFixed(1)}%`
-  },
-  {
-    title: '趋势',
-    dataIndex: 'trend',
-    width: 72,
+    width: 80,
     render: ({ record }: { record: TrendRow }) => {
-      const T = resolveComponent('a-tag') as any;
-      const c = record.trend === '上升' ? 'red' : record.trend === '下降' ? 'orangered' : 'gray';
-      return h(T, { color: c }, () => record.trend);
+      const c = record.deltaPct > 0 ? '#F53F3F' : record.deltaPct < 0 ? '#00B42A' : '#86909C';
+      return h('span', { style: { color: c, fontVariantNumeric: 'tabular-nums' } }, `${record.deltaPct > 0 ? '+' : ''}${record.deltaPct}%`);
     }
   },
-  { title: '序列(简)', dataIndex: 'seriesHint', ellipsis: true, tooltip: true },
-  { title: '末次检验', dataIndex: 'lastLabDate', width: 110 },
+  { title: '近 4 次', dataIndex: 'seriesHint', ellipsis: true, tooltip: true },
+  { title: '末次化验', dataIndex: 'lastLabDate', width: 110 },
   {
     title: '预警',
     dataIndex: 'alert',
-    width: 72,
+    width: 90,
     render: ({ record }: { record: TrendRow }) => {
       const T = resolveComponent('a-tag') as any;
-      const c = record.alert === '预警' ? 'red' : record.alert === '关注' ? 'orangered' : 'green';
+      const c = record.alert === '预警' ? 'red' : record.alert === '关注' ? 'orangered' : 'gray';
       return h(T, { color: c }, () => record.alert);
     }
   }
 ];
+
+// 选中行 → 折线图数据
+const selName = computed(() => (crud.selected.value ? `${crud.selected.value.patientName} · ${crud.selected.value.indicator}` : '—'));
+const chartOption = computed(() => {
+  const r = crud.selected.value;
+  const data = r ? r.seriesHint.split(/[→,\s]+/).map((s) => Number(s)).filter((n) => !Number.isNaN(n)) : [];
+  return {
+    grid: { left: 36, right: 12, top: 24, bottom: 28 },
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: data.map((_, i) => `T-${data.length - i}`) },
+    yAxis: { type: 'value', scale: true },
+    series: [
+      {
+        type: 'line',
+        smooth: true,
+        data,
+        lineStyle: { color: '#1677FF', width: 2 },
+        itemStyle: { color: '#1677FF' },
+        areaStyle: { color: 'rgba(22,119,255,0.1)' }
+      }
+    ]
+  };
+});
 </script>
-
-<style scoped>
-.med-page{
-  box-sizing:border-box;
-  padding: var(--med-page-pad);
-  display:flex;
-  flex-direction:column;
-  gap: var(--med-gap);
-  min-width:0;
-}
-.kpi-grid{
-  display:grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--med-gap);
-  align-items: stretch;
-}
-.split{
-  display:flex;
-  gap: var(--med-gap);
-  align-items: stretch;
-  min-width:0;
-}
-.ai-col{
-  width: 360px;
-  flex-shrink:0;
-  display:flex;
-}
-@media (max-width: 1100px){
-  .kpi-grid{grid-template-columns: repeat(2, minmax(0,1fr))}
-  .split{flex-direction: column}
-  .ai-col{width: 100%}
-}
-
-:deep(.row-selected .arco-table-td){
-  background: rgba(22, 119, 255, 0.06) !important;
-}
-</style>
-
+<style scoped>.sel{width:130px}</style>
