@@ -12,8 +12,10 @@ export type FollowWxlogRow = {
   maskId: string;
 };
 
+import { expandSeed, pickFrom, pickName, patientIdAt, dateTimeStr } from './seedHelpers';
+
 export function seedFollowWxlog(): FollowWxlogRow[] {
-  return [
+  const base: FollowWxlogRow[] = [
     {
       id: 'WX-20260416-001',
       patientId: 'P20260415008',
@@ -61,6 +63,35 @@ export function seedFollowWxlog(): FollowWxlogRow[] {
       maskId: 'oB***e5f'
     }
   ];
+  const templates = [
+    '复查前一日提醒',
+    '检验结果已出-请查看',
+    '用药依从问卷',
+    '随访任务待办',
+    '科普-排斥早期征象',
+    '科普-术后饮食指导',
+    '生命体征上报提醒',
+    '门诊预约确认',
+    '紧急复诊提醒',
+    '处方续方提醒'
+  ];
+  const statuses: FollowWxlogRow['status'][] = ['已送达', '已读', '已读', '失败', '待确认', '已送达'];
+  const errs = ['用户拒收/黑名单', 'token 过期', '网络抖动', '模板审核失败'];
+  return expandSeed(base, 50, (i) => {
+    const idx = i + 5;
+    const [name] = pickName(idx);
+    const status = pickFrom(statuses, idx);
+    return {
+      id: `WX-${dateTimeStr(idx * 67).slice(0, 10).replace(/-/g, '')}-${String(idx + 5).padStart(3, '0')}`,
+      patientId: patientIdAt(idx),
+      patientName: name,
+      template: pickFrom(templates, idx),
+      sentAt: dateTimeStr(idx * 67) + ':' + String((idx * 7) % 60).padStart(2, '0'),
+      status,
+      errMsg: status === '失败' ? pickFrom(errs, idx) : undefined,
+      maskId: 'o' + String.fromCharCode(65 + (idx % 26)) + '***' + (1000 + idx).toString(16)
+    };
+  });
 }
 
 export function followWxlogKpis(rows: FollowWxlogRow[]) {

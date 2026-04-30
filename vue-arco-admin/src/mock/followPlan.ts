@@ -14,8 +14,10 @@ export type FollowPlanRow = {
   lastReview: string;
 };
 
+import { dateStr, expandSeed, pickFrom, pickName, patientIdAt } from './seedHelpers';
+
 export function seedFollowPlans(): FollowPlanRow[] {
-  return [
+  const base: FollowPlanRow[] = [
     {
       id: 'PL-2026-0416-01',
       patientId: 'P20260415008',
@@ -77,6 +79,27 @@ export function seedFollowPlans(): FollowPlanRow[] {
       lastReview: '2026-03-28'
     }
   ];
+  const planNames = ['术后早期密集随访', '稳定期长程随访', '高血压加强随访', '蛋白尿监测', '感染防控加强期', 'CMV 监测期', 'BK 病毒监测期', '糖代谢复查期'];
+  const cycles = ['每周', '每 10 天', '每 2 周', '每 3 周', '每 4 周'];
+  const owners = ['李敏', '王浩', '陈静', '赵磊', '韩雪'];
+  const statuses: FollowPlanRow['status'][] = ['生效中', '生效中', '生效中', '待启动', '已暂停', '已结束'];
+  const pathways: FollowPlanRow['pathway'][] = ['标准移植路径', '高危加强路径', '合并糖尿病路径'];
+  return expandSeed(base, 28, (i) => {
+    const idx = i + 5;
+    const [name] = pickName(idx);
+    return {
+      id: `PL-2026-0416-${String(idx + 1).padStart(2, '0')}`,
+      patientId: patientIdAt(idx),
+      patientName: name,
+      planName: pickFrom(planNames, idx),
+      cycle: pickFrom(cycles, idx),
+      nextReview: dateStr(-(idx % 30)),
+      owner: pickFrom(owners, idx),
+      status: pickFrom(statuses, idx),
+      pathway: pickFrom(pathways, idx),
+      lastReview: dateStr((idx % 21) + 5)
+    };
+  });
 }
 
 export function followPlanKpis(rows: FollowPlanRow[]) {

@@ -1,229 +1,173 @@
-<!--
-  【1. 模块理解】个体化监护计划将复查节律/路径模板/责任人固化，驱动随访任务生成与质控（演示）。
-  【2. 行业调研】字段：周期、下次复查、路径版本、状态；KPI：生效计划、将到期、加强路径覆盖、待启动。
-  【3. 页面设计】路径分布 + KPI + 计划表；右侧「AI辅助建议」提示复查窗口冲突与路径切换风险（克制风格）。
-  【4. 页面代码】采用全站轻医疗组件（Med*）统一样式。
--->
+<!-- 监护计划：路径化随访周期与下次复查日（演示数据） -->
 <template>
-  <div class="med-page">
-    <MedPageSection>
-      <MedPageHeader
-        title="监护计划配置中心"
-        desc="路径模板 · 复查节律 · 责任人绑定（演示数据，基准日 2026-04-16）"
-      />
+  <MedCrudPage
+    title="监护计划"
+    desc="个体化监护与复查节律 · 路径管理 · 下次随访触达"
+    :kpis="kpiList"
+    :columns="columns"
+    :fields="fields"
+    :crud="crud"
+    table-title="计划列表"
+    table-desc="按路径分类 · 支持新增 / 编辑 / 删除 / 导出"
+    search-placeholder="患者 / 计划名 / 编号"
+    create-text="新增计划"
+    :scroll-x="1300"
+    can-view
+  >
+    <template #filters>
+      <a-select v-model="filterStatus" class="sel">
+        <a-option value="all">全部状态</a-option>
+        <a-option value="生效中">生效中</a-option>
+        <a-option value="待启动">待启动</a-option>
+        <a-option value="已暂停">已暂停</a-option>
+        <a-option value="已结束">已结束</a-option>
+      </a-select>
+      <a-select v-model="filterPathway" class="sel sel-wide">
+        <a-option value="all">全部路径</a-option>
+        <a-option value="标准移植路径">标准移植路径</a-option>
+        <a-option value="高危加强路径">高危加强路径</a-option>
+        <a-option value="合并糖尿病路径">合并糖尿病路径</a-option>
+      </a-select>
+    </template>
 
-      <div class="pathBar" aria-label="路径分布">
-        <div v-for="p in pathStats" :key="p.k" class="pathSeg" :style="{ flex: p.n }">
-          <span class="pathLab">{{ p.k }}</span>
-          <span class="pathVal">{{ p.n }}</span>
-        </div>
-      </div>
-
-      <div class="queryBar">
-        <a-input v-model="q" allow-clear class="q" placeholder="患者 / 计划编号" />
-        <a-select v-model="st" class="sel">
-          <a-option value="all">全部状态</a-option>
-          <a-option value="生效中">生效中</a-option>
-          <a-option value="待启动">待启动</a-option>
-          <a-option value="已暂停">已暂停</a-option>
-        </a-select>
-      </div>
-
-      <div data-testid="kpi-region" class="kpi-grid">
-        <MedStatCard label="生效中计划" hint="状态=生效中" :value="kpi.active" tone="success" trend="作为主驱动" trend-dir="flat" />
-        <MedStatCard label="近日将复查" hint="下次≤2026-04-18 且生效" :value="kpi.dueSoon" tone="danger" trend="避免堆叠" trend-dir="flat" />
-        <MedStatCard label="高危加强路径" hint="路径=高危加强且生效" :value="kpi.highPath" tone="warning" trend="关注号源" trend-dir="flat" />
-        <MedStatCard label="待启动" hint="需签署/排期后启用" :value="kpi.pendingStart" tone="default" trend="启动前核对" trend-dir="flat" />
-      </div>
-    </MedPageSection>
-
-    <div class="split">
-      <MedTableCard title="计划列表" desc="点击行选中 · 右侧提示节律一致性与重叠复查风险（演示）">
-        <a-table
-          data-testid="biz-table"
-          :data="rows"
-          :columns="columns"
-          :pagination="{ pageSize: 8, showTotal: true }"
-          :row-key="(r: FollowPlanRow) => r.id"
-          :row-class="rowClass"
-          :scroll="{ x: 1100 }"
-          @row-click="onRow"
-        />
-      </MedTableCard>
-
-      <div data-testid="ai-decision" class="rightCol">
-        <MedAiSuggest :items="aiSuggestItems" />
-      </div>
-    </div>
-  </div>
+    <template #extra>
+      <MedPageSection title="计划完成率（近 12 周）" desc="基于演示数据的趋势示意">
+        <MedChartCard :option="chartOption" :height="220" />
+      </MedPageSection>
+    </template>
+  </MedCrudPage>
 </template>
 
 <script setup lang="ts">
 import { computed, h, ref, resolveComponent } from 'vue';
 import type { TableColumnData } from '@arco-design/web-vue';
-import MedPageHeader from '@/components/MedPageHeader.vue';
+import MedCrudPage, { type KpiDef } from '@/components/MedCrudPage.vue';
 import MedPageSection from '@/components/MedPageSection.vue';
-import MedTableCard from '@/components/MedTableCard.vue';
-import MedStatCard from '@/components/MedStatCard.vue';
-import MedAiSuggest from '@/components/MedAiSuggest.vue';
+import MedChartCard from '@/components/MedChartCard.vue';
+import type { FieldDef } from '@/components/MedRecordDrawer.vue';
 import { followPlanKpis, seedFollowPlans, type FollowPlanRow } from '@/mock/followPlan';
+import { createDemoStore } from '@/utils/demoStore';
+import { useCrudList } from '@/utils/useCrudList';
 
-const plans = ref(seedFollowPlans());
-const q = ref('');
-const st = ref('all');
-const sel = ref<string | null>(plans.value[0]?.id ?? null);
+const store = createDemoStore<FollowPlanRow>('follow.plan', seedFollowPlans);
+const filterStatus = ref<string>('all');
+const filterPathway = ref<string>('all');
 
-const kpi = computed(() => followPlanKpis(plans.value));
-
-const pathStats = computed(() => {
-  const m: Record<string, number> = {};
-  for (const r of plans.value) {
-    if (r.status !== '生效中') continue;
-    m[r.pathway] = (m[r.pathway] || 0) + 1;
-  }
-  return Object.entries(m).map(([k, n]) => ({ k, n: Math.max(1, n) }));
+const crud = useCrudList<FollowPlanRow>({
+  store,
+  idPrefix: 'PL',
+  searchFields: ['id', 'patientId', 'patientName', 'planName'],
+  customFilter: (r) => {
+    if (filterStatus.value !== 'all' && r.status !== filterStatus.value) return false;
+    if (filterPathway.value !== 'all' && r.pathway !== filterPathway.value) return false;
+    return true;
+  },
+  csvColumns: [
+    { title: '计划编号', key: 'id' },
+    { title: '患者ID', key: 'patientId' },
+    { title: '姓名', key: 'patientName' },
+    { title: '计划名', key: 'planName' },
+    { title: '周期', key: 'cycle' },
+    { title: '下次随访', key: 'nextReview' },
+    { title: '负责人', key: 'owner' },
+    { title: '状态', key: 'status' },
+    { title: '路径', key: 'pathway' },
+    { title: '上次随访', key: 'lastReview' }
+  ],
+  exportName: 'follow-plans'
 });
 
-const rows = computed(() => {
-  let list = [...plans.value];
-  const qq = q.value.trim().toLowerCase();
-  if (qq) {
-    list = list.filter(
-      (r) =>
-        r.patientName.toLowerCase().includes(qq) ||
-        r.patientId.toLowerCase().includes(qq) ||
-        r.id.toLowerCase().includes(qq)
-    );
-  }
-  if (st.value !== 'all') list = list.filter((r) => r.status === st.value);
-  return list;
-});
+const kpi = computed(() => followPlanKpis(crud.allRows.value));
 
-const selected = computed(() => plans.value.find((p) => p.id === sel.value) ?? null);
+const kpiList = computed<KpiDef[]>(() => [
+  { label: '生效中计划', hint: '当前活跃', value: kpi.value.active, tone: 'primary', trend: '继续监测' },
+  { label: '近期到期', hint: '4-18 前到期', value: kpi.value.dueSoon, tone: 'warning', trend: '注意触达' },
+  { label: '高危加强路径', hint: '生效中', value: kpi.value.highPath, tone: 'danger', trend: '优先随访' },
+  { label: '待启动计划', hint: '需配置', value: kpi.value.pendingStart, tone: 'default', trend: '及时启动' }
+]);
 
-const aiText = computed(() => {
-  const r = selected.value;
-  if (!r) return '';
-  if (r.status === '已暂停') return `计划「${r.planName}」处于暂停，建议核对暂停原因是否影响关键复查窗口。`;
-  if (r.pathway === '高危加强路径' && r.cycle.includes('周')) return '高危路径下复查频次较高，请关注门诊号源与检验 TAT，避免计划日堆叠。';
-  return '当前计划与路径匹配度良好；建议在下次复查前 48h 拉取最新实验室与用药清单做预审核。';
-});
+const fields: FieldDef[] = [
+  { key: 'patientId', label: '患者ID', required: true },
+  { key: 'patientName', label: '姓名', required: true },
+  { key: 'planName', label: '计划名', required: true, span: 24 },
+  { key: 'cycle', label: '周期', placeholder: '如 每 2 周' },
+  { key: 'nextReview', label: '下次随访日', type: 'date' },
+  { key: 'owner', label: '负责人' },
+  {
+    key: 'status',
+    label: '状态',
+    type: 'select',
+    required: true,
+    options: ['生效中', '待启动', '已暂停', '已结束'].map((v) => ({ label: v, value: v }))
+  },
+  {
+    key: 'pathway',
+    label: '随访路径',
+    type: 'select',
+    required: true,
+    options: ['标准移植路径', '高危加强路径', '合并糖尿病路径'].map((v) => ({ label: v, value: v }))
+  },
+  { key: 'lastReview', label: '上次随访' }
+];
 
-const aiActs = computed(() => {
-  const r = selected.value;
-  if (!r) return [];
-  const a: string[] = [];
-  if (r.nextReview <= '2026-04-18') a.push(`下次复查 ${r.nextReview} 前预生成任务，并短信/企微双通道提醒（演示）。`);
-  if (r.pathway === '合并糖尿病路径') a.push('同步内分泌共同管理目标：空腹血糖与 eGFR 联合趋势。');
-  a.push('路径变更需记录版本号并通知个案管理师，避免任务仍按旧周期生成。');
-  return a;
-});
-
-const aiSuggestItems = computed(() => {
-  if (!selected.value) return ['请选择一条计划记录查看建议。', 'AI辅助建议仅供流程提示。'];
-  return [aiText.value, ...aiActs.value].slice(0, 3);
-});
-
-function onRow(r: FollowPlanRow) {
-  sel.value = r.id;
-}
-
-function rowClass(r: FollowPlanRow) {
-  return r.id === sel.value ? 'row-selected' : '';
-}
-
-const columns = computed<TableColumnData[]>(() => [
-  { title: '计划ID', dataIndex: 'id', width: 150 },
-  { title: '患者ID', dataIndex: 'patientId', width: 120 },
-  { title: '姓名', dataIndex: 'patientName', width: 90 },
-  { title: '计划名称', dataIndex: 'planName', ellipsis: true, tooltip: true },
-  { title: '路径', dataIndex: 'pathway', width: 140, ellipsis: true, tooltip: true },
-  { title: '周期', dataIndex: 'cycle', width: 120 },
-  { title: '下次复查', dataIndex: 'nextReview', width: 120 },
-  { title: '责任人', dataIndex: 'owner', width: 120, ellipsis: true, tooltip: true },
+const columns: TableColumnData[] = [
+  { title: '计划编号', dataIndex: 'id', width: 150 },
+  { title: '患者ID', dataIndex: 'patientId', width: 130 },
+  { title: '姓名', dataIndex: 'patientName', width: 80 },
+  { title: '计划名', dataIndex: 'planName', width: 200, ellipsis: true, tooltip: true },
+  { title: '周期', dataIndex: 'cycle', width: 100 },
+  { title: '下次随访', dataIndex: 'nextReview', width: 120 },
+  { title: '负责人', dataIndex: 'owner', width: 110 },
   {
     title: '状态',
     dataIndex: 'status',
-    width: 88,
+    width: 100,
     render: ({ record }: { record: FollowPlanRow }) => {
       const T = resolveComponent('a-tag') as any;
-      const c = record.status === '生效中' ? 'green' : record.status === '已暂停' ? 'gray' : 'orangered';
+      const c = record.status === '生效中' ? 'green' : record.status === '待启动' ? 'arcoblue' : record.status === '已暂停' ? 'orangered' : 'gray';
       return h(T, { color: c }, () => record.status);
     }
-  }
-]);
+  },
+  {
+    title: '路径',
+    dataIndex: 'pathway',
+    width: 150,
+    render: ({ record }: { record: FollowPlanRow }) => {
+      const T = resolveComponent('a-tag') as any;
+      const c = record.pathway === '高危加强路径' ? 'red' : record.pathway === '合并糖尿病路径' ? 'orange' : 'arcoblue';
+      return h(T, { color: c }, () => record.pathway);
+    }
+  },
+  { title: '上次随访', dataIndex: 'lastReview', width: 120 }
+];
+
+// 演示用 12 周完成率（基于 seed 数据计算近似值）
+const chartOption = computed(() => {
+  const weeks = Array.from({ length: 12 }, (_, i) => `W${i + 1}`);
+  const total = crud.allRows.value.length || 1;
+  const baseDone = Math.max(1, Math.floor(total * 0.7));
+  const data = weeks.map((_, i) => Math.max(0, Math.min(100, Math.round((baseDone / total) * 100 + ((i * 7) % 18) - 8))));
+  return {
+    grid: { left: 36, right: 12, top: 28, bottom: 28 },
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: weeks, axisTick: { alignWithLabel: true } },
+    yAxis: { type: 'value', max: 100, axisLabel: { formatter: '{value}%' } },
+    series: [
+      {
+        name: '完成率',
+        type: 'line',
+        smooth: true,
+        data,
+        lineStyle: { color: '#1677FF' },
+        areaStyle: { color: 'rgba(22,119,255,0.12)' },
+        itemStyle: { color: '#1677FF' }
+      }
+    ]
+  };
+});
 </script>
 
 <style scoped>
-.med-page{
-  box-sizing:border-box;
-  padding: var(--med-page-pad);
-  display:flex;
-  flex-direction:column;
-  gap: var(--med-gap);
-  min-width:0;
-}
-.pathBar{
-  margin-top: 12px;
-  display:flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.pathSeg{
-  min-width: 120px;
-  border: 1px solid var(--med-border);
-  border-radius: var(--med-radius);
-  padding: 10px 12px;
-  background: var(--med-surface);
-  display:flex;
-  justify-content: space-between;
-  gap: 10px;
-  color: var(--med-text);
-}
-.pathLab{
-  font-size: 13px;
-  color: var(--med-text-2);
-}
-.pathVal{
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--med-text);
-}
-.queryBar{
-  margin-top: 12px;
-  display:flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items:center;
-}
-.q{ width: 260px; }
-.sel{ width: 140px; }
-.kpi-grid{
-  margin-top: 12px;
-  display:grid;
-  grid-template-columns: repeat(4, minmax(0,1fr));
-  gap: var(--med-gap);
-  align-items: stretch;
-}
-.split{
-  display:flex;
-  gap: var(--med-gap);
-  align-items: stretch;
-  min-width:0;
-}
-.rightCol{
-  width: 360px;
-  flex-shrink:0;
-  display:flex;
-}
-@media (max-width: 1100px){
-  .split{ flex-direction: column; }
-  .rightCol{ width: 100%; }
-  .kpi-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
-  .q{ width: 100%; }
-}
-:deep(.row-selected .arco-table-td){
-  background: rgba(22, 119, 255, 0.06) !important;
-}
+.sel { width: 130px; }
+.sel-wide { width: 160px; }
 </style>
-

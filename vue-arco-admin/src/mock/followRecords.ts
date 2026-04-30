@@ -18,8 +18,10 @@ export type FollowRecordRow = {
   aiFlag: '无' | '指标异常' | '依从风险';
 };
 
+import { dateStr, expandSeed, pickFrom, pickName, patientIdAt, dateTimeStr } from './seedHelpers';
+
 export function seedFollowRecords(): FollowRecordRow[] {
-  return [
+  const base: FollowRecordRow[] = [
     {
       id: 'FR-20260415-01',
       patientId: 'P20260415008',
@@ -106,6 +108,36 @@ export function seedFollowRecords(): FollowRecordRow[] {
       aiFlag: '无'
     }
   ];
+  const channels: FollowRecordRow['channel'][] = ['门诊', '电话', '微信', '住院'];
+  const nurses = ['李敏', '王浩', '陈静', '赵磊', '韩雪', '周洋'];
+  const adherences: FollowRecordRow['adherence'][] = ['良好', '一般', '差'];
+  const aiFlags: FollowRecordRow['aiFlag'][] = ['无', '指标异常', '依从风险'];
+  const symptoms = ['—', '轻度乏力', '夜尿增多', '咽痛', '足踝水肿', '腹胀', '皮肤瘙痒', '发热低热'];
+  return expandSeed(base, 30, (i) => {
+    const idx = i + 6;
+    const [name] = pickName(idx);
+    const adherence = pickFrom(adherences, idx);
+    const aiFlag = pickFrom(aiFlags, idx + 1);
+    const sbp = 110 + ((idx * 3) % 35);
+    const dbp = 65 + ((idx * 2) % 25);
+    const scr = 78 + ((idx * 5) % 70);
+    return {
+      id: `FR-${dateStr(idx % 30).replace(/-/g, '')}-${String(idx).padStart(2, '0')}`,
+      patientId: patientIdAt(idx),
+      patientName: name,
+      visitAt: dateTimeStr(idx * 137),
+      channel: pickFrom(channels, idx),
+      nurse: pickFrom(nurses, idx),
+      sbp,
+      dbp,
+      weightKg: Math.round((52 + (idx % 30)) * 10) / 10,
+      scr,
+      adherence,
+      symptom: pickFrom(symptoms, idx + 2),
+      planNext: aiFlag === '指标异常' ? '72h 内复测同源实验室并联系主管医师' : adherence === '差' ? '加强用药提醒并安排药学复核' : '维持现方案，下次按计划随访',
+      aiFlag
+    };
+  });
 }
 
 export function followRecordKpis(rows: FollowRecordRow[]) {
