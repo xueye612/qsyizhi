@@ -1,44 +1,39 @@
+﻿<!--
+  兼容包装：MedPageHeader 保留为薄壳，转发到 MedPageHero。
+  HeaderChip / HeaderChipTone 类型继续从此文件导出，避免破坏 30+ 处既有 import。
+-->
 <template>
-  <header class="med-page-header">
-    <h1 class="title">{{ title }}</h1>
-    <p v-if="desc" class="desc">{{ desc }}</p>
-    <div v-if="$slots.extra" class="extra">
-      <slot name="extra" />
-    </div>
-  </header>
+  <MedPageHero
+    :title="title"
+    :desc="desc"
+    :breadcrumb="breadcrumb"
+    :chips="chips"
+    :badge="badge"
+    :badge-tone="badgeTone"
+  >
+    <template v-if="$slots.actions" #actions>
+      <slot name="actions" />
+    </template>
+  </MedPageHero>
 </template>
 
 <script setup lang="ts">
+import MedPageHero from './MedPageHero.vue';
+
+export type HeaderChipTone = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
+export interface HeaderChip {
+  label: string;
+  value: string | number;
+  tone?: HeaderChipTone;
+  tip?: string;
+}
+
 defineProps<{
   title: string;
   desc?: string;
+  breadcrumb?: string[];
+  chips?: HeaderChip[];
+  badge?: string;
+  badgeTone?: HeaderChipTone;
 }>();
 </script>
-
-<style scoped>
-.med-page-header{
-  padding-top: 2px;
-  padding-bottom: 16px;
-  margin-bottom: 16px;
-  border-bottom: 1px solid var(--med-border);
-}
-.title{
-  margin: 0;
-  font-size: var(--med-fz-page-title);
-  font-weight: var(--med-fw-page-title);
-  line-height: 1.45;
-  color: var(--med-text);
-}
-.desc{
-  margin: 8px 0 0;
-  font-size: var(--med-fz-body);
-  font-weight: var(--med-fw-body);
-  line-height: 1.5;
-  color: var(--med-muted);
-  max-width: 720px;
-}
-.extra{
-  margin-top: 12px;
-}
-</style>
-

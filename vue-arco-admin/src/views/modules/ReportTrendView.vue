@@ -30,7 +30,14 @@
     </template>
     <template #extra>
       <MedPageSection :title="`选中：${selName}`" desc="近 4 次实验室结果（基于 seriesHint 拆解）">
-        <MedChartCard :option="chartOption" :height="220" />
+        <MedChartCard
+          :option="chartOption"
+          :height="220"
+          title="指标趋势"
+          desc="右上可切换范围"
+          :ranges="chartRanges"
+          v-model:active-range="chartRange"
+        />
       </MedPageSection>
     </template>
   </MedCrudPage>
@@ -146,9 +153,18 @@ const columns: TableColumnData[] = [
 
 // 选中行 → 折线图数据
 const selName = computed(() => (crud.selected.value ? `${crud.selected.value.patientName} · ${crud.selected.value.indicator}` : '—'));
+const chartRange = ref<'all' | 'last4' | 'last3' | 'last2'>('all');
+const chartRanges = [
+  { key: 'all', label: '全部' },
+  { key: 'last4', label: '近4次' },
+  { key: 'last3', label: '近3次' },
+  { key: 'last2', label: '近2次' }
+];
 const chartOption = computed(() => {
   const r = crud.selected.value;
-  const data = r ? r.seriesHint.split(/[→,\s]+/).map((s) => Number(s)).filter((n) => !Number.isNaN(n)) : [];
+  const all = r ? r.seriesHint.split(/[→,\s]+/).map((s) => Number(s)).filter((n) => !Number.isNaN(n)) : [];
+  const n = chartRange.value === 'last2' ? 2 : chartRange.value === 'last3' ? 3 : chartRange.value === 'last4' ? 4 : all.length;
+  const data = all.slice(-n);
   return {
     grid: { left: 36, right: 12, top: 24, bottom: 28 },
     tooltip: { trigger: 'axis' },

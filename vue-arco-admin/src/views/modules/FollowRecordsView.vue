@@ -1,23 +1,45 @@
 <template>
   <div class="med-page">
     <MedPageSection>
-      <MedPageHeader title="随访记录中心" desc="结构化台账 · 体征/检验/依从 · 支持 AI 标记复核（演示数据）" />
+      <MedPageHeader
+        title="随访记录中心"
+        desc="结构化台账 · 体征/检验/依从 · 支持 AI 标记复核（演示数据）"
+        :breadcrumb="['工作台', '随访管理', '随访记录']"
+        :badge="`共 ${crud.allRows.value.length} 条`"
+        badge-tone="primary"
+        :chips="headerChips"
+      >
+        <template #actions>
+          <a-button @click="crud.exportCSV">
+            <template #icon><icon-download /></template>
+            导出 CSV
+          </a-button>
+          <a-button type="primary" @click="crud.openCreate">
+            <template #icon><icon-plus /></template>
+            新建随访记录
+          </a-button>
+        </template>
+      </MedPageHeader>
       <div data-testid="kpi-region" class="kpi-grid">
-        <MedStatCard label="近端记录数" hint="当前列表样本量" :value="kpi.last7" tone="primary" trend="窗口：7日" trend-dir="flat" />
-        <MedStatCard label="AI·指标异常" hint="需检验复核条目" :value="kpi.abnormalLabs" tone="danger" trend="优先复核" trend-dir="flat" />
-        <MedStatCard label="依从风险条目" hint="含依从差或 AI 依从风险" :value="kpi.adherenceRisk" tone="danger" trend="随访强化" trend-dir="flat" />
-        <MedStatCard label="门诊随访占比" hint="门诊/总条数" :value="`${kpi.outpatientShare}/${kpi.total}`" tone="success" trend="渠道结构" trend-dir="flat" />
+        <MedStatCard label="近端记录数" hint="当前列表样本量" :value="kpi.last7" tone="primary" trend="窗口：7日" trend-dir="flat" :sparkline="spark(1, kpi.last7)" />
+        <MedStatCard label="AI·指标异常" hint="需检验复核条目" :value="kpi.abnormalLabs" tone="danger" trend="优先复核" trend-dir="flat" :sparkline="spark(2, kpi.abnormalLabs)" />
+        <MedStatCard label="依从风险条目" hint="含依从差或 AI 依从风险" :value="kpi.adherenceRisk" tone="danger" trend="随访强化" trend-dir="flat" :sparkline="spark(3, kpi.adherenceRisk)" />
+        <MedStatCard label="门诊随访占比" hint="门诊/总条数" :value="`${kpi.outpatientShare}/${kpi.total}`" tone="success" trend="渠道结构" trend-dir="flat" :sparkline="spark(4, kpi.outpatientShare)" />
       </div>
     </MedPageSection>
 
     <div class="split">
-      <MedTableCard title="随访记录表" desc="生命体征 / Scr / 依从 / 症状 / 下一步">
+      <MedTableCard title="随访记录表" desc="生命体征 / Scr / 依从 / 症状 / 下一步" :density="density">
         <MedListToolbar
           v-model="crud.searchKey.value"
           search-placeholder="患者 / 记录编号 / 症状关键词"
           :selected-count="crud.checked.value.length"
           :batch-deletable="true"
           create-text="新建随访记录"
+          :views="viewChips"
+          v-model:active-view="activeView"
+          density-toggle
+          v-model:density="density"
           @create="crud.openCreate"
           @export="crud.exportCSV"
           @refresh="crud.refresh"
@@ -86,12 +108,13 @@
 <script setup lang="ts">
 import { computed, h, ref, resolveComponent } from 'vue';
 import type { TableColumnData } from '@arco-design/web-vue';
-import MedPageHeader from '@/components/MedPageHeader.vue';
+import { IconDownload, IconPlus } from '@arco-design/web-vue/es/icon';
+import MedPageHeader, { type HeaderChip } from '@/components/MedPageHeader.vue';
 import MedPageSection from '@/components/MedPageSection.vue';
 import MedTableCard from '@/components/MedTableCard.vue';
 import MedStatCard from '@/components/MedStatCard.vue';
 import MedAiSuggest from '@/components/MedAiSuggest.vue';
-import MedListToolbar from '@/components/MedListToolbar.vue';
+import MedListToolbar, { type ToolbarDensity, type ToolbarView } from '@/components/MedListToolbar.vue';
 import MedPageStates from '@/components/MedPageStates.vue';
 import MedRecordDrawer, { type FieldDef } from '@/components/MedRecordDrawer.vue';
 import MedRowActions from '@/components/MedRowActions.vue';
@@ -102,6 +125,8 @@ import { useCrudList } from '@/utils/useCrudList';
 const store = createDemoStore<FollowRecordRow>('follow.records', seedFollowRecords);
 const filterChannel = ref<string>('all');
 const filterFlag = ref<string>('all');
+const activeView = ref<string>('all');
+const density = ref<ToolbarDensity>('comfortable');
 
 const crud = useCrudList<FollowRecordRow>({
   store,
@@ -110,6 +135,10 @@ const crud = useCrudList<FollowRecordRow>({
   customFilter: (r) => {
     if (filterChannel.value !== 'all' && r.channel !== filterChannel.value) return false;
     if (filterFlag.value !== 'all' && r.aiFlag !== filterFlag.value) return false;
+    if (activeView.value === 'abnormal' && r.aiFlag !== '指标异常') return false;
+    else if (activeView.value === 'adherence' && r.aiFlag !== '依从风险') return false;
+    else if (activeView.value === 'outpatient' && r.channel !== '门诊') return false;
+    else if (activeView.value === 'wechat' && r.channel !== '微信') return false;
     return true;
   },
   csvColumns: [
@@ -132,6 +161,35 @@ const crud = useCrudList<FollowRecordRow>({
 });
 
 const kpi = computed(() => followRecordKpis(crud.allRows.value));
+
+function countAll(pred: (r: FollowRecordRow) => boolean) {
+  return crud.allRows.value.filter(pred).length;
+}
+const viewChips = computed<ToolbarView[]>(() => [
+  { key: 'all', label: '全部', count: crud.allRows.value.length },
+  { key: 'abnormal', label: '指标异常', count: countAll((r) => r.aiFlag === '指标异常') },
+  { key: 'adherence', label: '依从风险', count: countAll((r) => r.aiFlag === '依从风险') },
+  { key: 'outpatient', label: '门诊', count: countAll((r) => r.channel === '门诊') },
+  { key: 'wechat', label: '微信', count: countAll((r) => r.channel === '微信') }
+]);
+const headerChips = computed<HeaderChip[]>(() => {
+  const out: HeaderChip[] = [
+    { label: '近端记录', value: kpi.value.last7, tone: 'primary' },
+    { label: '异常复核', value: kpi.value.abnormalLabs, tone: kpi.value.abnormalLabs > 0 ? 'danger' : 'success' },
+    { label: '依从风险', value: kpi.value.adherenceRisk, tone: kpi.value.adherenceRisk > 0 ? 'warning' : 'success' }
+  ];
+  if (crud.checked.value.length) out.push({ label: '已选中', value: crud.checked.value.length, tone: 'warning' });
+  return out;
+});
+function spark(seed: number, value: number) {
+  const arr: number[] = [];
+  let v = Math.max(20, Math.min(120, value * 6 + 20));
+  for (let i = 0; i < 12; i++) {
+    v += Math.sin((i + seed * 1.7) * 0.65) * 6 + ((seed + i) % 4) - 1;
+    arr.push(Math.max(0, Math.round(v)));
+  }
+  return arr;
+}
 
 const fields: FieldDef[] = [
   { key: 'patientId', label: '患者ID', required: true },
@@ -227,7 +285,6 @@ const columns = computed<TableColumnData[]>(() => [
     title: '操作',
     dataIndex: '__ops',
     width: 168,
-    fixed: 'right',
     render: ({ record }: { record: FollowRecordRow }) =>
       h(MedRowActions as any, {
         onView: () => crud.openView(record),

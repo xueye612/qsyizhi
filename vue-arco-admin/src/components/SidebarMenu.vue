@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="menu-shell" :class="{ collapsed }">
     <a-menu
       class="med-menu"
@@ -71,13 +71,13 @@ function onMenuItemClick(key: string) {
 }
 
 function onSubMenuClick(key: string) {
-  // accordion 已保证只开一个，这里同步 openKeys（用于外部状态/路由联动）
+  // accordion 宸蹭繚璇佸彧寮€涓€涓紝杩欓噷鍚屾 openKeys锛堢敤浜庡閮ㄧ姸鎬?璺敱鑱斿姩锛?
   emit('update:openKeys', [key]);
 }
 
 /**
- * 字段不可变：menu.icon 为 mdi 字符串
- * 这里仅做“展示使用 Arco icon”的映射层
+ * 瀛楁涓嶅彲鍙橈細menu.icon 涓?mdi 瀛楃涓?
+ * 杩欓噷浠呭仛鈥滃睍绀轰娇鐢?Arco icon鈥濈殑鏄犲皠灞?
  */
 function toArcoIcon(mdi: string | undefined, fallback: 'app' | 'normal') {
   const key = String(mdi || '');
@@ -146,94 +146,142 @@ function toArcoIcon(mdi: string | undefined, fallback: 'app' | 'normal') {
 </script>
 
 <style scoped>
-.menu-shell{
-  padding: 10px 10px 14px;
+/* ===== 鑿滃崟澶栧３ ===== */
+.menu-shell {
+  padding: 8px 8px 20px;
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148,163,184,0.3) transparent;
+}
+.menu-shell::-webkit-scrollbar { width: 4px; }
+.menu-shell::-webkit-scrollbar-track { background: transparent; }
+.menu-shell::-webkit-scrollbar-thumb { background: rgba(148,163,184,0.35); border-radius: 4px; }
+
+/* ===== arco-menu 鍩虹閲嶇疆 ===== */
+:deep(.med-menu .arco-menu-inner) {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
 }
 
-/* 分组之间“更明显”：每组是一个轻卡片块（非纯 border 分割） */
-:deep(.med-menu .arco-menu-inner){
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
-:deep(.med-menu .menu-group){
-  background: rgba(255,255,255,.78);
-  border-radius: 14px;
-  box-shadow: 0 1px 2px rgba(0,0,0,.04);
-  padding: 4px;
+/* ===== 鍒嗙粍鍧?===== */
+:deep(.med-menu .menu-group) {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  margin-bottom: 2px;
 }
 
-/* 组头：更像飞书/阿里云控制台（轻背景 + hover 提示） */
-:deep(.med-menu .menu-group > .arco-menu-inline-header){
-  border-radius: 12px;
-  padding: 8px 10px;
-  background: rgba(15,23,42,.02);
-  transition: background-color .18s ease, color .18s ease;
-}
-:deep(.med-menu .menu-group > .arco-menu-inline-header:hover){
-  background: rgba(22,119,255,.08);
-}
-
-/* 子菜单容器：内嵌块（弱边界、强调层级） */
-:deep(.med-menu .menu-group .arco-menu-inline-content){
-  margin-top: 6px;
-  background: rgba(255,255,255,.70);
-  border-radius: 12px;
-  padding: 6px 6px;
-  box-shadow: inset 0 0 0 1px rgba(148,163,184,.18);
-}
-
-/* hover 背景过渡 */
-:deep(.med-menu .arco-menu-item){
+/* 鍒嗙粍鏍囬 鈫?杞诲崱鐗囨劅锛屽甫宸︿晶褰╂潯 */
+:deep(.med-menu .menu-group > .arco-menu-inline-header) {
   border-radius: 10px;
-  transition: background-color .18s ease, color .18s ease, box-shadow .18s ease;
-}
-:deep(.med-menu .arco-menu-item:hover){
-  background: rgba(22,119,255,.08);
-}
-
-/*
- * Arco Design Vue 3：选中类名为 .arco-menu-item.arco-menu-selected（不是 arco-menu-item-selected）
- */
-:deep(.med-menu .arco-menu-item.arco-menu-selected){
-  background: rgba(22,119,255,.10) !important;
+  padding: 8px 10px 8px 12px;
+  margin: 2px 0;
+  background: rgba(255,255,255,0.6);
+  border: 1px solid rgba(148,163,184,0.14);
+  transition: background .15s, border-color .15s, color .15s;
   position: relative;
+}
+:deep(.med-menu .menu-group > .arco-menu-inline-header:hover) {
+  background: rgba(255,255,255,0.9);
+  border-color: rgba(22,119,255,0.2);
+}
+/* 鍚€変腑椤圭殑鍒嗙粍澶?*/
+:deep(.med-menu .menu-group:has(.arco-menu-item.arco-menu-selected) > .arco-menu-inline-header) {
+  background: rgba(22,119,255,0.08);
+  border-color: rgba(22,119,255,0.22);
+  color: #1d4ed8;
+}
+:deep(.med-menu .menu-group:has(.arco-menu-item.arco-menu-selected) > .arco-menu-inline-header .arco-menu-icon) {
+  color: #1677ff;
+}
+
+/* 鍒嗙粍鏍囬鏂囧瓧 */
+.group-title {
+  font-size: 13px;
   font-weight: 700;
-  color: #0f172a !important;
-  box-shadow: inset 0 0 0 1px rgba(22,119,255,.18);
+  color: #374151;
+  letter-spacing: 0.01em;
 }
-:deep(.med-menu .arco-menu-item.arco-menu-selected::before){
-  content: "";
+
+/* 鍒嗙粍鍐呭鍖?*/
+:deep(.med-menu .menu-group .arco-menu-inline-content) {
+  margin-top: 0;
+  background: rgba(255,255,255,0.45);
+  border-radius: 0 0 10px 10px;
+  padding: 3px 4px 5px;
+  box-shadow: none;
+  border: 1px solid rgba(148,163,184,0.12);
+  border-top: none;
+}
+
+/* ===== 鑿滃崟椤?===== */
+:deep(.med-menu .arco-menu-item) {
+  border-radius: 8px;
+  margin: 1px 0;
+  padding: 8px 10px 8px 14px;
+  font-size: 13px;
+  color: #374151;
+  transition: background .14s, color .14s;
+  position: relative;
+}
+:deep(.med-menu .arco-menu-item:hover) {
+  background: rgba(22,119,255,0.08);
+  color: #1565d8;
+}
+:deep(.med-menu .arco-menu-item:hover .arco-menu-icon) {
+  color: #1677ff;
+}
+
+/* ===== 閫変腑椤?===== */
+:deep(.med-menu .arco-menu-item.arco-menu-selected) {
+  background: linear-gradient(90deg, rgba(22,119,255,0.15) 0%, rgba(22,119,255,0.06) 100%) !important;
+  color: #1565d8 !important;
+  font-weight: 600;
+}
+:deep(.med-menu .arco-menu-item.arco-menu-selected::before) {
+  content: '';
   position: absolute;
-  left: 6px;
-  top: 8px;
-  bottom: 8px;
+  left: 5px;
+  top: 7px;
+  bottom: 7px;
   width: 3px;
-  border-radius: 999px;
-  background: rgb(var(--primary-6));
-  box-shadow: 0 0 0 1px rgba(255,255,255,.35);
+  border-radius: 3px;
+  background: linear-gradient(180deg, #60a5fa, #1677ff);
+  box-shadow: 0 0 6px rgba(22,119,255,0.45);
 }
-:deep(.med-menu .arco-menu-item.arco-menu-selected .arco-menu-icon){
-  color: rgb(var(--primary-6));
-}
-
-/* 含当前选中子项的分组标题：轻微高亮 */
-:deep(.med-menu .menu-group:has(.arco-menu-item.arco-menu-selected) > .arco-menu-inline-header){
-  background: rgba(22,119,255,.10);
-  color: #0f172a;
+:deep(.med-menu .arco-menu-item.arco-menu-selected .arco-menu-icon) {
+  color: #1677ff;
 }
 
-/* 子菜单缩进层级（不靠简单 padding 拉开，而是配合 Arco level-indent） */
-:deep(.med-menu .arco-menu-item .arco-menu-icon){
-  margin-right: 10px;
+/* ===== 鍥炬爣 ===== */
+:deep(.med-menu .arco-menu-item .arco-menu-icon) {
+  color: #6b7280;
+  margin-right: 9px;
+  transition: color .14s;
+  font-size: 15px;
+}
+:deep(.med-menu .menu-group > .arco-menu-inline-header .arco-menu-icon) {
+  color: #6b7aaa;
+  font-size: 16px;
 }
 
-/* 展开/收起动画：Arco 内置，但这里让 easing 更“产品化” */
-:deep(.med-menu .arco-menu-inline-content){
-  transition: height .22s cubic-bezier(.2,.8,.2,1), opacity .22s ease;
+/* ===== 灞曞紑鏀惰捣鍔ㄧ敾 ===== */
+:deep(.med-menu .arco-menu-inline-content) {
+  transition: height .2s cubic-bezier(.4,0,.2,1), opacity .2s ease;
 }
 
-.group-title{font-weight: 700;}
-.item-title{font-weight: 500;}
+/* ===== 瀛愰」鏂囧瓧 ===== */
+.item-title {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
 </style>
+
 

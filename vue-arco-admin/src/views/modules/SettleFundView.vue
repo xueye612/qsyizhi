@@ -22,8 +22,14 @@
       </a-select>
     </template>
     <template #extra>
-      <MedPageSection title="入金 vs 出金（演示）" desc="按当前列表合计">
-        <MedChartCard :option="chartOption" :height="220" />
+      <MedPageSection title="入金 vs 出金合计" desc="可切换：当前筛选 / 全部">
+        <MedChartCard
+          :option="chartOption"
+          :height="220"
+          title="资金类型合计"
+          :ranges="chartRanges"
+          v-model:active-range="chartScope"
+        />
       </MedPageSection>
     </template>
   </MedCrudPage>
@@ -99,8 +105,13 @@ const columns: TableColumnData[] = [
   { title: '时间', dataIndex: 'at', width: 160 }
 ];
 
+const chartScope = ref<'filtered' | 'all'>('filtered');
+const chartRanges = [
+  { key: 'filtered', label: '当前筛选' },
+  { key: 'all', label: '全部' }
+];
 const chartOption = computed(() => {
-  const rows = crud.rows.value;
+  const rows = chartScope.value === 'all' ? crud.allRows.value : crud.rows.value;
   const inflow = rows.filter((r) => r.flowType === '入金').reduce((s, r) => s + r.amountWan, 0);
   const outflow = rows.filter((r) => r.flowType === '出金').reduce((s, r) => s + r.amountWan, 0);
   const frozen = rows.filter((r) => r.flowType === '冻结').reduce((s, r) => s + r.amountWan, 0);

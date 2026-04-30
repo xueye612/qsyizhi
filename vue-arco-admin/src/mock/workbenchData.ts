@@ -96,7 +96,7 @@ function reasonsFor(p: Patient, level: RiskLevel): string[] {
   else if (scr != null && scr >= 115) r.push(`Scr ${scr} μmol/L 呈上升趋势，建议缩短复查间隔。`);
   if (egfr != null && egfr < 45) r.push(`eGFR ${egfr} ml/min 偏低，符合高风险肾功能分层。`);
   else if (egfr != null && egfr < 60) r.push(`eGFR ${egfr} ml/min 未达理想区间。`);
-  if (tac != null && (tac < 5 || tac > 10)) r.push(`Tac ${tac} ng/mL 偏离目标窗，需排查依从性与药物相互作用。`);
+  if (tac != null && (tac < 5 || tac > 10)) r.push(`Tac ${Number(tac).toFixed(1)} ng/mL 偏离目标窗，需排查依从性与药物相互作用。`);
   if (r.length === 0) {
     if (level === 'low') r.push('关键指标相对稳定，维持当前随访节奏。');
     else r.push('综合评分处于灰区，建议结合尿蛋白与血压趋势评估。');

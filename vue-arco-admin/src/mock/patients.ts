@@ -1,3 +1,5 @@
+import { buildClinicalProfile, type ClinicalProfile } from './clinicalSeed';
+
 export type Lab = {
   ts: string;
   scr?: number | null;
@@ -17,7 +19,11 @@ export type Patient = {
   flags?: { abnormal?: boolean };
   updatedAt?: string;
   records?: { labs?: Lab[] };
+  /** v2 临床档案（按需读取，不影响旧用法） */
+  clinical?: ClinicalProfile;
 };
+
+export type { ClinicalProfile } from './clinicalSeed';
 
 export type RiskLevel = 'high' | 'mid' | 'low';
 
@@ -120,6 +126,22 @@ export function seedPatients(): Patient[] {
   list[7].flags = { abnormal: true };
   list[11].records = { labs: mkLabs(118, 58, 4.4, 10.8, 1) };
   list[11].flags = { abnormal: true };
+
+  // ===== v2: 为每位患者挂载完整临床档案（按需消费） =====
+  for (let i = 0; i < list.length; i++) {
+    const p = list[i];
+    const trend = (i % 5 === 0 ? 1 : i % 7 === 0 ? -1 : 0) as -1 | 0 | 1;
+    p.clinical = buildClinicalProfile({
+      index: i,
+      id: p.id,
+      name: p.name,
+      sex: p.sex || '男',
+      age: p.age || 40,
+      status: p.status || '术后',
+      surgeryDate: p.surgeryDate,
+      trend: p.flags?.abnormal ? 1 : trend
+    });
+  }
 
   return list;
 }

@@ -1,25 +1,48 @@
 <template>
   <div class="med-page">
     <MedPageSection>
-      <MedPageHeader :title="pageTitle" :desc="subtitle" />
+      <MedPageHeader
+        :title="pageTitle"
+        :desc="subtitle"
+        :breadcrumb="breadcrumb"
+        :badge="totalBadge"
+        badge-tone="primary"
+        :chips="headerChips"
+      >
+        <template #actions>
+          <a-button>
+            <template #icon><icon-download /></template>
+            导出
+          </a-button>
+          <a-button type="primary">
+            <template #icon><icon-plus /></template>
+            新建
+          </a-button>
+        </template>
+      </MedPageHeader>
 
-      <div class="queryBar">
-        <div class="qItem">
-          <div class="qlabel">搜索</div>
-          <a-input v-model="q" allow-clear class="q" placeholder="标题 / 编号 / 备注" />
-        </div>
-        <div class="qItem">
-          <div class="qlabel">状态</div>
-          <a-select v-model="status" class="sel">
-            <a-option value="all">全部</a-option>
+      <MedListToolbar
+        v-model="q"
+        :views="viewChips"
+        v-model:active-view="activeView"
+        density-toggle
+        v-model:density="density"
+        :creatable="false"
+        :exportable="false"
+        :refreshable="false"
+        search-placeholder="搜索：标题 / 编号 / 备注"
+      >
+        <template #filters>
+          <a-select v-model="status" placeholder="状态" allow-clear>
+            <a-option value="all">全部状态</a-option>
             <a-option value="进行中">进行中</a-option>
             <a-option value="待审核">待审核</a-option>
             <a-option value="已完成">已完成</a-option>
             <a-option value="已暂停">已暂停</a-option>
             <a-option value="待分配">待分配</a-option>
           </a-select>
-        </div>
-      </div>
+        </template>
+      </MedListToolbar>
 
       <div class="kpi-grid">
         <MedStatCard
@@ -29,13 +52,18 @@
           :value="k.value"
           :tone="k.tone"
           :trend="k.trend"
+          :sparkline="k.sparkline"
           trend-dir="flat"
         />
       </div>
     </MedPageSection>
 
     <div class="split">
-      <MedTableCard title="列表" desc="点击行选中 · 右侧展示当前条目与流程提示（模拟）">
+      <MedTableCard
+        title="列表"
+        desc="点击行选中 · 右侧展示当前条目与流程提示（模拟）"
+        :density="density"
+      >
         <a-table
           :data="rowsFiltered"
           :columns="columns"
@@ -76,11 +104,13 @@
 import { computed, h, ref, resolveComponent, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import type { TableColumnData } from '@arco-design/web-vue';
+import { IconDownload, IconPlus } from '@arco-design/web-vue/es/icon';
 import { MENU } from '@/menu/menu';
-import MedPageHeader from '@/components/MedPageHeader.vue';
+import MedPageHeader, { type HeaderChip } from '@/components/MedPageHeader.vue';
 import MedPageSection from '@/components/MedPageSection.vue';
 import MedTableCard from '@/components/MedTableCard.vue';
 import MedStatCard from '@/components/MedStatCard.vue';
+import MedListToolbar, { type ToolbarDensity, type ToolbarView } from '@/components/MedListToolbar.vue';
 import MedAiSuggest from '@/components/MedAiSuggest.vue';
 import { moduleKpis, moduleRows, moduleSubtitle, type ModuleRow } from '@/mock/modulePages';
 
@@ -94,12 +124,17 @@ const groupName = computed(() => {
 });
 
 const subtitle = computed(() => moduleSubtitle(routeKey.value, groupName.value));
+const breadcrumb = computed(() =>
+  groupName.value ? ['工作台', groupName.value, pageTitle.value] : ['工作台', pageTitle.value]
+);
 
 const allRows = computed(() => moduleRows(routeKey.value, pageTitle.value));
 const kpiDefs = computed(() => moduleKpis(routeKey.value));
 
 const q = ref('');
 const status = ref<string>('all');
+const activeView = ref<string>('all');
+const density = ref<ToolbarDensity>('comfortable');
 const selectedId = ref<string | null>(null);
 
 watch(
@@ -124,6 +159,9 @@ const rowsFiltered = computed(() => {
     );
   }
   if (status.value !== 'all') list = list.filter((r) => r.status === status.value);
+  if (activeView.value === 'pending') list = list.filter((r) => r.status === '待审核' || r.status === '待分配');
+  else if (activeView.value === 'progress') list = list.filter((r) => r.status === '进行中');
+  else if (activeView.value === 'done') list = list.filter((r) => r.status === '已完成');
   return list;
 });
 
@@ -147,12 +185,46 @@ function rowClass(record: ModuleRow) {
 }
 
 const kpiMedDefs = computed(() => {
-  return kpiDefs.value.map((k) => {
+  return kpiDefs.value.map((k, i) => {
     const tone = k.tone === 'danger' ? 'danger' : 'default';
     const trend = k.label === '预警' ? (Number(k.value) > 0 ? '存在预警：建议优先核对' : '暂无预警') : '—';
-    return { label: k.label, value: k.value, tone, trend } as const;
+    return { label: k.label, value: k.value, tone, trend, sparkline: makeSpark(i + 1 + routeKey.value.length) } as const;
   });
 });
+
+function countBy(pred: (r: ModuleRow) => boolean) {
+  return allRows.value.filter(pred).length;
+}
+const viewChips = computed<ToolbarView[]>(() => [
+  { key: 'all', label: '全部', count: allRows.value.length },
+  { key: 'pending', label: '待处理', count: countBy((r) => r.status === '待审核' || r.status === '待分配') },
+  { key: 'progress', label: '进行中', count: countBy((r) => r.status === '进行中') },
+  { key: 'done', label: '已完成', count: countBy((r) => r.status === '已完成') }
+]);
+const totalBadge = computed(() => `共 ${allRows.value.length} 条`);
+const headerChips = computed<HeaderChip[]>(() => {
+  const pending = countBy((r) => r.status === '待审核' || r.status === '待分配');
+  const progress = countBy((r) => r.status === '进行中');
+  const done = countBy((r) => r.status === '已完成');
+  const paused = countBy((r) => r.status === '已暂停');
+  const chips: HeaderChip[] = [
+    { label: '待处理', value: pending, tone: pending > 0 ? 'warning' : 'default' },
+    { label: '进行中', value: progress, tone: 'primary' },
+    { label: '已完成', value: done, tone: 'success' }
+  ];
+  if (paused > 0) chips.push({ label: '已暂停', value: paused, tone: 'default' });
+  return chips;
+});
+
+function makeSpark(seed: number) {
+  const arr: number[] = [];
+  let v = 50 + (seed % 30);
+  for (let i = 0; i < 12; i++) {
+    v += Math.sin((i + seed) * 0.7) * 8 + ((seed * 7) % 5) - 2;
+    arr.push(Math.max(0, Math.round(v)));
+  }
+  return arr;
+}
 
 const decisionHint = computed(() => {
   const r = selected.value;
@@ -216,22 +288,9 @@ const columns = computed<TableColumnData[]>(() => [
   min-width: 0;
 }
 
-.queryBar{
-  margin-top: 12px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.qItem{
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.qlabel{
-  font-size: 13px;
-  color: var(--med-muted);
-}
+.queryBar,
+.qItem,
+.qlabel { display: none; }
 
 .kpi-grid{
   margin-top: 12px;

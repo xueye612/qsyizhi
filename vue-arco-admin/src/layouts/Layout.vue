@@ -6,10 +6,10 @@
       :width="264"
       :collapsed-width="72"
       :hide-trigger="true"
-      style="border-right: 1px solid rgba(148,163,184,0.22);"
+      style="background: #f0f4fc; border-right: 1px solid rgba(148,163,184,0.18);"
     >
       <div class="brand" :class="{ collapsed }">
-        <div class="logo" />
+        <div class="logo">器</div>
         <div v-if="!collapsed" class="brand-text">
           <div class="brand-title">器官移植全流程管理平台</div>
           <div class="brand-sub">随访 · 风险 · 报告 · 科研 · 结算</div>
@@ -281,21 +281,36 @@ onUnmounted(() => {
 
 <style scoped>
 .brand{
-  height:60px;
+  height:64px;
   box-sizing:border-box;
   display:flex;
   align-items:center;
   gap:10px;
-  padding:0 14px;
+  padding:0 16px;
+  background: #f0f4fc;
   border-bottom:1px solid rgba(148,163,184,0.18);
+  position: relative;
 }
-.brand.collapsed{justify-content:center}
+.brand::after{
+  content: '';
+  position: absolute;
+  bottom: 0; left: 16px; right: 16px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(22,119,255,0.2), transparent);
+}
+.brand.collapsed{justify-content:center;padding:0 8px}
 .logo{
-  width:28px;height:28px;border-radius:10px;background:var(--blue);
+  flex-shrink:0;
+  width:32px;height:32px;border-radius:10px;
+  background: linear-gradient(135deg,#1677FF 0%,#0f52c8 100%);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow: 0 2px 8px rgba(22,119,255,0.35);
+  font-size:14px;color:#fff;font-weight:900;letter-spacing:-0.02em;
+  user-select:none;
 }
 .brand-text{min-width:0}
-.brand-title{font-weight:750;font-size:15px;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.brand-sub{margin-top:2px;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand-title{font-weight:750;font-size:14px;line-height:1.3;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand-sub{margin-top:2px;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.01em}
 
 .menu-wrap{padding:10px}
 

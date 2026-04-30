@@ -10,6 +10,7 @@ import { MENU, type MenuItem } from '@/menu/menu';
 import PatientsList from '@/views/patients/PatientsList.vue';
 import PatientsNew from '@/views/patients/PatientsNew.vue';
 import PatientsTags from '@/views/patients/PatientsTags.vue';
+import PatientProfile from '@/views/patients/PatientProfile.vue';
 import WbTodo from '@/views/workbench/WbTodo.vue';
 import WbAbnormal from '@/views/workbench/WbAbnormal.vue';
 import WbRecent from '@/views/workbench/WbRecent.vue';
@@ -125,6 +126,12 @@ const routes: RouteRecordRaw[] = [
     component: Layout,
     children: [
       { path: '', redirect: { name: 'wb.todo' } },
+      {
+        path: 'patients/profile/:id',
+        name: 'patients.profile',
+        component: PatientProfile,
+        meta: { title: '患者档案 360', group: '患者' }
+      },
       ...children
     ]
   },

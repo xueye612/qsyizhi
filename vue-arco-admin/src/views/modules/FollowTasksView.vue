@@ -7,23 +7,45 @@
 <template>
   <div class="med-page">
     <MedPageSection>
-      <MedPageHeader title="随访任务工作台" desc="计划驱动 · 逾期预警 · 高危优先（演示数据：基准日 2026-04-16）" />
+      <MedPageHeader
+        title="随访任务工作台"
+        desc="计划驱动 · 逾期预警 · 高危优先（演示数据：基准日 2026-04-16）"
+        :breadcrumb="['工作台', '随访管理', '随访任务']"
+        :badge="`共 ${crud.allRows.value.length} 条`"
+        badge-tone="primary"
+        :chips="headerChips"
+      >
+        <template #actions>
+          <a-button @click="crud.exportCSV">
+            <template #icon><icon-download /></template>
+            导出 CSV
+          </a-button>
+          <a-button type="primary" @click="crud.openCreate">
+            <template #icon><icon-plus /></template>
+            新建任务
+          </a-button>
+        </template>
+      </MedPageHeader>
       <div data-testid="kpi-region" class="kpi-grid">
-        <MedStatCard label="今日待执行" hint="计划日=当日且未完结" :value="kpi.pendingToday" tone="primary" trend="当日清零" trend-dir="flat" />
-        <MedStatCard label="已逾期任务" hint="需优先闭环与记录原因" :value="kpi.overdue" tone="danger" trend="建议当日处理" trend-dir="flat" />
-        <MedStatCard label="本周已完成" hint="本周内标记完成" :value="kpi.doneWeek" tone="success" trend="保持节律" trend-dir="flat" />
-        <MedStatCard label="高危未关单" hint="高危且未完成" :value="kpi.highRiskOpen" tone="danger" trend="优先复核" trend-dir="flat" />
+        <MedStatCard label="今日待执行" hint="计划日=当日且未完结" :value="kpi.pendingToday" tone="primary" trend="当日清零" trend-dir="flat" :sparkline="spark(1, kpi.pendingToday)" clickable :selected="activeView === 'today'" @click="pickKpi('today')" />
+        <MedStatCard label="已逾期任务" hint="需优先闭环与记录原因" :value="kpi.overdue" tone="danger" trend="建议当日处理" trend-dir="flat" :sparkline="spark(2, kpi.overdue)" clickable :selected="activeView === 'overdue'" @click="pickKpi('overdue')" />
+        <MedStatCard label="本周已完成" hint="本周内标记完成" :value="kpi.doneWeek" tone="success" trend="保持节律" trend-dir="flat" :sparkline="spark(3, kpi.doneWeek)" clickable :selected="activeView === 'done'" @click="pickKpi('done')" />
+        <MedStatCard label="高危未关单" hint="高危且未完成" :value="kpi.highRiskOpen" tone="danger" trend="优先复核" trend-dir="flat" :sparkline="spark(4, kpi.highRiskOpen)" clickable :selected="activeView === 'highrisk'" @click="pickKpi('highrisk')" />
       </div>
     </MedPageSection>
 
     <div class="split">
-      <MedTableCard title="任务队列" desc="支持搜索 / 筛选 / 增删改查 · CSV 导出">
+      <MedTableCard title="任务队列" desc="支持搜索 / 筛选 / 增删改查 · CSV 导出" :density="density">
         <MedListToolbar
           v-model="crud.searchKey.value"
           search-placeholder="患者姓名 / 患者ID / 任务编号"
           :selected-count="crud.checked.value.length"
           :batch-deletable="true"
           create-text="新建任务"
+          :views="viewChips"
+          v-model:active-view="activeView"
+          density-toggle
+          v-model:density="density"
           @create="crud.openCreate"
           @export="crud.exportCSV"
           @refresh="crud.refresh"
@@ -90,12 +112,13 @@
 <script setup lang="ts">
 import { computed, h, ref, resolveComponent } from 'vue';
 import type { TableColumnData } from '@arco-design/web-vue';
-import MedPageHeader from '@/components/MedPageHeader.vue';
+import { IconDownload, IconPlus } from '@arco-design/web-vue/es/icon';
+import MedPageHeader, { type HeaderChip } from '@/components/MedPageHeader.vue';
 import MedPageSection from '@/components/MedPageSection.vue';
 import MedTableCard from '@/components/MedTableCard.vue';
 import MedStatCard from '@/components/MedStatCard.vue';
 import MedAiSuggest from '@/components/MedAiSuggest.vue';
-import MedListToolbar from '@/components/MedListToolbar.vue';
+import MedListToolbar, { type ToolbarDensity, type ToolbarView } from '@/components/MedListToolbar.vue';
 import MedPageStates from '@/components/MedPageStates.vue';
 import MedRecordDrawer, { type FieldDef } from '@/components/MedRecordDrawer.vue';
 import MedRowActions from '@/components/MedRowActions.vue';
@@ -107,6 +130,12 @@ const store = createDemoStore<FollowTaskRow>('follow.tasks', seedFollowTasks);
 
 const filterStatus = ref<string>('all');
 const filterRisk = ref<string>('all');
+const activeView = ref<string>('all');
+const density = ref<ToolbarDensity>('comfortable');
+
+function pickKpi(k: string) {
+  activeView.value = activeView.value === k ? 'all' : k;
+}
 
 const crud = useCrudList<FollowTaskRow>({
   store,
@@ -115,6 +144,10 @@ const crud = useCrudList<FollowTaskRow>({
   customFilter: (r) => {
     if (filterStatus.value !== 'all' && r.status !== filterStatus.value) return false;
     if (filterRisk.value !== 'all' && r.riskTag !== filterRisk.value) return false;
+    if (activeView.value === 'overdue' && r.status !== '已逾期') return false;
+    else if (activeView.value === 'today' && r.status !== '待执行' && r.status !== '进行中') return false;
+    else if (activeView.value === 'highrisk' && r.riskTag !== '高危') return false;
+    else if (activeView.value === 'done' && r.status !== '已完成') return false;
     return true;
   },
   csvColumns: [
@@ -134,6 +167,35 @@ const crud = useCrudList<FollowTaskRow>({
 });
 
 const kpi = computed(() => followTaskKpis(crud.allRows.value));
+
+function countAll(pred: (r: FollowTaskRow) => boolean) {
+  return crud.allRows.value.filter(pred).length;
+}
+const viewChips = computed<ToolbarView[]>(() => [
+  { key: 'all', label: '全部', count: crud.allRows.value.length },
+  { key: 'today', label: '待执行', count: countAll((r) => r.status === '待执行' || r.status === '进行中'), tip: '今日/进行中' },
+  { key: 'overdue', label: '已逾期', count: countAll((r) => r.status === '已逾期') },
+  { key: 'highrisk', label: '高危', count: countAll((r) => r.riskTag === '高危') },
+  { key: 'done', label: '已完成', count: countAll((r) => r.status === '已完成') }
+]);
+const headerChips = computed<HeaderChip[]>(() => {
+  const out: HeaderChip[] = [
+    { label: '今日待办', value: kpi.value.pendingToday, tone: kpi.value.pendingToday > 0 ? 'primary' : 'default' },
+    { label: '逾期', value: kpi.value.overdue, tone: kpi.value.overdue > 0 ? 'danger' : 'success' },
+    { label: '高危未关', value: kpi.value.highRiskOpen, tone: kpi.value.highRiskOpen > 0 ? 'warning' : 'success' }
+  ];
+  if (crud.checked.value.length) out.push({ label: '已选中', value: crud.checked.value.length, tone: 'warning' });
+  return out;
+});
+function spark(seed: number, value: number) {
+  const arr: number[] = [];
+  let v = Math.max(20, Math.min(120, value * 6 + 20));
+  for (let i = 0; i < 12; i++) {
+    v += Math.sin((i + seed * 1.7) * 0.65) * 6 + ((seed + i) % 4) - 1;
+    arr.push(Math.max(0, Math.round(v)));
+  }
+  return arr;
+}
 
 const fields: FieldDef[] = [
   { key: 'patientId', label: '患者ID', required: true, placeholder: '如 P20260415001' },
@@ -246,7 +308,6 @@ const columns = computed<TableColumnData[]>(() => [
     title: '操作',
     dataIndex: '__ops',
     width: 168,
-    fixed: 'right',
     render: ({ record }: { record: FollowTaskRow }) =>
       h(MedRowActions as any, {
         onView: () => crud.openView(record),

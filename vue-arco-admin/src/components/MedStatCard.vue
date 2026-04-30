@@ -14,6 +14,12 @@
         <div class="value" :class="toneClass">{{ displayValue }}</div>
         <div v-if="hint" class="hint">{{ hint }}</div>
       </div>
+      <div v-if="sparkline && sparkline.length > 1" class="spark">
+        <svg :viewBox="`0 0 ${sparkW} ${sparkH}`" preserveAspectRatio="none" :width="sparkW" :height="sparkH" aria-hidden="true">
+          <path :d="sparkArea" :fill="sparkFill" />
+          <path :d="sparkLine" :stroke="sparkStroke" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
       <div v-if="trend" class="trend">
         <span class="trend-link" :class="trendDirClass">
           <span class="trend-arrow" aria-hidden="true">{{
@@ -39,6 +45,8 @@ const props = defineProps<{
   /** 可点击（如 KPI 筛选） */
   clickable?: boolean;
   selected?: boolean;
+  /** sparkline 数据点 */
+  sparkline?: number[];
 }>();
 
 const emit = defineEmits<{
@@ -55,6 +63,53 @@ const displayValue = computed(() =>
 
 const toneClass = computed(() => props.tone ?? 'default');
 const trendDirClass = computed(() => props.trendDir ?? 'flat');
+
+/* sparkline */
+const sparkW = 64;
+const sparkH = 28;
+const toneColorMap: Record<string, string> = {
+  default: '#86909c',
+  primary: '#1F6FEB',
+  success: '#00b42a',
+  warning: '#ff7d00',
+  danger: '#f53f3f',
+  purple: '#722ed1',
+  magenta: '#eb2f96'
+};
+const sparkStroke = computed(() => toneColorMap[props.tone ?? 'default'] || '#86909c');
+const sparkFill = computed(() => {
+  const c = sparkStroke.value;
+  return c.startsWith('#')
+    ? `${c}1f`
+    : 'rgba(31,111,235,0.12)';
+});
+function sparkPoints() {
+  const data = props.sparkline ?? [];
+  if (data.length < 2) return [] as Array<[number, number]>;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const stepX = sparkW / (data.length - 1);
+  const padY = 2;
+  return data.map((v, i) => {
+    const x = i * stepX;
+    const y = sparkH - padY - ((v - min) / range) * (sparkH - padY * 2);
+    return [x, y] as [number, number];
+  });
+}
+const sparkLine = computed(() => {
+  const pts = sparkPoints();
+  if (!pts.length) return '';
+  return pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ');
+});
+const sparkArea = computed(() => {
+  const pts = sparkPoints();
+  if (!pts.length) return '';
+  const head = `M${pts[0][0].toFixed(1)} ${sparkH}`;
+  const line = pts.map((p) => `L${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ');
+  const tail = `L${pts[pts.length - 1][0].toFixed(1)} ${sparkH} Z`;
+  return `${head} ${line} ${tail}`;
+});
 </script>
 
 <style scoped>
@@ -83,28 +138,28 @@ const trendDirClass = computed(() => props.trendDir ?? 'flat');
 
 .med-stat-card :deep(.arco-card-body) {
   box-sizing: border-box;
-  padding: 16px 18px;
-  min-height: 100px;
+  padding: 12px 14px;
+  min-height: 84px;
   height: 100%;
 }
 
 .inner {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
   min-width: 0;
-  min-height: 72px;
+  min-height: 58px;
 }
 
 .icon-wrap {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: 22px;
+  font-size: 18px;
 }
 
 .icon-wrap :deep(svg) {
@@ -146,7 +201,7 @@ const trendDirClass = computed(() => props.trendDir ?? 'flat');
 }
 
 .label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1.35;
   color: var(--med-text, #1d2129);
@@ -154,18 +209,18 @@ const trendDirClass = computed(() => props.trendDir ?? 'flat');
 }
 
 .hint {
-  margin-top: 4px;
-  font-size: 12px;
+  margin-top: 2px;
+  font-size: 11px;
   font-weight: 400;
-  line-height: 1.4;
+  line-height: 1.3;
   color: var(--med-muted, #86909c);
 }
 
 .value {
-  margin-top: 4px;
-  font-size: 24px;
+  margin-top: 2px;
+  font-size: 22px;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.05;
   letter-spacing: -0.02em;
   color: var(--med-text, #1d2129);
   font-variant-numeric: tabular-nums;
@@ -201,9 +256,9 @@ const trendDirClass = computed(() => props.trendDir ?? 'flat');
 }
 
 .trend-link {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 400;
-  line-height: 1.4;
+  line-height: 1.3;
   color: var(--med-muted, #86909c);
   white-space: nowrap;
 }
@@ -223,4 +278,13 @@ const trendDirClass = computed(() => props.trendDir ?? 'flat');
 .trend-link.flat {
   color: var(--med-muted, #86909c);
 }
+
+.spark {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  margin-right: 2px;
+  opacity: .9;
+}
+.spark svg { display: block; }
 </style>

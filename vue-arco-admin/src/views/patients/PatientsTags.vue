@@ -1,7 +1,21 @@
 <template>
   <div class="med-page">
     <MedPageSection>
-      <MedPageHeader title="患者标签" desc="分层管理 · 风险分组 · 随访效率提升" />
+      <MedPageHeader
+        title="患者标签"
+        desc="分层管理 · 风险分组 · 随访效率提升"
+        :breadcrumb="['工作台', '患者管理', '患者标签']"
+        :badge="`共 ${rows.length} 个标签`"
+        badge-tone="primary"
+        :chips="headerChips"
+      >
+        <template #actions>
+          <a-button type="primary" @click="createTag">
+            <template #icon><icon-plus /></template>
+            新增标签
+          </a-button>
+        </template>
+      </MedPageHeader>
 
       <div class="queryBar">
         <div class="qItem">
@@ -32,10 +46,10 @@
       </div>
 
       <div class="kpi-grid">
-        <MedStatCard label="标签总数" :value="kpi.total" tone="primary" trend="统一口径" trend-dir="flat" />
-        <MedStatCard label="高风险标签" :value="kpi.high" tone="danger" trend="优先治理" trend-dir="flat" />
-        <MedStatCard label="覆盖患者" :value="kpi.covered" tone="success" trend="提升效率" trend-dir="flat" />
-        <MedStatCard label="未分组" :value="kpi.ungrouped" tone="default" trend="逐步清零" trend-dir="flat" />
+        <MedStatCard label="标签总数" :value="kpi.total" tone="primary" trend="统一口径" trend-dir="flat" :sparkline="spark(1, kpi.total)" />
+        <MedStatCard label="高风险标签" :value="kpi.high" tone="danger" trend="优先治理" trend-dir="flat" :sparkline="spark(2, kpi.high)" />
+        <MedStatCard label="覆盖患者" :value="kpi.covered" tone="success" trend="提升效率" trend-dir="flat" :sparkline="spark(3, kpi.covered)" />
+        <MedStatCard label="未分组" :value="kpi.ungrouped" tone="default" trend="逐步清零" trend-dir="flat" :sparkline="spark(4, kpi.ungrouped)" />
       </div>
     </MedPageSection>
 
@@ -99,8 +113,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { Modal, Message } from '@arco-design/web-vue';
+import { IconPlus } from '@arco-design/web-vue/es/icon';
 import type { TableColumnData } from '@arco-design/web-vue';
-import MedPageHeader from '@/components/MedPageHeader.vue';
+import MedPageHeader, { type HeaderChip } from '@/components/MedPageHeader.vue';
 import MedPageSection from '@/components/MedPageSection.vue';
 import MedTableCard from '@/components/MedTableCard.vue';
 import MedStatCard from '@/components/MedStatCard.vue';
@@ -155,6 +170,25 @@ const kpi = computed(() => {
   const all = tags.rows.value;
   return { total: all.length, high: all.filter((t) => t.risk === 'high').length, covered: all.reduce((s, t) => s + t.count, 0), ungrouped: 0 };
 });
+
+const headerChips = computed<HeaderChip[]>(() => {
+  const k = kpi.value;
+  return [
+    { label: '高风险', value: k.high, tone: k.high > 0 ? 'danger' : 'success' },
+    { label: '覆盖人次', value: k.covered, tone: 'primary' },
+    { label: '未分组', value: k.ungrouped, tone: k.ungrouped > 0 ? 'warning' : 'success' }
+  ];
+});
+
+function spark(seed: number, value: number) {
+  const arr: number[] = [];
+  let v = Math.max(20, Math.min(120, value * 2 + 20));
+  for (let i = 0; i < 12; i++) {
+    v += Math.sin((i + seed * 1.7) * 0.65) * 6 + ((seed + i) % 4) - 1;
+    arr.push(Math.max(0, Math.round(v)));
+  }
+  return arr;
+}
 
 const aiSuggestItems = computed(() => {
   const t = selected.value;
@@ -239,7 +273,7 @@ function onDrawerSubmit(payload: Partial<TagRow>) {
 
 <style scoped>
 .med-page{box-sizing:border-box;padding:var(--med-page-pad);display:flex;flex-direction:column;gap:var(--med-gap);min-width:0}
-.queryBar{margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.queryBar{margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:nowrap}
 .qItem{display:flex;align-items:center;gap:10px}
 .qlabel{font-size:13px;color:var(--med-muted)}
 .qActions{margin-left:auto}

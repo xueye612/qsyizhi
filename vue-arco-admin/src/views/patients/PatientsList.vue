@@ -1,7 +1,22 @@
 <template>
   <div class="med-page">
     <MedPageSection>
-      <MedPageHeader :title="pageTitle" :desc="pageSub" />
+      <MedPageHeader
+        :title="pageTitle"
+        :desc="pageSub"
+        :breadcrumb="breadcrumb"
+        :badge="`共 ${rows.length} 人`"
+        badge-tone="primary"
+        :chips="headerChips"
+      >
+        <template #actions>
+          <a-button type="primary" @click="go('patients.new')">
+            <template #icon><icon-plus /></template>
+            新增患者
+          </a-button>
+          <a-button :disabled="!selected" @click="openDetail">查看详情</a-button>
+        </template>
+      </MedPageHeader>
       <div class="queryBar">
         <div class="qItem">
           <div class="qlabel">搜索</div>
@@ -37,22 +52,22 @@
 
       <div class="kpi-grid">
         <template v-if="preset === 'default'">
-          <MedStatCard label="总患者" hint="当前列表" :value="kpi.total" tone="primary" trend="列表口径" trend-dir="flat" />
-          <MedStatCard label="异常患者" hint="异常标记" :value="kpi.abn" tone="danger" trend="优先复核" trend-dir="flat" />
-          <MedStatCard label="高风险" hint="分层=高" :value="kpi.high" tone="danger" trend="当日关注" trend-dir="flat" />
-          <MedStatCard label="最近更新" hint="日期" :value="kpi.updated" tone="default" trend="按列表排序" trend-dir="flat" />
+          <MedStatCard label="总患者" hint="当前列表" :value="kpi.total" tone="primary" trend="列表口径" trend-dir="flat" :sparkline="spark(1, kpi.total)" />
+          <MedStatCard label="异常患者" hint="异常标记" :value="kpi.abn" tone="danger" trend="优先复核" trend-dir="flat" :sparkline="spark(2, kpi.abn)" />
+          <MedStatCard label="高风险" hint="分层=高" :value="kpi.high" tone="danger" trend="当日关注" trend-dir="flat" :sparkline="spark(3, kpi.high)" />
+          <MedStatCard label="最近更新" hint="日期" :value="kpi.updated" tone="default" trend="按列表排序" trend-dir="flat" :sparkline="spark(4, kpi.last24)" />
         </template>
         <template v-else-if="preset === 'abnormal'">
-          <MedStatCard label="纳入人数" hint="关注队列" :value="kpi.total" tone="primary" trend="队列规模" trend-dir="flat" />
-          <MedStatCard label="异常标记" hint="需处置" :value="kpi.abnFlag" tone="danger" trend="结构化复核" trend-dir="flat" />
-          <MedStatCard label="中高风险" hint="分层" :value="kpi.midHigh" tone="warning" trend="缩短窗口" trend-dir="flat" />
-          <MedStatCard label="危急阈值" hint="Scr/eGFR 等" :value="kpi.critical" tone="danger" trend="优先评估" trend-dir="flat" />
+          <MedStatCard label="纳入人数" hint="关注队列" :value="kpi.total" tone="primary" trend="队列规模" trend-dir="flat" :sparkline="spark(1, kpi.total)" />
+          <MedStatCard label="异常标记" hint="需处置" :value="kpi.abnFlag" tone="danger" trend="结构化复核" trend-dir="flat" :sparkline="spark(2, kpi.abnFlag)" />
+          <MedStatCard label="中高风险" hint="分层" :value="kpi.midHigh" tone="warning" trend="缩短窗口" trend-dir="flat" :sparkline="spark(3, kpi.midHigh)" />
+          <MedStatCard label="危急阈值" hint="Scr/eGFR 等" :value="kpi.critical" tone="danger" trend="优先评估" trend-dir="flat" :sparkline="spark(4, kpi.critical)" />
         </template>
         <template v-else>
-          <MedStatCard label="更新队列" hint="当前列表" :value="kpi.total" tone="primary" trend="变更追踪" trend-dir="flat" />
-          <MedStatCard label="近24小时" hint="更新活跃" :value="kpi.last24" tone="success" trend="高频变更" trend-dir="flat" />
-          <MedStatCard label="近72小时" hint="更新窗口" :value="kpi.last72" tone="default" trend="滚动观察" trend-dir="flat" />
-          <MedStatCard label="队列内高风险" hint="分层=高" :value="kpi.high" tone="danger" trend="优先随访" trend-dir="flat" />
+          <MedStatCard label="更新队列" hint="当前列表" :value="kpi.total" tone="primary" trend="变更追踪" trend-dir="flat" :sparkline="spark(1, kpi.total)" />
+          <MedStatCard label="近24小时" hint="更新活跃" :value="kpi.last24" tone="success" trend="高频变更" trend-dir="flat" :sparkline="spark(2, kpi.last24)" />
+          <MedStatCard label="近72小时" hint="更新窗口" :value="kpi.last72" tone="default" trend="滚动观察" trend-dir="flat" :sparkline="spark(3, kpi.last72)" />
+          <MedStatCard label="队列内高风险" hint="分层=高" :value="kpi.high" tone="danger" trend="优先随访" trend-dir="flat" :sparkline="spark(4, kpi.high)" />
         </template>
       </div>
     </MedPageSection>
@@ -124,9 +139,9 @@
 import { computed, reactive, ref, h, resolveComponent, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Modal, Message } from '@arco-design/web-vue';
-import { IconExclamationCircleFill } from '@arco-design/web-vue/es/icon';
+import { IconExclamationCircleFill, IconPlus } from '@arco-design/web-vue/es/icon';
 import PatientCard from '@/components/PatientCard.vue';
-import MedPageHeader from '@/components/MedPageHeader.vue';
+import MedPageHeader, { type HeaderChip } from '@/components/MedPageHeader.vue';
 import MedPageSection from '@/components/MedPageSection.vue';
 import MedTableCard from '@/components/MedTableCard.vue';
 import MedStatCard from '@/components/MedStatCard.vue';
@@ -182,6 +197,41 @@ const emptyPrimaryHint = computed(() => {
   return '从左侧列表点击选择一个患者，即可查看风险摘要与操作入口。';
 });
 
+const breadcrumb = computed<string[]>(() => {
+  if (props.preset === 'abnormal') return ['工作台', '患者管理', '异常患者'];
+  if (props.preset === 'recent') return ['工作台', '患者管理', '最近更新'];
+  return ['工作台', '患者管理', '患者列表'];
+});
+
+function spark(seed: number, value: number) {
+  const arr: number[] = [];
+  let v = Math.max(20, Math.min(120, value * 6 + 20));
+  for (let i = 0; i < 12; i++) {
+    v += Math.sin((i + seed * 1.7) * 0.65) * 6 + ((seed + i) % 4) - 1;
+    arr.push(Math.max(0, Math.round(v)));
+  }
+  return arr;
+}
+
+const headerChips = computed<HeaderChip[]>(() => {
+  const k = kpi.value;
+  const out: HeaderChip[] = [];
+  if (props.preset === 'abnormal') {
+    out.push({ label: '异常标记', value: k.abnFlag, tone: k.abnFlag > 0 ? 'danger' : 'success' });
+    out.push({ label: '中高风险', value: k.midHigh, tone: k.midHigh > 0 ? 'warning' : 'success' });
+    out.push({ label: '危急阈值', value: k.critical, tone: k.critical > 0 ? 'danger' : 'success' });
+  } else if (props.preset === 'recent') {
+    out.push({ label: '近24h', value: k.last24, tone: 'primary' });
+    out.push({ label: '近72h', value: k.last72, tone: 'info' });
+    out.push({ label: '高风险', value: k.high, tone: k.high > 0 ? 'danger' : 'success' });
+  } else {
+    out.push({ label: '异常', value: k.abn, tone: k.abn > 0 ? 'danger' : 'success' });
+    out.push({ label: '高风险', value: k.high, tone: k.high > 0 ? 'danger' : 'success' });
+    out.push({ label: '最近更新', value: k.updated, tone: 'info' });
+  }
+  return out;
+});
+
 function applyWorkbenchPreset() {
   if (props.preset === 'abnormal') {
     abn.value = 'abn';
@@ -209,6 +259,7 @@ function go(key: string) {
 
 function openDetail() {
   if (!selected.value) return;
+  router.push({ name: 'patients.profile', params: { id: selected.value.id } });
 }
 
 function riskLevel(p: Patient) {
@@ -528,7 +579,7 @@ function removeSelected() {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 .qItem {
   display: flex;

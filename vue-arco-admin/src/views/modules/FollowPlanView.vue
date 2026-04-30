@@ -31,8 +31,14 @@
     </template>
 
     <template #extra>
-      <MedPageSection title="计划完成率（近 12 周）" desc="基于演示数据的趋势示意">
-        <MedChartCard :option="chartOption" :height="220" />
+      <MedPageSection title="计划完成率趋势" desc="右上可切换窗口：4 / 8 / 12 周">
+        <MedChartCard
+          :option="chartOption"
+          :height="220"
+          title="完成率"
+          :ranges="chartRanges"
+          v-model:active-range="chartRange"
+        />
       </MedPageSection>
     </template>
   </MedCrudPage>
@@ -141,9 +147,16 @@ const columns: TableColumnData[] = [
   { title: '上次随访', dataIndex: 'lastReview', width: 120 }
 ];
 
-// 演示用 12 周完成率（基于 seed 数据计算近似值）
+// 演示用完成率（可切换 4/8/12 周窗口）
+const chartRange = ref<'4w' | '8w' | '12w'>('12w');
+const chartRanges = [
+  { key: '4w', label: '4周' },
+  { key: '8w', label: '8周' },
+  { key: '12w', label: '12周' }
+];
 const chartOption = computed(() => {
-  const weeks = Array.from({ length: 12 }, (_, i) => `W${i + 1}`);
+  const wks = chartRange.value === '4w' ? 4 : chartRange.value === '8w' ? 8 : 12;
+  const weeks = Array.from({ length: wks }, (_, i) => `W${i + 1}`);
   const total = crud.allRows.value.length || 1;
   const baseDone = Math.max(1, Math.floor(total * 0.7));
   const data = weeks.map((_, i) => Math.max(0, Math.min(100, Math.round((baseDone / total) * 100 + ((i * 7) % 18) - 8))));

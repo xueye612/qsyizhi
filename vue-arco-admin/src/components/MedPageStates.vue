@@ -3,22 +3,34 @@
     <div v-if="loading" class="state loading">
       <a-spin :size="28" />
       <div class="msg">{{ loadingText }}</div>
+      <div v-if="loadingHint" class="sub">{{ loadingHint }}</div>
     </div>
     <div v-else-if="error" class="state error">
       <icon-exclamation-circle-fill class="icon" />
       <div class="msg">{{ errorText }}</div>
-      <a-button type="outline" status="warning" @click="$emit('retry')">重试</a-button>
+      <div v-if="errorHint" class="sub">{{ errorHint }}</div>
+      <a-button type="outline" status="warning" @click="$emit('retry')">
+        <template #icon><icon-refresh /></template>
+        重试
+      </a-button>
     </div>
     <div v-else-if="empty" class="state empty">
-      <svg width="120" height="84" viewBox="0 0 120 84" fill="none" aria-hidden="true">
-        <rect x="14" y="20" width="92" height="50" rx="8" fill="#F2F4F8" />
-        <rect x="24" y="32" width="50" height="6" rx="3" fill="#D9DEE6" />
-        <rect x="24" y="44" width="72" height="6" rx="3" fill="#E5E9EF" />
-        <rect x="24" y="56" width="36" height="6" rx="3" fill="#E5E9EF" />
-        <circle cx="92" cy="22" r="10" fill="#DDE6F5" />
-        <path d="M88 22h8M92 18v8" stroke="#1677FF" stroke-width="2" stroke-linecap="round" />
+      <svg width="140" height="96" viewBox="0 0 140 96" fill="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="med-empty-bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#F5F8FF" />
+            <stop offset="1" stop-color="#EAF2FF" />
+          </linearGradient>
+        </defs>
+        <rect x="14" y="22" width="112" height="60" rx="10" fill="url(#med-empty-bg)" stroke="#DDE6F5" />
+        <rect x="26" y="34" width="56" height="7" rx="3.5" fill="#D9E2F0" />
+        <rect x="26" y="48" width="86" height="7" rx="3.5" fill="#E5ECF7" />
+        <rect x="26" y="62" width="42" height="7" rx="3.5" fill="#E5ECF7" />
+        <circle cx="108" cy="24" r="12" fill="#1F6FEB" fill-opacity="0.12" />
+        <path d="M103 24h10M108 19v10" stroke="#1F6FEB" stroke-width="2" stroke-linecap="round" />
       </svg>
       <div class="msg">{{ emptyText }}</div>
+      <div v-if="emptyHint" class="sub">{{ emptyHint }}</div>
       <slot name="empty-action" />
     </div>
     <slot v-else />
@@ -26,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { IconExclamationCircleFill } from '@arco-design/web-vue/es/icon';
+import { IconExclamationCircleFill, IconRefresh } from '@arco-design/web-vue/es/icon';
 
 withDefaults(
   defineProps<{
@@ -34,16 +46,22 @@ withDefaults(
     error?: string | null | false;
     empty?: boolean;
     loadingText?: string;
+    loadingHint?: string;
     emptyText?: string;
+    emptyHint?: string;
     errorText?: string;
+    errorHint?: string;
   }>(),
   {
     loading: false,
     error: null,
     empty: false,
     loadingText: '加载中…',
+    loadingHint: '',
     emptyText: '暂无数据',
-    errorText: '加载失败，请稍后重试'
+    emptyHint: '可调整筛选条件或新增一条记录',
+    errorText: '加载失败，请稍后重试',
+    errorHint: '请检查网络连接或联系管理员'
   }
 );
 
@@ -61,15 +79,23 @@ defineEmits<{
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 36px 16px;
+  gap: 8px;
+  padding: 40px 16px;
 }
 .state.error .icon {
   color: #f53f3f;
   font-size: 28px;
 }
 .state .msg {
-  color: var(--med-muted);
-  font-size: 13px;
+  color: var(--med-text, #1d2129);
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+.state .sub {
+  color: var(--med-muted, #86909c);
+  font-size: 12px;
+  margin-top: -2px;
+  margin-bottom: 6px;
 }
 </style>

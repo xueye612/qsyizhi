@@ -3,7 +3,7 @@
     <template v-if="$slots.actions" #actions>
       <slot name="actions" />
     </template>
-    <div class="tableWrap">
+    <div class="tableWrap" :class="[`density-${density}`]">
       <slot />
     </div>
   </MedPageSection>
@@ -12,18 +12,42 @@
 <script setup lang="ts">
 import MedPageSection from './MedPageSection.vue';
 
-defineProps<{
-  title: string;
-  desc?: string;
-}>();
+withDefaults(
+  defineProps<{
+    title: string;
+    desc?: string;
+    density?: 'comfortable' | 'compact';
+  }>(),
+  { density: 'comfortable' }
+);
 </script>
 
 <style scoped>
-.tableWrap :deep(.arco-table-th){
+.tableWrap :deep(.arco-table-th) {
   background: #fafafa !important;
+  font-weight: 600;
+  color: var(--med-text-2, #4e5969);
 }
-.tableWrap :deep(.arco-table-tr:hover .arco-table-td){
-  background: #f5f5f5 !important;
+.tableWrap :deep(.arco-table-tr:hover .arco-table-td) {
+  background: #f5f7fa !important;
+}
+/* 紧凑密度 */
+.tableWrap.density-compact :deep(.arco-table-td),
+.tableWrap.density-compact :deep(.arco-table-th) {
+  padding: 6px 10px !important;
+}
+/* 行左侧色条（语义色调） */
+.tableWrap :deep(.row-tone--danger .arco-table-td:first-child) {
+  box-shadow: inset 3px 0 0 0 #f53f3f;
+}
+.tableWrap :deep(.row-tone--warning .arco-table-td:first-child) {
+  box-shadow: inset 3px 0 0 0 #ff7d00;
+}
+.tableWrap :deep(.row-tone--success .arco-table-td:first-child) {
+  box-shadow: inset 3px 0 0 0 #00b42a;
+}
+.tableWrap :deep(.row-tone--info .arco-table-td:first-child) {
+  box-shadow: inset 3px 0 0 0 #1F6FEB;
 }
 </style>
 

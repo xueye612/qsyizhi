@@ -60,7 +60,7 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg)
 .mp-row .k{color:var(--text3)}.mp-row .v{font-weight:600;font-family:'Courier New',monospace}
 
 /* ===== 右侧主面板 ===== */
-.main-panel{display:flex;flex-direction:column;gap:14px;min-height:0;overflow:hidden}
+.main-panel{display:flex;flex-direction:column;gap:14px;min-height:0;overflow-y:auto;padding-right:4px}
 
 /* ===== 操作栏 ===== */
 .action-bar{display:flex;align-items:center;gap:12px;flex-shrink:0}
@@ -81,7 +81,8 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg)
 .plan-stat strong{color:var(--text);font-size:14px;font-family:'Courier New',monospace}
 
 /* ===== 时间轴区域 ===== */
-.timeline-area{flex:1;overflow-y:auto;padding-right:6px;position:relative}
+.timeline-area{flex:1;overflow-y:auto;padding-right:6px;position:relative;min-height:0}
+.timeline-area.is-empty{flex:0 0 auto;min-height:300px}
 .timeline-area::-webkit-scrollbar{width:5px}
 .timeline-area::-webkit-scrollbar-thumb{background:rgba(59,130,246,.2);border-radius:3px}
 
@@ -106,7 +107,7 @@ body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg)
 .loading-progress .fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:2px;animation:progressFill 2.5s ease forwards}
 
 /* ===== 空白状态 ===== */
-.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;animation:fadeIn .5s ease}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:260px;padding:32px 20px;animation:fadeIn .5s ease;border:1px dashed rgba(59,130,246,.24);border-radius:12px;background:rgba(255,255,255,.02)}
 .empty-icon{font-size:56px;margin-bottom:16px;opacity:.6}
 .empty-title{font-size:18px;font-weight:600;color:var(--text2);margin-bottom:6px}
 .empty-desc{font-size:13px;color:var(--text3);text-align:center;line-height:1.6}
@@ -538,6 +539,7 @@ function renderStats(){
 }
 
 function showLoading(){
+    document.getElementById('timelineArea').classList.remove('is-empty');
     document.getElementById('timelineArea').innerHTML=`
         <div class="ai-loading">
             <div class="ai-brain">
@@ -557,9 +559,11 @@ function showLoading(){
 
 function renderTimeline(){
     if(!plans.length){
+        document.getElementById('timelineArea').classList.add('is-empty');
         document.getElementById('timelineArea').innerHTML=`<div class="empty-state" id="emptyState"><div class="empty-icon"><iconify-icon icon="mdi:clipboard-text" style="font-size:56px;color:var(--text3)"></iconify-icon></div><div class="empty-title">尚未生成随访计划</div><div class="empty-desc">点击「AI 生成随访计划」按钮<br>AI将为当前患者定制个性化随访方案</div></div>`;
         return;
     }
+    document.getElementById('timelineArea').classList.remove('is-empty');
     const html='<div class="timeline">'+plans.map((item,idx)=>{
         const pClass=item.priority==='high'?'style="background:rgba(239,68,68,.15);color:#fca5a5"':item.priority==='medium'?'style="background:rgba(245,158,11,.15);color:#fcd34d"':'style="background:rgba(16,185,129,.15);color:#6ee7b7"';
         const pText=item.priority==='high'?'⚡ 重要':item.priority==='medium'?'📌 注意':'✅ 常规';

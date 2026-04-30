@@ -1,7 +1,14 @@
 <template>
   <div class="med-page">
     <MedPageSection>
-      <MedPageHeader title="供体信息" desc="供体档案 · 血型 / HLA · 审核状态" />
+      <MedPageHeader
+        title="供体信息"
+        desc="供体档案 · 血型 / HLA · 审核状态"
+        :breadcrumb="['工作台', '供体管理', '供体信息']"
+        :badge="`共 ${rows.length} 人`"
+        badge-tone="primary"
+        :chips="headerChips"
+      />
       <div class="queryBar">
         <div class="qItem">
           <div class="qlabel">搜索</div>
@@ -26,10 +33,10 @@
         </div>
       </div>
       <div class="kpi-grid">
-        <MedStatCard label="供体数" hint="当前筛选结果" :value="kpi.total" tone="primary" trend="列表口径" trend-dir="flat" />
-        <MedStatCard label="待审" hint="需流程推进" :value="kpi.pending" tone="warning" trend="优先补齐材料" trend-dir="flat" />
-        <MedStatCard label="已通过" hint="可关联受体" :value="kpi.passed" tone="success" trend="档案闭环" trend-dir="flat" />
-        <MedStatCard label="已拒绝" hint="需归档原因" :value="kpi.rejected" tone="danger" trend="留痕可审计" trend-dir="flat" />
+        <MedStatCard label="供体数" hint="当前筛选结果" :value="kpi.total" tone="primary" trend="列表口径" trend-dir="flat" :sparkline="spark(1, kpi.total)" />
+        <MedStatCard label="待审" hint="需流程推进" :value="kpi.pending" tone="warning" trend="优先补齐材料" trend-dir="flat" :sparkline="spark(2, kpi.pending)" />
+        <MedStatCard label="已通过" hint="可关联受体" :value="kpi.passed" tone="success" trend="档案闭环" trend-dir="flat" :sparkline="spark(3, kpi.passed)" />
+        <MedStatCard label="已拒绝" hint="需归档原因" :value="kpi.rejected" tone="danger" trend="留痕可审计" trend-dir="flat" :sparkline="spark(4, kpi.rejected)" />
       </div>
     </MedPageSection>
 
@@ -89,7 +96,7 @@
 import { computed, h, ref, resolveComponent, watch } from 'vue';
 import type { TableColumnData } from '@arco-design/web-vue';
 import DonorCard from '@/components/DonorCard.vue';
-import MedPageHeader from '@/components/MedPageHeader.vue';
+import MedPageHeader, { type HeaderChip } from '@/components/MedPageHeader.vue';
 import MedPageSection from '@/components/MedPageSection.vue';
 import MedTableCard from '@/components/MedTableCard.vue';
 import MedStatCard from '@/components/MedStatCard.vue';
@@ -124,6 +131,25 @@ const kpi = computed(() => {
     rejected: list.filter((d) => d.status === '已拒绝').length
   };
 });
+
+const headerChips = computed<HeaderChip[]>(() => {
+  const k = kpi.value;
+  return [
+    { label: '待审', value: k.pending, tone: k.pending > 0 ? 'warning' : 'success' },
+    { label: '已通过', value: k.passed, tone: 'success' },
+    { label: '已拒绝', value: k.rejected, tone: k.rejected > 0 ? 'danger' : 'default' }
+  ];
+});
+
+function spark(seed: number, value: number) {
+  const arr: number[] = [];
+  let v = Math.max(20, Math.min(120, value * 8 + 20));
+  for (let i = 0; i < 12; i++) {
+    v += Math.sin((i + seed * 1.7) * 0.65) * 6 + ((seed + i) % 4) - 1;
+    arr.push(Math.max(0, Math.round(v)));
+  }
+  return arr;
+}
 
 const auditHint = computed(() => {
   const d = selected.value;
@@ -199,7 +225,7 @@ watch(rows, () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 .qItem {
   display: flex;

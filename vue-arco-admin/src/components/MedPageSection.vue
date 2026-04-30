@@ -35,7 +35,7 @@ defineProps<{
   align-items:flex-start;
   justify-content:space-between;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 .t{
   margin:0;
@@ -45,10 +45,10 @@ defineProps<{
   color: var(--med-text);
 }
 .s{
-  margin:6px 0 0;
+  margin:4px 0 0;
   font-size: var(--med-fz-body);
   font-weight: var(--med-fw-body);
-  line-height: 1.5;
+  line-height: 1.4;
   color: var(--med-muted);
   max-width: 720px;
 }
