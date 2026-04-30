@@ -1,0 +1,34 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+out/
+
+# Vite / bundler caches
+.vite/
+.cache/
+.parcel-cache/
+
+# Test artifacts
+coverage/
+playwright-report/
+test-results/
+
+# Editor & OS
+.DS_Store
+Thumbs.db
+*.local
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
