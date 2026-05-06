@@ -11,7 +11,10 @@
     @cancel="onClose"
     @close="onClose"
   >
-    <a-form :model="form" layout="vertical" auto-label-width @submit-success="onOk">
+    <template v-if="mode === 'view' && $slots.view">
+      <slot name="view" :record="form" :mode="mode" />
+    </template>
+    <a-form v-else :model="form" layout="vertical" auto-label-width @submit-success="onOk">
       <a-row :gutter="16">
         <a-col
           v-for="f in fields"

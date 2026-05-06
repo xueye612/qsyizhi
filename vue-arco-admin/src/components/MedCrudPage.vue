@@ -44,6 +44,8 @@
       />
     </div>
 
+    <slot name="pre-table" />
+
     <MedTableCard :title="tableTitle || '数据列表'" :desc="tableDesc" :density="density">
       <MedListToolbar
         v-model="crud.searchKey.value"
@@ -106,7 +108,11 @@
       :record="crud.drawerRecord.value"
       :title="drawerTitleFinal"
       @submit="crud.onSubmit"
-    />
+    >
+      <template #view="sp">
+        <slot name="drawer-view" :record="sp.record" :mode="sp.mode" />
+      </template>
+    </MedRecordDrawer>
   </div>
 </template>
 
@@ -158,6 +164,7 @@ const props = withDefaults(
     pagination?: any;
     scrollX?: number;
     rowKey?: string;
+    rowClass?: (row: any) => string;
     canEdit?: boolean;
     canDelete?: boolean;
     canView?: boolean;
@@ -343,8 +350,9 @@ function toneFromRow(row: any): string {
 }
 function combinedRowClass(row: any): string {
   const base = props.crud.rowClass(row) || '';
+  const extra = props.rowClass?.(row) || '';
   const tone = toneFromRow(row);
-  return [base, tone].filter(Boolean).join(' ');
+  return [base, extra, tone].filter(Boolean).join(' ');
 }
 
 const rowSelection = computed(() =>
