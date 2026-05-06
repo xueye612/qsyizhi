@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <title>肾移植随访（患者端演示）</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app" id="app">
+      <header class="topbar">
+        <div>
+          <div class="topbar__title">肾移植随访管理</div>
+          <div class="topbar__subtitle">患者端演示</div>
+        </div>
+        <div class="topbar__right">
+          <button class="search-pill" data-action="open-global-search" aria-label="全局搜索">
+            搜索提醒/用药/报告
+          </button>
+        </div>
+      </header>
+
+      <div class="search-dock" id="searchDock">
+        <button class="search-dock__btn" data-action="open-global-search" aria-label="打开全局搜索">
+          搜索提醒、用药、检查、设备
+        </button>
+      </div>
+
+      <main class="pages" id="pages">
+        <section class="page active" data-page="home" aria-label="首页"></section>
+        <section class="page" data-page="data" aria-label="数据"></section>
+        <section class="page" data-page="devices" aria-label="设备"></section>
+        <section class="page" data-page="reminders" aria-label="提醒"></section>
+        <section class="page" data-page="symptoms" aria-label="症状"></section>
+        <section class="page" data-page="medication" aria-label="用药"></section>
+        <section class="page" data-page="profile" aria-label="我的"></section>
+      </main>
+
+      <nav class="tabs" aria-label="底部导航">
+        <button class="tab active" data-nav="home" aria-current="page">
+          <span class="tab__icon" aria-hidden="true">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none">
+              <path d="M3 10.5L12 3l9 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M6.5 10.5V20a1.5 1.5 0 0 0 1.5 1.5h8A1.5 1.5 0 0 0 17.5 20v-9.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="tab__label">首页</span>
+        </button>
+        <button class="tab" data-nav="data">
+          <span class="tab__icon" aria-hidden="true">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none">
+              <path d="M5 20V11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 20V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M19 20V14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="tab__label">数据</span>
+        </button>
+        <button class="tab" data-nav="devices">
+          <span class="tab__icon" aria-hidden="true">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none">
+              <rect x="7" y="3" width="10" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+              <path d="M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="tab__label">设备</span>
+        </button>
+        <button class="tab" data-nav="reminders">
+          <span class="tab__icon" aria-hidden="true">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none">
+              <path d="M12 22a2.3 2.3 0 0 0 2.2-2H9.8A2.3 2.3 0 0 0 12 22Z" fill="currentColor" opacity=".9"/>
+              <path d="M18 16H6c1.2-1.3 2-2.8 2-5.3 0-3.5 1.9-6.2 4-6.7V3a1 1 0 0 1 2 0v1c2.1.5 4 3.2 4 6.7 0 2.5.8 4 2 5.3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="tab__label">提醒</span>
+        </button>
+        <button class="tab" data-nav="symptoms">
+          <span class="tab__icon" aria-hidden="true">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none">
+              <path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" />
+              <path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="tab__label">症状</span>
+        </button>
+        <button class="tab" data-nav="medication">
+          <span class="tab__icon" aria-hidden="true">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none">
+              <path d="M9.2 4.5 19.5 14.8a3.2 3.2 0 0 1 0 4.5 3.2 3.2 0 0 1-4.5 0L4.7 9.1a3.2 3.2 0 0 1 0-4.5 3.2 3.2 0 0 1 4.5 0Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M8.5 8.5 15.5 15.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="tab__label">用药</span>
+        </button>
+        <button class="tab" data-nav="profile">
+          <span class="tab__icon" aria-hidden="true">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none">
+              <path d="M12 12a4.2 4.2 0 1 0-4.2-4.2A4.2 4.2 0 0 0 12 12Z" stroke="currentColor" stroke-width="2"/>
+              <path d="M4.5 20a7.5 7.5 0 0 1 15 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="tab__label">我的</span>
+        </button>
+      </nav>
+    </div>
+
+    <div class="toast" id="toast" aria-live="polite" aria-atomic="true"></div>
+
+    <div class="sheet" id="sheet" aria-hidden="true">
+      <div class="sheet__backdrop" data-close="sheet"></div>
+      <div class="sheet__panel" id="sheetPanel"></div>
+    </div>
+
+    <div class="modal" id="modal" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="modal__backdrop" data-close="modal"></div>
+      <div class="modal__panel" id="modalPanel"></div>
+    </div>
+
+    <div class="global-search" id="globalSearch" aria-hidden="true">
+      <div class="global-search__backdrop" data-close="global-search"></div>
+      <div class="global-search__panel">
+        <div class="global-search__head">
+          <input id="globalSearchInput" class="global-search__input" type="text" placeholder="搜索提醒、用药、检查、设备..." />
+          <button class="global-search__cancel" data-close="global-search">取消</button>
+        </div>
+        <div class="global-search__meta" id="globalSearchMeta">输入关键词开始搜索</div>
+        <div class="global-search__section" id="globalSearchRecent"></div>
+        <div class="global-search__section" id="globalSearchResults"></div>
+      </div>
+    </div>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>
+

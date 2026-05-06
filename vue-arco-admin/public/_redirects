@@ -1,1 +1,3 @@
+# Netlify SPA fallback — 仅对无法匹配到静态文件的路径生效
+# 静态资源（/assets/*）会被 Netlify CDN 优先匹配，不会命中此规则
 /*    /index.html   200

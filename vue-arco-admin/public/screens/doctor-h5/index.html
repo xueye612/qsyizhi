@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <title>肾移植随访（医生端演示）</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app" id="app">
+      <header class="topbar">
+        <div>
+          <div class="topbar__title">肾移植随访管理</div>
+          <div class="topbar__subtitle">医生端演示</div>
+        </div>
+        <div class="topbar__right">
+          <button class="search-pill" data-action="open-global-search" aria-label="全局搜索">
+            搜索患者/配型/预警
+          </button>
+          <button class="chip chip--soft" data-action="open-search" aria-label="搜索">搜索</button>
+        </div>
+      </header>
+
+      <div class="search-dock" id="searchDock">
+        <button class="search-dock__btn" data-action="open-global-search" aria-label="打开全局搜索">
+          搜索患者、等待配型、预警、供体
+        </button>
+      </div>
+
+      <main class="pages" id="pages">
+        <section class="page active" data-page="patients" aria-label="患者"></section>
+        <section class="page" data-page="waitlist" aria-label="配型患者"></section>
+        <section class="page" data-page="alerts" aria-label="预警"></section>
+        <section class="page" data-page="donors" aria-label="供体"></section>
+        <section class="page" data-page="research" aria-label="科研"></section>
+        <section class="page" data-page="analytics" aria-label="数据"></section>
+        <section class="page" data-page="me" aria-label="我的"></section>
+      </main>
+
+      <nav class="tabs" aria-label="底部导航">
+        <button class="tab active" data-nav="patients" aria-current="page">
+          <span class="tab__icon" aria-hidden="true">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none">
+              <path d="M12 12a4.2 4.2 0 1 0-4.2-4.2A4.2 4.2 0 0 0 12 12Z" stroke="currentColor" stroke-width="2"/>
+              <path d="M4.5 20a7.5 7.5 0 0 1 15 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="tab__label">患者</span>
+        </button>
+        <button class="tab" data-nav="alerts">
+          <span class="tab__icon" aria-hidden="true">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none">
+              <path d="M12 9v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 17h.01" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+              <path d="M10.3 4.9 2.8 18a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.9a2 2 0 0 0-3.4 0Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="tab__label">预警</span>
+        </button>
+        <button class="tab" data-nav="waitlist">
+          <span class="tab__icon" aria-hidden="true">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none">
+              <path d="M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2"/>
+              <path d="M8.5 9h7M8.5 13h7M8.5 17h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="tab__label">配型</span>
+        </button>
+        <button class="tab" data-nav="donors">
+          <span class="tab__icon" aria-hidden="true">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none">
+              <path d="M12 21s7-4.7 7-11a4 4 0 0 0-7-2.2A4 4 0 0 0 5 10c0 6.3 7 11 7 11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M12 8v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M9 11h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="tab__label">供体</span>
+        </button>
+        <button class="tab" data-nav="research">
+          <span class="tab__icon" aria-hidden="true">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none">
+              <path d="M10 2h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 2v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M6 22h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M8 22c0-4 8-4 8 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M8.2 9.5c.8 2.6 2.5 4.4 3.8 5.5 1.3-1.1 3-2.9 3.8-5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M7 9.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="tab__label">科研</span>
+        </button>
+        <button class="tab" data-nav="analytics">
+          <span class="tab__icon" aria-hidden="true">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none">
+              <path d="M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M6 18V10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 18V6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M18 18v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="tab__label">数据</span>
+        </button>
+        <button class="tab" data-nav="me">
+          <span class="tab__icon" aria-hidden="true">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none">
+              <path d="M12 12a4.2 4.2 0 1 0-4.2-4.2A4.2 4.2 0 0 0 12 12Z" stroke="currentColor" stroke-width="2"/>
+              <path d="M4.5 20a7.5 7.5 0 0 1 15 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M18.2 8.2h.01" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="tab__label">我的</span>
+        </button>
+      </nav>
+    </div>
+
+    <div class="toast" id="toast" aria-live="polite" aria-atomic="true"></div>
+
+    <div class="sheet" id="sheet" aria-hidden="true">
+      <div class="sheet__backdrop" data-close="sheet"></div>
+      <div class="sheet__panel" id="sheetPanel"></div>
+    </div>
+
+    <div class="modal" id="modal" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="modal__backdrop" data-close="modal"></div>
+      <div class="modal__panel" id="modalPanel"></div>
+    </div>
+
+    <div class="global-search" id="globalSearch" aria-hidden="true">
+      <div class="global-search__backdrop" data-close="global-search"></div>
+      <div class="global-search__panel">
+        <div class="global-search__head">
+          <input id="globalSearchInput" class="global-search__input" type="text" placeholder="搜索患者、配型状态、预警、供体..." />
+          <button class="global-search__cancel" data-close="global-search">取消</button>
+        </div>
+        <div class="global-search__meta" id="globalSearchMeta">输入关键词开始搜索</div>
+        <div class="global-search__section" id="globalSearchRecent"></div>
+        <div class="global-search__section" id="globalSearchResults"></div>
+      </div>
+    </div>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>
+

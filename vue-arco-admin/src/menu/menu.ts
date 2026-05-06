@@ -33,6 +33,7 @@ export const MENU: MenuGroup[] = [
     icon: 'mdi:account-heart-outline',
     items: [
       { key: 'patients.list', label: '患者列表', icon: 'mdi:format-list-bulleted' },
+      { key: 'patients.waitlist', label: '等待配型患者', icon: 'mdi:account-clock-outline' },
       { key: 'patients.new', label: '新增患者', icon: 'mdi:account-plus-outline' },
       { key: 'patients.tags', label: '患者标签', icon: 'mdi:tag-outline' }
     ]
@@ -113,7 +114,9 @@ export const MENU: MenuGroup[] = [
       { key: 'screen.followup', label: 'AI 随访计划', icon: 'mdi:calendar-heart', embedSrc: '/screens/ai_followup_plan.html' },
       { key: 'screen.risk', label: 'AI 风险预警', icon: 'mdi:shield-pulse', embedSrc: '/screens/ai_risk_alert_v2.html' },
       { key: 'screen.patient', label: '患者端视图', icon: 'mdi:account-heart', embedSrc: '/screens/patient_pc.html' },
-      { key: 'screen.doctor', label: '医生端视图', icon: 'mdi:stethoscope', embedSrc: '/screens/doctor_pc.html' }
+      { key: 'screen.doctor', label: '医生端视图', icon: 'mdi:stethoscope', embedSrc: '/screens/doctor_pc.html' },
+      { key: 'screen.patient.h5', label: '患者端H5（新）', icon: 'mdi:cellphone', embedSrc: '/screens/patient-h5/index.html' },
+      { key: 'screen.doctor.h5', label: '医生端H5（新）', icon: 'mdi:tablet-dashboard', embedSrc: '/screens/doctor-h5/index.html' }
     ]
   },
   {

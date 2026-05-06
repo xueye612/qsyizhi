@@ -88,6 +88,7 @@ function toArcoIcon(mdi: string | undefined, fallback: 'app' | 'normal') {
     'mdi:history': IconHistory,
 
     'mdi:account-heart-outline': IconHome,
+    'mdi:account-clock-outline': IconHistory,
     'mdi:format-list-bulleted': IconBook,
     'mdi:account-plus-outline': IconCheckCircle,
     'mdi:tag-outline': IconTag,
@@ -134,6 +135,8 @@ function toArcoIcon(mdi: string | undefined, fallback: 'app' | 'normal') {
     'mdi:shield-pulse': IconExclamationCircle,
     'mdi:account-heart': IconHome,
     'mdi:stethoscope': IconTool,
+    'mdi:cellphone': IconNotification,
+    'mdi:tablet-dashboard': IconDashboard,
 
     'mdi:cog-outline': IconSettings,
     'mdi:account-multiple-outline': IconUser,
