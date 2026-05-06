@@ -257,9 +257,11 @@
   const globalSearchRecent = $("#globalSearchRecent");
   const globalSearchResults = $("#globalSearchResults");
   const globalSearchMeta = $("#globalSearchMeta");
+  const quickSearchInput = $("#quickSearchInput");
   const appEl = $("#app");
   const pagesEl = $("#pages");
   const searchState = { items: [] };
+  let lastSearchOpenAt = 0;
 
   function getSearchHistory() {
     return storage.get(KEYS.globalSearchHistory, []);
@@ -404,6 +406,14 @@
 
   function openGlobalSearch(initial = "") {
     if (!globalSearchEl || !globalSearchInput) return;
+    const now = Date.now();
+    if (now - lastSearchOpenAt < 280) return;
+    lastSearchOpenAt = now;
+    if (globalSearchEl.classList.contains("open")) {
+      if (typeof initial === "string" && initial) globalSearchInput.value = initial;
+      globalSearchInput.focus();
+      return;
+    }
     globalSearchEl.classList.add("open");
     globalSearchEl.setAttribute("aria-hidden", "false");
     globalSearchInput.value = initial;
@@ -415,6 +425,28 @@
     if (!globalSearchEl) return;
     globalSearchEl.classList.remove("open");
     globalSearchEl.setAttribute("aria-hidden", "true");
+  }
+
+  function focusQuickSearch() {
+    if (!(quickSearchInput instanceof HTMLInputElement)) return;
+    quickSearchInput.focus();
+    quickSearchInput.select();
+  }
+
+  function submitQuickSearch(keyword) {
+    const q = String(keyword || "").trim().toLowerCase();
+    if (!q) {
+      focusQuickSearch();
+      return;
+    }
+    const hits = buildPatientSearchItems().filter((x) => x.text.toLowerCase().includes(q));
+    if (!hits.length) {
+      toast("未找到匹配结果");
+      return;
+    }
+    pushSearchHistory(q);
+    hits[0].run();
+    toast(`已定位：${hits[0].title}`);
   }
 
   function initSearchDockAutoHide() {
@@ -462,6 +494,12 @@
       openGlobalSearch();
     }
     if (key === "escape") closeGlobalSearch();
+  });
+
+  quickSearchInput?.addEventListener("keydown", (ev) => {
+    if (ev.key !== "Enter") return;
+    ev.preventDefault();
+    submitQuickSearch(quickSearchInput.value);
   });
 
   // routing
@@ -1442,7 +1480,11 @@
     if (!action) return;
 
     if (action === "open-global-search") {
-      openGlobalSearch();
+      focusQuickSearch();
+      return;
+    }
+    if (action === "submit-quick-search") {
+      submitQuickSearch(quickSearchInput?.value || "");
       return;
     }
     if (action === "search-recent") {

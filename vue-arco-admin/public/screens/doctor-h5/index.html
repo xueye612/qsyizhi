@@ -15,17 +15,15 @@
           <div class="topbar__subtitle">医生端演示</div>
         </div>
         <div class="topbar__right">
-          <button class="search-pill" data-action="open-global-search" aria-label="全局搜索">
-            搜索患者/配型/预警
-          </button>
-          <button class="chip chip--soft" data-action="open-search" aria-label="搜索">搜索</button>
+          <span class="topbar__hint">下滑自动收起搜索栏</span>
         </div>
       </header>
 
       <div class="search-dock" id="searchDock">
-        <button class="search-dock__btn" data-action="open-global-search" aria-label="打开全局搜索">
-          搜索患者、等待配型、预警、供体
-        </button>
+        <div class="search-dock__box" role="search" aria-label="页面内搜索">
+          <input id="quickSearchInput" class="search-dock__input" type="search" placeholder="搜索患者、等待配型、预警、供体（回车直达）" />
+          <button class="search-dock__go" data-action="submit-quick-search" aria-label="执行搜索">搜索</button>
+        </div>
       </div>
 
       <main class="pages" id="pages">

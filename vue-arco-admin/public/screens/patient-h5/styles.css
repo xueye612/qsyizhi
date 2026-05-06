@@ -81,9 +81,8 @@ body{
   padding: 10px 14px;
   background: linear-gradient(180deg, #f4f9ff 0%, #ffffff 100%);
   border-bottom: 1px solid rgba(17,24,39,.06);
-  transition: transform 220ms ease, opacity 220ms ease, max-height 220ms ease, padding 220ms ease;
-  max-height: 64px;
-  overflow: hidden;
+  transition: transform 220ms ease, opacity 220ms ease;
+  will-change: transform, opacity;
 }
 .search-dock__btn{
   width: 100%;
@@ -97,13 +96,50 @@ body{
   font-weight: 900;
   box-shadow: 0 8px 20px rgba(15,23,42,.08);
 }
+.search-dock__box{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.search-dock__input{
+  flex: 1;
+  min-width: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(15,23,42,.10);
+  background: #fff;
+  color: rgba(55,65,81,.95);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  outline: none;
+  box-shadow: 0 8px 20px rgba(15,23,42,.08);
+}
+.search-dock__input:focus{
+  border-color: rgba(59,130,246,.45);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.12), 0 8px 20px rgba(15,23,42,.08);
+}
+.search-dock__go{
+  border-radius: 999px;
+  border: 1px solid rgba(59,130,246,.22);
+  background: rgba(59,130,246,.12);
+  color: #0b2b5a;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 9px 12px;
+}
 .app.search-dock--hidden .search-dock{
   transform: translateY(-110%);
   opacity: 0;
-  max-height: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-  border-bottom-color: transparent;
+  pointer-events: none;
+}
+.topbar__hint{
+  font-size: 11px;
+  font-weight: 900;
+  color: rgba(255,255,255,.9);
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.35);
+  background: rgba(255,255,255,.14);
+  padding: 6px 10px;
 }
 .icon-btn{
   width:34px;height:34px;border-radius:12px;
