@@ -20,11 +20,18 @@
   };
 
   const KEYS = {
+    authSession: "demo.doctor.authSession",
     doctorFilters: "demo.doctor.filters",
     globalSearchHistory: "demo.doctor.search.history",
     alertState: "demo.doctor.alerts",
     patientNotes: "demo.doctor.patientNotes",
     donorNotes: "demo.doctor.donorNotes",
+    followupPlans: "demo.doctor.followupPlans",
+    reportCenter: "demo.doctor.reportCenter",
+    externalMeds: "demo.doctor.externalMeds",
+    educationReads: "demo.doctor.educationReads",
+    donorScope: "demo.doctor.donorScope",
+    dsaRange: "demo.doctor.dsaRange",
   };
 
   // --- demo data generator (deterministic "random") ---
@@ -122,7 +129,7 @@
   ];
 
   const seed = {
-    me: { name: "张主任", dept: "肾移植科", title: "主治医师", hospital: "北京协和医院" },
+    me: { name: "张主任", dept: "肾移植科", title: "主治医师", hospital: "山东第一医科大学第一附属医院" },
     kpis: { followups: 8, alerts: alerts.length, visits: 12 },
     patients,
     alerts,
@@ -251,6 +258,97 @@
     },
   };
 
+  function getPatientLabel(patientId) {
+    const p = seed.patients.find((x) => x.id === patientId);
+    if (p) return `${p.name} (${p.id})`;
+    const w = seed.waitlist.find((x) => x.patientId === patientId);
+    if (w) return `${w.patientName} (${w.patientId})`;
+    return patientId;
+  }
+
+  function getFollowupPlans() {
+    const fallback = [
+      ...seed.waitlist.map((w) => ({
+        patientId: w.patientId,
+        cycleMonths: 6,
+        nextAt: w.nextReviewAt,
+        mode: "配型随访",
+      })),
+      ...seed.patients.slice(0, 4).map((p, idx) => ({
+        patientId: p.id,
+        cycleMonths: [1, 2, 3, 6][idx % 4],
+        nextAt: `2026-0${(idx % 3) + 4}-${String(10 + idx).padStart(2, "0")}`,
+        mode: "术后随访",
+      })),
+    ];
+    return storage.get(KEYS.followupPlans, fallback);
+  }
+
+  function getReportCenter() {
+    const fallback = [
+      { id: "rep-1", patientId: "PT20260241", title: "肾功能报告", at: "2026-04-01 09:10", status: "已结构化", rawSaved: true, blurry: false, source: "院外上传" },
+      { id: "rep-2", patientId: "PT20260309", title: "血药浓度报告", at: "2026-04-01 08:36", status: "待二次上传", rawSaved: true, blurry: true, source: "院外上传" },
+      { id: "rep-3", patientId: "PT20260177", title: "尿常规报告", at: "2026-03-31 17:45", status: "已结构化", rawSaved: true, blurry: false, source: "院内调取" },
+    ];
+    return storage.get(KEYS.reportCenter, fallback);
+  }
+
+  function getExternalMeds() {
+    const fallback = [
+      { id: "med-1", patientId: "PT20260309", drug: "他克莫司", dose: "1mg bid", status: "待医生复核", from: "院外处方识别" },
+      { id: "med-2", patientId: "PT20260241", drug: "吗替麦考酚酯", dose: "0.5g bid", status: "已确认", from: "患者手填" },
+    ];
+    return storage.get(KEYS.externalMeds, fallback);
+  }
+
+  function getEducationCatalog() {
+    return [
+      { id: "edu-1", type: "视频", title: "候诊期饮食注意事项", summary: "低盐、优质蛋白、避免生食", minutes: 6 },
+      { id: "edu-2", type: "视频", title: "感染预防与手卫生", summary: "口罩、手卫生、外出防护", minutes: 8 },
+      { id: "edu-3", type: "图文", title: "外院检查报告上传规范", summary: "清晰拍摄、完整页面、避免反光", minutes: 5 },
+      { id: "edu-4", type: "图文", title: "免疫抑制剂服药要点", summary: "固定时点、漏服补服、复查提醒", minutes: 7 },
+    ];
+  }
+
+  function getEducationReads() {
+    const fallback = seed.waitlist.map((w, idx) => ({
+      patientId: w.patientId,
+      readIds: idx % 2 === 0 ? ["edu-1"] : ["edu-1", "edu-2", "edu-3"],
+      lastReadAt: `2026-04-0${(idx % 5) + 1} 10:2${idx}`,
+    }));
+    return storage.get(KEYS.educationReads, fallback);
+  }
+
+  function getDsaSeries(range) {
+    const source = {
+      "30": [
+        { d: "03-02", v: 1240 },
+        { d: "03-08", v: 1188 },
+        { d: "03-14", v: 1025 },
+        { d: "03-20", v: 1110 },
+        { d: "03-26", v: 980 },
+        { d: "04-01", v: 930 },
+      ],
+      "90": [
+        { d: "01-05", v: 1780 },
+        { d: "01-21", v: 1630 },
+        { d: "02-07", v: 1510 },
+        { d: "02-23", v: 1340 },
+        { d: "03-10", v: 1160 },
+        { d: "03-26", v: 980 },
+      ],
+      "180": [
+        { d: "10-10", v: 2560 },
+        { d: "11-12", v: 2330 },
+        { d: "12-15", v: 2060 },
+        { d: "01-20", v: 1730 },
+        { d: "02-25", v: 1410 },
+        { d: "03-31", v: 980 },
+      ],
+    };
+    return source[range] || source[90];
+  }
+
   // ---- UI primitives ----
   const toastEl = $("#toast");
   let toastTimer = null;
@@ -295,8 +393,45 @@
   const quickSearchInput = $("#quickSearchInput");
   const appEl = $("#app");
   const pagesEl = $("#pages");
+  const loginGateEl = $("#loginGate");
+  const loginUserEl = $("#loginUser");
+  const loginPassEl = $("#loginPass");
+  const loginSubmitEl = $("#loginSubmit");
+  const loginHintEl = $("#loginHint");
   const searchState = { items: [] };
   let lastSearchOpenAt = 0;
+  const doctorDemoHint = "演示账号：DR1001，密码任意非空";
+
+  function setLoginHint(msg, isError = false) {
+    if (!loginHintEl) return;
+    loginHintEl.textContent = msg;
+    loginHintEl.classList.toggle("login-hint--error", isError);
+  }
+
+  function isAuthed() {
+    return !!storage.get(KEYS.authSession, null);
+  }
+  function setAuth(user) {
+    storage.set(KEYS.authSession, { user, at: new Date().toISOString() });
+  }
+  function clearAuth() {
+    storage.del(KEYS.authSession);
+  }
+  function applyAuthView() {
+    const authed = isAuthed();
+    if (loginGateEl) {
+      loginGateEl.classList.toggle("show", !authed);
+      loginGateEl.setAttribute("aria-hidden", authed ? "true" : "false");
+    }
+    if (appEl) appEl.style.display = authed ? "" : "none";
+    if (!authed) {
+      if (loginSubmitEl) {
+        loginSubmitEl.disabled = false;
+        loginSubmitEl.textContent = "登录";
+      }
+      setLoginHint(doctorDemoHint, false);
+    }
+  }
 
   function getSearchHistory() {
     return storage.get(KEYS.globalSearchHistory, []);
@@ -517,18 +652,23 @@
   });
 
   // routing
-  let current = "patients";
+  let current = "home";
   const pages = $$(".page");
   const tabs = $$(".tab");
+  function resolveNav(page) {
+    if (["donors", "research", "analytics", "me"].includes(page)) return "me";
+    return page;
+  }
   function go(page) {
-    const targetPage = pages.some((p) => p.dataset.page === page) ? page : "patients";
+    const targetPage = pages.some((p) => p.dataset.page === page) ? page : "home";
     const next = pages.find((p) => p.dataset.page === targetPage);
     const prev = pages.find((p) => p.dataset.page === current);
     if (!next || next === prev) return;
     prev?.classList.remove("active");
     next.classList.add("active");
+    const navPage = resolveNav(targetPage);
     tabs.forEach((t) => {
-      const active = t.dataset.nav === targetPage;
+      const active = t.dataset.nav === navPage;
       t.classList.toggle("active", active);
       t.toggleAttribute("aria-current", active);
     });
@@ -551,6 +691,59 @@
   }
 
   // ---- renderers ----
+  function renderHome() {
+    const page = pages.find((p) => p.dataset.page === "home");
+    if (!page) return;
+    const pendingAlerts = seed.alerts.length;
+    const highRisk = seed.patients.filter((p) => p.risk === "异常").length;
+    const focus = seed.patients.filter((p) => p.risk === "需关注").length;
+    page.innerHTML = `
+      <div class="stack">
+        <div class="card">
+          <div class="split">
+            <div>
+              <div class="title">医生工作台首页</div>
+              <div class="muted" style="margin-top:4px">默认展示：首页、预警、关键数据</div>
+            </div>
+            <span class="pill pill--soft">${seed.me.name}</span>
+          </div>
+          <div class="divider"></div>
+          <div class="grid-3">
+            <div class="kpi"><div class="kpi__label">今日随访</div><div class="kpi__value">${seed.kpis.followups}</div></div>
+            <div class="kpi kpi--warn"><div class="kpi__label">待处置预警</div><div class="kpi__value">${pendingAlerts}</div></div>
+            <div class="kpi"><div class="kpi__label">今日复诊</div><div class="kpi__value">${seed.kpis.visits}</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="split"><div class="title">预警摘要</div><button class="btn btn--sm btn--primary" data-action="open-alerts">查看预警</button></div>
+          <div class="divider"></div>
+          <div class="grid-2">
+            <div class="stat"><div class="stat__label">异常患者</div><div class="stat__value">${highRisk}</div></div>
+            <div class="stat"><div class="stat__label">需关注</div><div class="stat__value">${focus}</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="split"><div class="title">关键数据</div><button class="btn btn--sm btn--ghost" data-action="open-analytics">全部数据</button></div>
+          <div class="divider"></div>
+          <div class="muted">随访完成率 ${seed.analytics.totals.rate}，累计随访 ${seed.analytics.totals.followups} 次，覆盖患者 ${seed.analytics.totals.patients} 人。</div>
+        </div>
+
+        <div class="card">
+          <div class="title">业务模块直达</div>
+          <div class="muted" style="margin-top:4px">简化后模块统一放在首页，不再放在“我的”中</div>
+          <div class="divider"></div>
+          <div class="stack">
+            <div class="item clickable" data-action="open-donors"><div class="item__main"><div class="item__title">供体管理</div><div class="item__desc">供体列表、评估进度、时间线</div></div><div class="item__right"><span class="pill pill--soft">进入</span></div></div>
+            <div class="item clickable" data-action="open-research"><div class="item__main"><div class="item__title">科研管理</div><div class="item__desc">DSA 趋势、导出脱敏、专病数据库</div></div><div class="item__right"><span class="pill pill--soft">进入</span></div></div>
+            <div class="item clickable" data-action="open-analytics"><div class="item__main"><div class="item__title">数据分析</div><div class="item__desc">风险分层与全量统计</div></div><div class="item__right"><span class="pill pill--soft">进入</span></div></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   function renderPatients() {
     const page = pages.find((p) => p.dataset.page === "patients");
     if (!page) return;
@@ -598,42 +791,10 @@
       list = list.filter((p) => `${p.name}${p.id}${p.patientId || ""}${p.hla || ""}${p.waitStatus || ""}`.includes(q));
     }
 
-    page.innerHTML = `
-      <div class="stack">
-        <div class="card">
-          <div class="split">
-            <div>
-              <div class="title">今日工作概览</div>
-              <div class="muted" style="margin-top:4px">随访/预警/复诊（演示）</div>
-            </div>
-            <span class="pill pill--soft">${seed.me.name}</span>
-          </div>
-          <div class="divider"></div>
-          <div class="grid-3">
-            <div class="kpi"><div class="kpi__label">待随访</div><div class="kpi__value">${seed.kpis.followups}</div></div>
-            <div class="kpi kpi--warn"><div class="kpi__label">异常提醒</div><div class="kpi__value">${seed.kpis.alerts}</div></div>
-            <div class="kpi"><div class="kpi__label">今日复诊</div><div class="kpi__value">${seed.kpis.visits}</div></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="split">
-            <div class="title">患者列表</div>
-            <button class="btn btn--sm btn--ghost" data-action="open-search">搜索</button>
-          </div>
-          <div class="divider"></div>
-          <div class="segmented">
-            ${groups
-              .map((g) => `<button class="seg-btn ${filters.group === g ? "active" : ""}" data-action="set-group" data-group="${g}">${g.replace("全部患者", "全部")}</button>`)
-              .join("")}
-          </div>
-          <div style="height:10px"></div>
-          <div class="wait-merge-tip">待配型患者已并入本列表，可直接通过“待配型”筛选。</div>
-          <div style="height:10px"></div>
-          <div class="stack">
-            ${list
-              .map(
-                (p) => `
+    const listHtml = list.length
+      ? list
+          .map(
+            (p) => `
               <div class="patient-card ${p.kind === "waitlist" ? "patient-card--waitlist" : ""} clickable" data-action="open-patient" data-id="${p.id}" data-kind="${p.kind}">
                 <div class="patient-top">
                   <div style="min-width:0">
@@ -669,6 +830,131 @@
                 </div>
               </div>
             `,
+          )
+          .join("")
+      : `<div class="panel-empty"><div class="title">暂无匹配患者</div><div class="muted" style="margin-top:6px">请调整筛选条件或清空关键词后重试。</div><div style="height:10px"></div><button class="btn btn--ghost" data-action="reset-patient-filter">清空筛选</button></div>`;
+
+    const plans = getFollowupPlans();
+    const reports = getReportCenter();
+    const extMeds = getExternalMeds();
+    const eduCatalog = getEducationCatalog();
+    const eduRows = getEducationReads();
+    const planDueSoon = plans.filter((x) => String(x.nextAt || "") <= "2026-05-31").length;
+    const reportRetry = reports.filter((x) => x.blurry).length;
+    const medPending = extMeds.filter((x) => x.status !== "已确认").length;
+    const eduUnread = eduRows.filter((x) => (x.readIds || []).length < eduCatalog.length).length;
+
+    page.innerHTML = `
+      <div class="stack">
+        <div class="card">
+          <div class="split">
+            <div>
+              <div class="title">今日工作概览</div>
+              <div class="muted" style="margin-top:4px">随访/预警/复诊（演示）</div>
+            </div>
+            <span class="pill pill--soft">${seed.me.name}</span>
+          </div>
+          <div class="divider"></div>
+          <div class="grid-3">
+            <div class="kpi"><div class="kpi__label">待随访</div><div class="kpi__value">${seed.kpis.followups}</div></div>
+            <div class="kpi kpi--warn"><div class="kpi__label">异常提醒</div><div class="kpi__value">${seed.kpis.alerts}</div></div>
+            <div class="kpi"><div class="kpi__label">今日复诊</div><div class="kpi__value">${seed.kpis.visits}</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="split">
+            <div class="title">患者列表</div>
+            <button class="btn btn--sm btn--ghost" data-action="open-search">搜索</button>
+          </div>
+          <div class="divider"></div>
+          <div class="segmented">
+            ${groups
+              .map((g) => `<button class="seg-btn ${filters.group === g ? "active" : ""}" data-action="set-group" data-group="${g}">${g.replace("全部患者", "全部")}</button>`)
+              .join("")}
+          </div>
+          <div style="height:10px"></div>
+          <div class="wait-merge-tip">待配型患者已并入本列表，可直接通过“待配型”筛选。</div>
+          <div style="height:10px"></div>
+          <div class="stack">
+            ${listHtml}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="split">
+            <div>
+              <div class="title">个体化复查提醒</div>
+              <div class="muted" style="margin-top:4px">仅支持单个患者配置，不提供批量设置</div>
+            </div>
+            <span class="pill pill--warn">${planDueSoon} 近期到期</span>
+          </div>
+          <div class="divider"></div>
+          <button class="btn btn--primary" data-action="plan-reset">恢复默认</button>
+          <div class="divider"></div>
+          <div class="stack">
+            ${plans
+              .slice(0, 5)
+              .map(
+                (x) => `<div class="item clickable" data-action="plan-open" data-patient="${x.patientId}"><div class="item__main"><div class="item__title">${getPatientLabel(x.patientId)}</div><div class="item__desc">模式：${x.mode}｜周期：${x.cycleMonths}个月｜下次：${x.nextAt}</div></div><div class="item__right"><span class="pill pill--soft">编辑</span></div></div>`,
+              )
+              .join("")}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="split">
+            <div>
+              <div class="title">报告中心（结构化 + 原始）</div>
+              <div class="muted" style="margin-top:4px">单患者院内调取，保留原图 + 结构化数据（演示）</div>
+            </div>
+            <span class="pill pill--warn">${reportRetry} 需重传</span>
+          </div>
+          <div class="divider"></div>
+          <div class="muted">说明：调取操作仅针对单个患者执行，不支持批量。</div>
+          <div class="divider"></div>
+          <div class="stack">
+            ${reports
+              .map(
+                (r) => `<div class="item"><div class="item__main"><div class="item__title">${r.title} · ${getPatientLabel(r.patientId)}</div><div class="item__desc">${r.source}｜${r.at}<br/>原始文件：${r.rawSaved ? "已保留" : "缺失"}｜结构化：${r.status}</div></div><div class="item__right">${r.blurry ? `<button class="btn btn--sm btn--ghost" data-action="report-retry" data-id="${r.id}">二次上传</button>` : `<span class="pill pill--ok">可用</span>`}<button class="btn btn--sm btn--primary" data-action="report-fetch-one" data-patient="${r.patientId}">院内调取</button></div></div>`,
+              )
+              .join("")}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="split">
+            <div>
+              <div class="title">院外用药识别复核</div>
+              <div class="muted" style="margin-top:4px">患者上传后先识别，再由医生确认（演示）</div>
+            </div>
+            <span class="pill pill--warn">${medPending} 待复核</span>
+          </div>
+          <div class="divider"></div>
+          <div class="stack">
+            ${extMeds
+              .map(
+                (m) => `<div class="item"><div class="item__main"><div class="item__title">${m.drug} · ${m.dose}</div><div class="item__desc">${getPatientLabel(m.patientId)}｜来源：${m.from}</div></div><div class="item__right">${m.status === "已确认" ? `<span class="pill pill--ok">已确认</span>` : `<button class="btn btn--sm btn--primary" data-action="med-review" data-id="${m.id}">确认方案</button>`}</div></div>`,
+              )
+              .join("")}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="split">
+            <div>
+              <div class="title">健康宣教模块（视频 + 图文）</div>
+              <div class="muted" style="margin-top:4px">可查看指定患者的阅读内容与完成情况（演示）</div>
+            </div>
+            <span class="pill pill--warn">${eduUnread} 未读</span>
+          </div>
+          <div class="divider"></div>
+          <div class="muted">当前宣教内容：${eduCatalog.map((x) => `${x.type}《${x.title}》`).join("、")}</div>
+          <div class="divider"></div>
+          <div class="stack">
+            ${eduRows
+              .map(
+                (x) => `<div class="item"><div class="item__main"><div class="item__title">${getPatientLabel(x.patientId)}</div><div class="item__desc">已读 ${(x.readIds || []).length}/${eduCatalog.length}｜最近阅读 ${x.lastReadAt || "暂无"}</div></div><div class="item__right"><button class="btn btn--sm btn--ghost" data-action="edu-remind" data-patient="${x.patientId}">提醒</button><button class="btn btn--sm btn--primary" data-action="edu-view" data-patient="${x.patientId}">查看内容</button></div></div>`,
               )
               .join("")}
           </div>
@@ -723,10 +1009,13 @@
   function renderDonors() {
     const page = pages.find((p) => p.dataset.page === "donors");
     if (!page) return;
+    const scope = storage.get(KEYS.donorScope, "本科室可见");
+    const scopes = ["仅本人管理", "本科室可见", "跨院协作"];
     const total = seed.donors.length;
     const live = seed.donors.filter((d) => d.type.includes("活体")).length;
     const cad = total - live;
     const assessed = seed.donors.filter((d) => d.status.includes("已")).length;
+    const visibleDonors = scope === "仅本人管理" ? seed.donors.slice(0, 1) : seed.donors;
     page.innerHTML = `
       <div class="stack">
         <div class="card">
@@ -782,9 +1071,14 @@
 
         <div class="card">
           <div class="title">供体列表</div>
+          <div class="muted" style="margin-top:4px">当前可见范围：${scope}</div>
+          <div class="divider"></div>
+          <div class="segmented">
+            ${scopes.map((x) => `<button class="seg-btn ${scope === x ? "active" : ""}" data-action="donor-scope" data-scope="${x}">${x}</button>`).join("")}
+          </div>
           <div class="divider"></div>
           <div class="stack">
-            ${seed.donors
+            ${visibleDonors
               .map(
                 (d) => `
                 <div class="item clickable" data-action="open-donor" data-id="${d.id}">
@@ -809,6 +1103,7 @@
   function renderResearch() {
     const page = pages.find((p) => p.dataset.page === "research");
     if (!page) return;
+    const dsaRange = storage.get(KEYS.dsaRange, "90");
     const prj = seed.research.project;
     const cohort = seed.patients;
     const abnormal = cohort.filter((p) => p.risk === "异常").length;
@@ -816,6 +1111,29 @@
     const normal = cohort.length - abnormal - focus;
     page.innerHTML = `
       <div class="stack">
+        <div class="card">
+          <div class="split">
+            <div>
+              <div class="title">DSA 趋势（演示）</div>
+              <div class="muted" style="margin-top:4px">支持按 30/90/180 天筛选查看</div>
+            </div>
+            <span class="pill pill--soft">范围 ${dsaRange} 天</span>
+          </div>
+          <div class="divider"></div>
+          <div class="segmented">
+            ${[
+              { key: "30", label: "近30天" },
+              { key: "90", label: "近90天" },
+              { key: "180", label: "近180天" },
+            ]
+              .map((r) => `<button class="seg-btn ${dsaRange === r.key ? "active" : ""}" data-action="dsa-range" data-range="${r.key}">${r.label}</button>`)
+              .join("")}
+          </div>
+          <div style="height:8px"></div>
+          <canvas id="dsaChart" width="320" height="160"></canvas>
+          <div class="muted" id="dsaHint" style="margin-top:6px">DSA MFI 趋势仅用于随访参考（演示）。</div>
+        </div>
+
         <div class="card">
           <div class="split">
             <div>
@@ -958,6 +1276,65 @@
         </div>
       </div>
     `;
+    drawDsaTrend(dsaRange);
+  }
+
+  function drawDsaTrend(range) {
+    const canvas = $("#dsaChart");
+    const hint = $("#dsaHint");
+    if (!(canvas instanceof HTMLCanvasElement)) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const points = getDsaSeries(range);
+    if (hint) hint.textContent = `最近 ${range} 天 DSA MFI 变化（演示）：${points[0].v} -> ${points[points.length - 1].v}`;
+
+    const W = canvas.width;
+    const H = canvas.height;
+    const padL = 28;
+    const padR = 14;
+    const padT = 14;
+    const padB = 24;
+    const xs = points.map((_, i) => padL + (i * (W - padL - padR)) / Math.max(1, points.length - 1));
+    const min = Math.min(...points.map((p) => p.v));
+    const max = Math.max(...points.map((p) => p.v));
+    const span = Math.max(1, max - min);
+    const ys = points.map((p) => padT + (1 - (p.v - min) / span) * (H - padT - padB));
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.strokeStyle = "rgba(17,24,39,0.10)";
+    for (let i = 0; i <= 3; i += 1) {
+      const y = padT + (i * (H - padT - padB)) / 3;
+      ctx.beginPath();
+      ctx.moveTo(padL, y);
+      ctx.lineTo(W - padR, y);
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = "rgba(59,130,246,0.92)";
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    xs.forEach((x, i) => {
+      if (i === 0) ctx.moveTo(x, ys[i]);
+      else ctx.lineTo(x, ys[i]);
+    });
+    ctx.stroke();
+
+    xs.forEach((x, i) => {
+      ctx.fillStyle = "#fff";
+      ctx.strokeStyle = "rgba(59,130,246,0.95)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, ys[i], 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    });
+
+    ctx.fillStyle = "rgba(17,24,39,0.72)";
+    ctx.font = "12px -apple-system, BlinkMacSystemFont, Segoe UI, Microsoft YaHei, sans-serif";
+    [0, Math.floor(points.length / 2), points.length - 1].forEach((i) => {
+      const t = points[i].d;
+      ctx.fillText(t, xs[i] - ctx.measureText(t).width / 2, H - 7);
+    });
   }
 
   function renderAnalytics() {
@@ -1015,25 +1392,28 @@
       <div class="stack">
         <div class="card">
           <div class="split">
-            <div>
-              <div class="title">${seed.me.name}</div>
-              <div class="muted" style="margin-top:4px">${seed.me.dept}｜${seed.me.title}</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(59,130,246,.16);font-weight:950;color:#1e3a8a">张</div>
+              <div>
+                <div class="title">${seed.me.name}</div>
+                <div class="muted" style="margin-top:4px">${seed.me.dept}｜${seed.me.title}</div>
+              </div>
             </div>
-            <span class="pill pill--soft">${seed.me.hospital}</span>
+            <span class="pill pill--soft">医生</span>
           </div>
           <div class="divider"></div>
-          <div class="btn-row">
-            <button class="btn btn--ghost" data-action="settings">设置</button>
-            <button class="btn btn--primary" data-action="logout">退出</button>
+          <div class="muted">所在医院：${seed.me.hospital}</div>
+          <div class="divider"></div>
+          <div class="list">
+            <div class="item clickable" data-action="open-profile-settings"><div class="item__main"><div class="item__title">资料设置</div><div class="item__desc">头像、个人信息、科室设置</div></div><div class="item__right"><span class="pill pill--soft">进入</span></div></div>
+            <div class="item clickable" data-action="open-system-info"><div class="item__main"><div class="item__title">系统版本与关于</div><div class="item__desc">版本号、关于我们、隐私说明</div></div><div class="item__right"><span class="pill pill--soft">查看</span></div></div>
           </div>
         </div>
         <div class="card">
-          <div class="title">快捷入口</div>
+          <div class="title">账号操作</div>
+          <div class="muted" style="margin-top:4px">仅保留个人与系统相关操作</div>
           <div class="divider"></div>
-          <div class="stack">
-            <div class="item clickable" data-action="open-search"><div class="item__main"><div class="item__title">搜索患者</div><div class="item__desc">按姓名/ID 快速定位</div></div><div class="item__right"><span class="pill pill--soft">打开</span></div></div>
-            <div class="item clickable" data-action="open-alerts"><div class="item__main"><div class="item__title">查看预警</div><div class="item__desc">异常指标与处置闭环</div></div><div class="item__right"><span class="pill pill--soft">打开</span></div></div>
-          </div>
+          <button class="btn btn--danger" data-action="logout">退出登录</button>
         </div>
       </div>
     `;
@@ -1322,6 +1702,164 @@
       renderPatients();
       return;
     }
+    if (action === "reset-patient-filter") {
+      storage.set(KEYS.doctorFilters, { group: "全部患者", q: "" });
+      renderPatients();
+      toast("已清空筛选条件");
+      return;
+    }
+    if (action === "plan-open") {
+      const patientId = el.getAttribute("data-patient") || "";
+      const plans = getFollowupPlans();
+      const currentPlan = plans.find((x) => x.patientId === patientId) || { cycleMonths: 6, nextAt: "2026-06-30", mode: "术后随访" };
+      openSheet(`
+        <div class="title">个体化复查计划</div>
+        <div class="muted" style="margin-top:4px">${getPatientLabel(patientId)}</div>
+        <div class="divider"></div>
+        <div class="field">
+          <div class="muted" style="font-weight:900">复查周期（月）</div>
+          <select id="planCycle">${[1, 2, 3, 4, 5, 6].map((m) => `<option value="${m}" ${m === currentPlan.cycleMonths ? "selected" : ""}>${m}个月</option>`).join("")}</select>
+        </div>
+        <div class="divider"></div>
+        <div class="field">
+          <div class="muted" style="font-weight:900">下次复查日期</div>
+          <input id="planNext" type="date" value="${currentPlan.nextAt}" />
+        </div>
+        <div class="divider"></div>
+        <div class="btn-row">
+          <button class="btn btn--ghost" data-close="sheet">取消</button>
+          <button class="btn btn--primary" id="planSaveBtn">保存</button>
+        </div>
+      `);
+      setTimeout(() => {
+        $("#planSaveBtn")?.addEventListener("click", () => {
+          const cycle = Number($("#planCycle")?.value || currentPlan.cycleMonths);
+          const nextAt = String($("#planNext")?.value || currentPlan.nextAt);
+          const nextPlans = plans.map((x) => (x.patientId === patientId ? { ...x, cycleMonths: cycle, nextAt } : x));
+          storage.set(KEYS.followupPlans, nextPlans);
+          closeSheet();
+          renderPatients();
+          toast("已保存个体化复查计划");
+        });
+      }, 0);
+      return;
+    }
+    if (action === "plan-batch") {
+      toast("复查计划仅支持单患者设置");
+      return;
+    }
+    if (action === "plan-reset") {
+      storage.del(KEYS.followupPlans);
+      renderPatients();
+      toast("已恢复默认复查计划");
+      return;
+    }
+    if (action === "report-fetch-one") {
+      const patientId = el.getAttribute("data-patient") || "";
+      if (!patientId) return;
+      openSheet(`
+        <div class="title">院内调取报告</div>
+        <div class="muted" style="margin-top:4px">患者：${getPatientLabel(patientId)}</div>
+        <div class="divider"></div>
+        <div class="field">
+          <div class="muted" style="font-weight:900">报告类型</div>
+          <select id="fetchType">
+            <option value="肾功能报告">肾功能报告</option>
+            <option value="血药浓度报告">血药浓度报告</option>
+            <option value="尿常规报告">尿常规报告</option>
+          </select>
+        </div>
+        <div class="divider"></div>
+        <div class="btn-row">
+          <button class="btn btn--ghost" data-close="sheet">取消</button>
+          <button class="btn btn--primary" id="fetchOneSave">确认调取</button>
+        </div>
+      `);
+      setTimeout(() => {
+        $("#fetchOneSave")?.addEventListener("click", () => {
+          const type = String($("#fetchType")?.value || "院内调取报告");
+          const reports = getReportCenter();
+          reports.unshift({
+            id: `rep-${Date.now()}`,
+            patientId,
+            title: type,
+            at: "2026-04-01 13:10",
+            status: "已结构化",
+            rawSaved: true,
+            blurry: false,
+            source: "院内调取",
+          });
+          storage.set(KEYS.reportCenter, reports);
+          closeSheet();
+          renderPatients();
+          toast(`已为 ${getPatientLabel(patientId)} 调取院内报告`);
+        });
+      }, 0);
+      return;
+    }
+    if (action === "report-retry") {
+      const id = el.getAttribute("data-id");
+      if (!id) return;
+      const reports = getReportCenter().map((r) => (r.id === id ? { ...r, blurry: false, status: "已结构化" } : r));
+      storage.set(KEYS.reportCenter, reports);
+      renderPatients();
+      toast("二次上传完成，结构化成功");
+      return;
+    }
+    if (action === "med-review") {
+      const id = el.getAttribute("data-id");
+      if (!id) return;
+      const meds = getExternalMeds().map((m) => (m.id === id ? { ...m, status: "已确认" } : m));
+      storage.set(KEYS.externalMeds, meds);
+      renderPatients();
+      toast("已确认院外用药方案");
+      return;
+    }
+    if (action === "edu-remind") {
+      const patientId = el.getAttribute("data-patient") || "";
+      toast(`已发送宣教阅读提醒：${getPatientLabel(patientId)}`);
+      return;
+    }
+    if (action === "edu-view") {
+      const patientId = el.getAttribute("data-patient") || "";
+      const rows = getEducationReads();
+      const row = rows.find((x) => x.patientId === patientId) || { patientId, readIds: [] };
+      const catalog = getEducationCatalog();
+      openModal(`
+        <div class="title">患者宣教详情</div>
+        <div class="muted" style="margin-top:4px">${getPatientLabel(patientId)}｜已读 ${(row.readIds || []).length}/${catalog.length}</div>
+        <div class="divider"></div>
+        <div class="stack">
+          ${catalog
+            .map(
+              (x) => `<div class="item"><div class="item__main"><div class="item__title">${x.type} · ${x.title}</div><div class="item__desc">${x.summary}｜约${x.minutes}分钟</div></div><div class="item__right">${(row.readIds || []).includes(x.id) ? `<span class="pill pill--ok">已读</span>` : `<button class="btn btn--sm btn--ghost" data-action="edu-mark" data-patient="${patientId}" data-lesson="${x.id}">标记已读</button>`}</div></div>`,
+            )
+            .join("")}
+        </div>
+        <div class="divider"></div>
+        <button class="btn btn--primary" data-close="modal">关闭</button>
+      `);
+      return;
+    }
+    if (action === "edu-mark") {
+      const patientId = el.getAttribute("data-patient") || "";
+      const lessonId = el.getAttribute("data-lesson") || "";
+      if (!patientId || !lessonId) return;
+      const rows = getEducationReads();
+      const idx = rows.findIndex((x) => x.patientId === patientId);
+      if (idx < 0) {
+        rows.push({ patientId, readIds: [lessonId], lastReadAt: "2026-04-01 13:30" });
+      } else {
+        const set = new Set(rows[idx].readIds || []);
+        set.add(lessonId);
+        rows[idx].readIds = Array.from(set);
+        rows[idx].lastReadAt = "2026-04-01 13:30";
+      }
+      storage.set(KEYS.educationReads, rows);
+      renderPatients();
+      openModal(`<div class="title">已更新阅读状态</div><div class="muted" style="margin-top:6px">${getPatientLabel(patientId)} 已完成一项宣教内容。</div><div class="divider"></div><button class="btn btn--primary" data-close="modal">关闭</button>`);
+      return;
+    }
     if (action === "open-patient") {
       const id = el.getAttribute("data-id");
       const kind = el.getAttribute("data-kind") || "patient";
@@ -1363,6 +1901,13 @@
       if (id) openDonorDetail(id);
       return;
     }
+    if (action === "donor-scope") {
+      const scope = el.getAttribute("data-scope") || "本科室可见";
+      storage.set(KEYS.donorScope, scope);
+      renderDonors();
+      toast(`已切换可见范围：${scope}`);
+      return;
+    }
     if (action === "donor-add") {
       toast("新增供体（演示入口）");
       return;
@@ -1399,6 +1944,12 @@
     if (action === "toggle-filter") {
       el.classList.toggle("active");
       toast("已切换筛选条件（演示）");
+      return;
+    }
+    if (action === "dsa-range") {
+      const range = el.getAttribute("data-range") || "90";
+      storage.set(KEYS.dsaRange, range);
+      renderResearch();
       return;
     }
     if (action === "export-data") {
@@ -1489,6 +2040,29 @@
       renderAlerts();
       return;
     }
+    if (action === "open-donors") {
+      go("donors");
+      renderDonors();
+      return;
+    }
+    if (action === "open-research") {
+      go("research");
+      renderResearch();
+      return;
+    }
+    if (action === "open-analytics") {
+      go("analytics");
+      renderAnalytics();
+      return;
+    }
+    if (action === "open-profile-settings") {
+      openSheet(`<div class="title">资料设置</div><div class="muted" style="margin-top:6px">可维护头像、姓名、科室与联系方式（演示）</div><div class="divider"></div><div class="field"><div class="muted" style="font-weight:900">姓名</div><input type="text" value="${seed.me.name}" disabled /></div><div class="field"><div class="muted" style="font-weight:900">科室</div><input type="text" value="${seed.me.dept}" disabled /></div><div class="divider"></div><button class="btn btn--primary" data-close="sheet">完成</button>`);
+      return;
+    }
+    if (action === "open-system-info") {
+      openModal(`<div class="title">系统版本与关于</div><div class="muted" style="margin-top:6px">版本：1.2.0（演示）</div><div class="divider"></div><div class="stack"><div class="item"><div class="item__main"><div class="item__title">关于我们</div><div class="item__desc">肾移植随访管理平台</div></div><div class="item__right"><span class="pill pill--soft">详情</span></div></div><div class="item"><div class="item__main"><div class="item__title">隐私说明</div><div class="item__desc">遵循院内隐私与数据安全规范（演示）</div></div><div class="item__right"><span class="pill pill--soft">查看</span></div></div></div><div class="divider"></div><button class="btn btn--primary" data-close="modal">关闭</button>`);
+      return;
+    }
     if (action === "adjust-med") {
       toast("调整用药（演示入口）");
       return;
@@ -1510,19 +2084,20 @@
       return;
     }
     if (action === "logout") {
-      openModal(`<div class="title">确认退出？</div><div class="muted" style="margin-top:6px">演示版可清空本地预警处置状态。</div><div class="divider"></div><div class="btn-row"><button class="btn btn--ghost" data-close="modal">取消</button><button class="btn btn--primary" data-action="clear-local">清空并退出</button></div>`);
+      openModal(`<div class="title">确认退出？</div><div class="muted" style="margin-top:6px">退出后返回登录页。</div><div class="divider"></div><div class="btn-row"><button class="btn btn--ghost" data-close="modal">取消</button><button class="btn btn--primary" data-action="clear-local">退出登录</button></div>`);
       return;
     }
     if (action === "clear-local") {
-      Object.values(KEYS).forEach((k) => storage.del(k));
+      clearAuth();
       closeModal();
-      toast("已清空本地状态（演示）");
-      renderAll();
+      applyAuthView();
+      toast("已退出登录");
       return;
     }
   });
 
   function renderAll() {
+    renderHome();
     renderPatients();
     renderAlerts();
     renderDonors();
@@ -1531,7 +2106,39 @@
     renderMe();
   }
 
+  loginSubmitEl?.addEventListener("click", () => {
+    if (loginSubmitEl.disabled) return;
+    const user = String(loginUserEl?.value || "").trim();
+    const pass = String(loginPassEl?.value || "").trim();
+    if (!/^1\d{10}$|^DR\d{4,}$/i.test(user)) {
+      setLoginHint("请输入工号(如DR1001)或11位手机号", true);
+      return toast("请输入工号(如DR1001)或11位手机号");
+    }
+    if (!pass) {
+      setLoginHint("请输入密码", true);
+      return toast("请输入密码");
+    }
+    loginSubmitEl.disabled = true;
+    loginSubmitEl.textContent = "登录中...";
+    setTimeout(() => {
+      setAuth(user.toUpperCase());
+      applyAuthView();
+      go("home");
+      renderAll();
+      toast("登录成功");
+    }, 260);
+  });
+  loginUserEl?.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") loginSubmitEl?.click();
+  });
+  loginPassEl?.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") loginSubmitEl?.click();
+  });
+  loginUserEl?.addEventListener("input", () => setLoginHint(doctorDemoHint, false));
+  loginPassEl?.addEventListener("input", () => setLoginHint(doctorDemoHint, false));
+
+  applyAuthView();
   initSearchDockAutoHide();
-  renderAll();
+  if (isAuthed()) renderAll();
 })();
 

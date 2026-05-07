@@ -8,6 +8,24 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <div class="login-gate" id="loginGate" aria-hidden="true">
+      <div class="login-card">
+        <div class="login-title">患者登录</div>
+        <div class="login-sub">肾移植随访平台</div>
+        <div class="field" style="margin-top:12px">
+          <div class="label">手机号</div>
+          <input id="loginUser" type="text" placeholder="请输入手机号" />
+        </div>
+        <div class="field">
+          <div class="label">密码</div>
+          <input id="loginPass" type="password" placeholder="请输入密码" />
+        </div>
+        <div style="height:8px"></div>
+        <button class="btn btn--primary" id="loginSubmit">登录</button>
+        <div class="login-hint" id="loginHint">演示账号：13800000000，密码任意非空</div>
+      </div>
+    </div>
+
     <div class="app" id="app">
       <header class="topbar">
         <div>
@@ -21,7 +39,7 @@
 
       <div class="search-dock" id="searchDock">
         <div class="search-dock__box" role="search" aria-label="页面内搜索">
-          <input id="quickSearchInput" class="search-dock__input" type="search" placeholder="搜索提醒、用药、检查、设备（回车直达）" />
+          <input id="quickSearchInput" class="search-dock__input" type="search" placeholder="搜索提醒、用药、检查、宣教（回车直达）" />
           <button class="search-dock__go" data-action="submit-quick-search" aria-label="执行搜索">搜索</button>
         </div>
       </div>
@@ -29,7 +47,8 @@
       <main class="pages" id="pages">
         <section class="page active" data-page="home" aria-label="首页"></section>
         <section class="page" data-page="data" aria-label="数据"></section>
-        <section class="page" data-page="devices" aria-label="设备"></section>
+        <section class="page" data-page="education" aria-label="宣教"></section>
+        <section class="page" data-page="followup" aria-label="随访"></section>
         <section class="page" data-page="reminders" aria-label="提醒"></section>
         <section class="page" data-page="symptoms" aria-label="症状"></section>
         <section class="page" data-page="medication" aria-label="用药"></section>
@@ -57,41 +76,23 @@
           </span>
           <span class="tab__label">数据</span>
         </button>
-        <button class="tab" data-nav="devices">
+        <button class="tab" data-nav="education">
           <span class="tab__icon" aria-hidden="true">
             <svg class="tab-svg" viewBox="0 0 24 24" fill="none">
-              <rect x="7" y="3" width="10" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
-              <path d="M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <rect x="4" y="5" width="16" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+              <path d="M10 9.5v5l4-2.5-4-2.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
             </svg>
           </span>
-          <span class="tab__label">设备</span>
+          <span class="tab__label">宣教</span>
         </button>
-        <button class="tab" data-nav="reminders">
+        <button class="tab" data-nav="followup">
           <span class="tab__icon" aria-hidden="true">
             <svg class="tab-svg" viewBox="0 0 24 24" fill="none">
-              <path d="M12 22a2.3 2.3 0 0 0 2.2-2H9.8A2.3 2.3 0 0 0 12 22Z" fill="currentColor" opacity=".9"/>
-              <path d="M18 16H6c1.2-1.3 2-2.8 2-5.3 0-3.5 1.9-6.2 4-6.7V3a1 1 0 0 1 2 0v1c2.1.5 4 3.2 4 6.7 0 2.5.8 4 2 5.3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+              <path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" stroke-width="2"/>
             </svg>
           </span>
-          <span class="tab__label">提醒</span>
-        </button>
-        <button class="tab" data-nav="symptoms">
-          <span class="tab__icon" aria-hidden="true">
-            <svg class="tab-svg" viewBox="0 0 24 24" fill="none">
-              <path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" />
-              <path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </span>
-          <span class="tab__label">症状</span>
-        </button>
-        <button class="tab" data-nav="medication">
-          <span class="tab__icon" aria-hidden="true">
-            <svg class="tab-svg" viewBox="0 0 24 24" fill="none">
-              <path d="M9.2 4.5 19.5 14.8a3.2 3.2 0 0 1 0 4.5 3.2 3.2 0 0 1-4.5 0L4.7 9.1a3.2 3.2 0 0 1 0-4.5 3.2 3.2 0 0 1 4.5 0Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-              <path d="M8.5 8.5 15.5 15.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </span>
-          <span class="tab__label">用药</span>
+          <span class="tab__label">随访</span>
         </button>
         <button class="tab" data-nav="profile">
           <span class="tab__icon" aria-hidden="true">

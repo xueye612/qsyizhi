@@ -673,3 +673,42 @@ canvas{width:100%; height: 160px; display:block}
   *{animation:none !important; transition:none !important;}
 }
 
+body.elder-mode .title{font-size:18px}
+body.elder-mode .muted{font-size:14px}
+body.elder-mode .item__title{font-size:16px}
+body.elder-mode .item__desc{font-size:14px}
+body.elder-mode .btn{min-height:50px; font-size:16px}
+body.elder-mode .pill{font-size:14px}
+body.elder-mode .label{font-size:14px}
+body.elder-mode input[type="text"],
+body.elder-mode input[type="number"],
+body.elder-mode textarea,
+body.elder-mode select{font-size:16px; min-height:46px}
+body.elder-mode .tab__label{font-size:13px}
+body.elder-mode .kpi__value{font-size:30px}
+body.elder-mode .tag{font-size:14px; padding: 9px 14px}
+
+.login-gate{
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: linear-gradient(165deg, #d9f2ff 0%, #f5fbff 45%, #eef8f0 100%);
+}
+.login-gate.show{display:flex}
+.login-card{
+  width: min(420px, 100%);
+  border-radius: 20px;
+  padding: 18px;
+  background: #fff;
+  border: 1px solid rgba(17,24,39,.08);
+  box-shadow: 0 22px 48px rgba(15,23,42,.14);
+}
+.login-title{font-size:22px; font-weight:950; color:#0f172a}
+.login-sub{margin-top:4px; color:#64748b; font-size:13px; font-weight:700}
+.login-hint{margin-top:10px; font-size:12px; color:#64748b; font-weight:700}
+.login-hint--error{color:#b91c1c}
+

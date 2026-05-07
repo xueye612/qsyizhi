@@ -30,6 +30,12 @@
     settings: "demo.patient.settings",
     reminderState: "demo.patient.reminders",
     deviceSync: "demo.patient.deviceSyncHistory",
+    outsideMeds: "demo.patient.outsideMeds",
+    educationRead: "demo.patient.educationRead",
+    educationFilter: "demo.patient.educationFilter",
+    voiceFeedback: "demo.patient.voiceFeedback",
+    elderMode: "demo.patient.elderMode",
+    authSession: "demo.patient.authSession",
   };
 
   const seedData = {
@@ -38,7 +44,7 @@
       id: "PT20260125",
       stage: "术后6个月",
       doctor: { name: "张主任", dept: "肾移植科", title: "主治医师", online: true },
-      hospital: "北京协和医院",
+      hospital: "山东第一医科大学第一附属医院",
       surgeryDate: "2025-09-01",
       risk: { level: "中风险", reason: "肌酐略高，需定期复查" },
       masked: { idCard: "110101********1234", phone: "138****5678" },
@@ -177,6 +183,18 @@
         { time: "2026-03-15", title: "新加药物", desc: "吗替麦考酚酯 0.5g bid（早/晚各0.5g）" },
       ],
     },
+    education: {
+      lessons: [
+        { id: "edu-1", type: "视频", title: "移植后饮食总原则", summary: "均衡饮食、控制盐分，避免生食和未消毒食物", minutes: 7, category: "饮食推荐", source: "NIDDK/MedlinePlus" },
+        { id: "edu-2", type: "图文", title: "低盐高蛋白一周参考餐", summary: "优质蛋白搭配蔬菜谷物，避免高钾高磷过量", minutes: 6, category: "饮食推荐", source: "NIDDK" },
+        { id: "edu-3", type: "视频", title: "免疫抑制剂按时服用", summary: "固定时间服药，不擅自停药，出现副作用及时就医", minutes: 8, category: "用药推荐", source: "NIDDK" },
+        { id: "edu-4", type: "图文", title: "漏服与相互作用处理", summary: "漏服补服规则、避免自行叠加剂量，警惕药物相互作用", minutes: 5, category: "用药推荐", source: "NIDDK" },
+        { id: "edu-5", type: "视频", title: "移植后运动进阶", summary: "从步行到中等强度运动，循序渐进，避免剧烈对抗", minutes: 6, category: "运动推荐", source: "临床随访常规" },
+        { id: "edu-6", type: "图文", title: "居家力量与柔韧训练", summary: "每周2-3次轻阻力训练，配合拉伸和呼吸练习", minutes: 5, category: "运动推荐", source: "临床随访常规" },
+        { id: "edu-7", type: "图文", title: "感染预防与手卫生", summary: "勤洗手、口罩防护、发热咳嗽或伤口异常及时就诊", minutes: 4, category: "注意事项", source: "NIDDK" },
+        { id: "edu-8", type: "视频", title: "复诊与化验节奏", summary: "按计划复查血肌酐、血药浓度和血压体重", minutes: 5, category: "注意事项", source: "NIDDK" },
+      ],
+    },
     devices: [
       {
         key: "bp",
@@ -260,8 +278,45 @@
   const quickSearchInput = $("#quickSearchInput");
   const appEl = $("#app");
   const pagesEl = $("#pages");
+  const loginGateEl = $("#loginGate");
+  const loginUserEl = $("#loginUser");
+  const loginPassEl = $("#loginPass");
+  const loginSubmitEl = $("#loginSubmit");
+  const loginHintEl = $("#loginHint");
   const searchState = { items: [] };
   let lastSearchOpenAt = 0;
+  const patientDemoHint = "演示账号：13800000000，密码任意非空";
+
+  function setLoginHint(msg, isError = false) {
+    if (!loginHintEl) return;
+    loginHintEl.textContent = msg;
+    loginHintEl.classList.toggle("login-hint--error", isError);
+  }
+
+  function isAuthed() {
+    return !!storage.get(KEYS.authSession, null);
+  }
+  function setAuth(user) {
+    storage.set(KEYS.authSession, { user, at: new Date().toISOString() });
+  }
+  function clearAuth() {
+    storage.del(KEYS.authSession);
+  }
+  function applyAuthView() {
+    const authed = isAuthed();
+    if (loginGateEl) {
+      loginGateEl.classList.toggle("show", !authed);
+      loginGateEl.setAttribute("aria-hidden", authed ? "true" : "false");
+    }
+    if (appEl) appEl.style.display = authed ? "" : "none";
+    if (!authed) {
+      if (loginSubmitEl) {
+        loginSubmitEl.disabled = false;
+        loginSubmitEl.textContent = "登录";
+      }
+      setLoginHint(patientDemoHint, false);
+    }
+  }
 
   function getSearchHistory() {
     return storage.get(KEYS.globalSearchHistory, []);
@@ -306,8 +361,8 @@
         tag: "设备",
         text: `${d.name} ${d.last.value} ${d.last.unit} ${d.last.extra || ""}`,
         run: () => {
-          go("devices");
-          renderDevices();
+          go("profile");
+          renderProfile();
         },
       });
     });
@@ -321,6 +376,31 @@
         run: () => {
           go("home");
           renderHome();
+        },
+      });
+    });
+    const outside = storage.get(KEYS.outsideMeds, []);
+    outside.forEach((m) => {
+      items.push({
+        title: `${m.drug} ${m.dose}`,
+        desc: `${m.status}｜${m.source}`,
+        tag: "院外用药",
+        text: `${m.drug} ${m.dose} ${m.status} ${m.source}`,
+        run: () => {
+          go("medication");
+          renderMedication();
+        },
+      });
+    });
+    seedData.education.lessons.forEach((x) => {
+      items.push({
+        title: x.title,
+        desc: `${x.summary}｜${x.minutes}分钟`,
+        tag: "宣教",
+        text: `${x.title} ${x.summary}`,
+        run: () => {
+          go("education");
+          renderEducation();
         },
       });
     });
@@ -506,14 +586,21 @@
   let current = "home";
   const pages = $$(".page");
   const tabs = $$(".tab");
+
+  function resolveNav(page) {
+    if (["reminders", "medication", "symptoms", "followup"].includes(page)) return "followup";
+    return page;
+  }
+
   function go(page) {
     const next = pages.find((p) => p.dataset.page === page);
     const prev = pages.find((p) => p.dataset.page === current);
     if (!next || next === prev) return;
     prev?.classList.remove("active");
     next.classList.add("active");
+    const navPage = resolveNav(page);
     tabs.forEach((t) => {
-      const active = t.dataset.nav === page;
+      const active = t.dataset.nav === navPage;
       t.classList.toggle("active", active);
       t.toggleAttribute("aria-current", active);
     });
@@ -573,6 +660,26 @@
   const deviceSyncHistory = storage.get(KEYS.deviceSync, []);
   storage.set(KEYS.deviceSync, deviceSyncHistory);
 
+  const outsideMeds = storage.get(KEYS.outsideMeds, [
+    { id: "om-1", drug: "他克莫司", dose: "1mg bid", source: "门诊处方拍照识别", status: "待医生审核" },
+  ]);
+  storage.set(KEYS.outsideMeds, outsideMeds);
+
+  const educationRead = storage.get(
+    KEYS.educationRead,
+    seedData.education.lessons.reduce((acc, x, idx) => {
+      acc[x.id] = idx === 0;
+      return acc;
+    }, {}),
+  );
+  storage.set(KEYS.educationRead, educationRead);
+
+  const voiceFeedback = storage.get(KEYS.voiceFeedback, []);
+  storage.set(KEYS.voiceFeedback, voiceFeedback);
+
+  const elderMode = !!storage.get(KEYS.elderMode, false);
+  storage.set(KEYS.elderMode, elderMode);
+
   // ---------- renderers ----------
   function disclaimerBlock() {
     return `
@@ -581,6 +688,28 @@
         <div class="callout__body">本功能为辅助参考，不替代主治医师的面诊和诊疗决策，如有疑虑请及时联系您的主管医师。</div>
       </div>
     `;
+  }
+
+  function markEducationRead(id) {
+    const readState = storage.get(KEYS.educationRead, {});
+    if (!readState[id]) {
+      readState[id] = true;
+      storage.set(KEYS.educationRead, readState);
+    }
+  }
+
+  function getLessonDetail(lesson) {
+    const blocks = {
+      "edu-1": ["三餐规律、少量多餐", "每日食盐建议控制在 5g 左右", "避免生食、生冷海鲜和未消毒奶制品"],
+      "edu-2": ["优质蛋白优先：鱼、蛋、瘦肉", "蔬菜主打深色叶菜，控制高钾食材", "记录每日饮食，复诊时给医生查看"],
+      "edu-3": ["免疫抑制剂固定时点服用", "不可自行停药或减量", "出现手抖、腹泻等不适需尽快反馈"],
+      "edu-4": ["漏服后不要叠加双倍剂量", "新增药物前先咨询医生", "常见感冒药/保健品可能有相互作用"],
+      "edu-5": ["术后先从步行开始，逐步增加", "每周至少 5 天、每次 20-30 分钟", "出现胸闷心慌时应停止并就医"],
+      "edu-6": ["轻阻力训练每周 2-3 次", "训练前后都要拉伸", "以不出现明显疲劳为宜"],
+      "edu-7": ["回家后先洗手再接触伤口", "人群密集场所建议佩戴口罩", "发热或伤口红肿要尽快就医"],
+      "edu-8": ["按计划复查肌酐和血药浓度", "化验前后保持规律服药", "复诊前整理近一周体重和血压记录"],
+    };
+    return blocks[lesson.id] || [lesson.summary];
   }
 
   function renderHome() {
@@ -691,9 +820,14 @@
           <div class="split">
             <div>
               <div class="title">检查报告上传</div>
-              <div class="muted" style="margin-top:4px">支持自动OCR识别与智能分析（演示）</div>
+              <div class="muted" style="margin-top:4px">保留原始报告 + 结构化解析，模糊图片可二次上传（演示）</div>
             </div>
             <button class="btn btn--sm btn--primary" data-action="upload-report">📸 上传</button>
+          </div>
+          <div class="divider"></div>
+          <div class="btn-row">
+            <button class="btn btn--ghost" data-action="upload-report">院外上传</button>
+            <button class="btn btn--ghost" data-action="simulate-internal-report">院内调取</button>
           </div>
           <div class="divider"></div>
           <div class="list">
@@ -703,10 +837,10 @@
               <div class="item clickable" data-action="view-upload" data-upload="${u.id}">
                 <div class="item__main">
                   <div class="item__title">${u.name}</div>
-                  <div class="item__desc">${u.time}</div>
+                  <div class="item__desc">${u.time}<br/>原始文件：${u.rawSaved ? "已保留" : "未知"}｜结构化：${u.structuredStatus || u.status}</div>
                 </div>
                 <div class="item__right">
-                  <span class="pill">${u.status}</span>
+                  ${u.blurry ? `<button class="btn btn--sm btn--ghost" data-action="retry-upload" data-upload="${u.id}">二次上传</button>` : `<span class="pill">${u.status}</span>`}
                 </div>
               </div>
             `,
@@ -955,7 +1089,6 @@
         `;
       })
       .join("");
-
     const adjustments = seedData.medication.adjustments
       .map(
         (a) => `
@@ -969,6 +1102,8 @@
       `,
       )
       .join("");
+
+    const outside = storage.get(KEYS.outsideMeds, []);
 
     page.innerHTML = `
       <div class="stack">
@@ -1005,6 +1140,110 @@
           </div>
           <div class="divider"></div>
           <button class="btn btn--primary" data-action="submit-side-effects">提交反馈</button>
+        </div>
+
+        <div class="card">
+          <div class="split">
+            <div>
+              <div class="title">院外用药上传识别</div>
+              <div class="muted" style="margin-top:4px">支持拍照识别剂量，并等待医生审核（演示）</div>
+            </div>
+            <button class="btn btn--sm btn--primary" data-action="outside-med-add">上传识别</button>
+          </div>
+          <div class="divider"></div>
+          <div class="list">
+            ${outside
+              .map(
+                (m) => `<div class="item"><div class="item__main"><div class="item__title">${m.drug} · ${m.dose}</div><div class="item__desc">来源：${m.source}</div></div><div class="item__right"><span class="pill ${m.status === "待医生审核" ? "pill--warn" : "pill--ok"}">${m.status}</span></div></div>`,
+              )
+              .join("")}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderFollowup() {
+    const page = pages.find((p) => p.dataset.page === "followup");
+    if (!page) return;
+    const reminderTodo = seedData.today.reminders.length;
+    const medCount = seedData.medication.regimen.length;
+    const symptomCount = storage.get(KEYS.symptomLogs, []).length;
+    const checkins = storage.get(KEYS.medicationCheckins, {});
+    const doneCount = Object.values(checkins[seedData.today.date] || {}).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0);
+    page.innerHTML = `
+      <div class="stack">
+        <div class="card">
+          <div class="split">
+            <div>
+              <div class="title">随访中心</div>
+              <div class="muted" style="margin-top:4px">用于把每日提醒、用药执行与症状反馈形成连续随访记录</div>
+            </div>
+            <span class="pill">今日任务 ${reminderTodo}</span>
+          </div>
+          <div class="divider"></div>
+          <div class="grid-3">
+            <div class="kpi"><div class="kpi__label">待处理提醒</div><div class="kpi__value">${reminderTodo}</div></div>
+            <div class="kpi"><div class="kpi__label">今日用药打卡</div><div class="kpi__value">${doneCount}</div></div>
+            <div class="kpi"><div class="kpi__label">症状反馈条数</div><div class="kpi__value">${symptomCount}</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="title">随访有什么作用？</div>
+          <div class="divider"></div>
+          <div class="list">
+            <div class="item"><div class="item__main"><div class="item__title">帮助医生连续判断病情</div><div class="item__desc">通过你的提醒完成情况、用药记录和症状趋势，医生可更早识别风险变化。</div></div><div class="item__right"><span class="pill pill--soft">连续</span></div></div>
+            <div class="item"><div class="item__main"><div class="item__title">减少漏服和漏检</div><div class="item__desc">把复诊、化验、服药统一管理，降低遗忘风险。</div></div><div class="item__right"><span class="pill pill--warn">关键</span></div></div>
+            <div class="item"><div class="item__main"><div class="item__title">提升复诊效率</div><div class="item__desc">复诊时可直接回看最近记录，减少重复描述。</div></div><div class="item__right"><span class="pill pill--ok">高效</span></div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="title">功能入口</div>
+          <div class="divider"></div>
+          <div class="list">
+            <div class="item clickable" data-action="open-followup-sub" data-sub="reminders"><div class="item__main"><div class="item__title">提醒任务</div><div class="item__desc">待处理 ${reminderTodo} 条，含复诊与检查提醒</div></div><div class="item__right"><span class="pill pill--warn">进入</span></div></div>
+            <div class="item clickable" data-action="open-followup-sub" data-sub="medication"><div class="item__main"><div class="item__title">用药管理</div><div class="item__desc">当前方案 ${medCount} 项，支持打卡与院外用药上报</div></div><div class="item__right"><span class="pill pill--soft">进入</span></div></div>
+            <div class="item clickable" data-action="open-followup-sub" data-sub="symptoms"><div class="item__main"><div class="item__title">症状反馈</div><div class="item__desc">累计反馈 ${symptomCount} 条，可继续补充今日情况</div></div><div class="item__right"><span class="pill pill--soft">进入</span></div></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderEducation() {
+    const page = pages.find((p) => p.dataset.page === "education");
+    if (!page) return;
+    const readState = storage.get(KEYS.educationRead, {});
+    const lessons = seedData.education.lessons;
+    const done = lessons.filter((x) => !!readState[x.id]).length;
+    const groups = ["全部", ...Array.from(new Set(lessons.map((x) => x.category)))];
+    const activeGroup = storage.get(KEYS.educationFilter, "全部");
+    const safeGroup = groups.includes(activeGroup) ? activeGroup : "全部";
+    const shown = safeGroup === "全部" ? lessons : lessons.filter((x) => x.category === safeGroup);
+    page.innerHTML = `
+      <div class="stack">
+        <div class="card">
+          <div class="split">
+            <div>
+              <div class="title">宣教模块</div>
+              <div class="muted" style="margin-top:4px">视频 + 图文教程，打开内容即自动记录阅读状态</div>
+            </div>
+            <span class="pill">${done}/${lessons.length}</span>
+          </div>
+          <div class="divider"></div>
+          <div class="tag-row">
+            ${groups.map((g) => `<button class="tag ${safeGroup === g ? "selected" : ""}" data-action="edu-filter" data-group="${g}">${g}</button>`).join("")}
+          </div>
+          <div class="divider"></div>
+          <div class="list">
+            ${shown
+              .map(
+                (x) => `<div class="item clickable" data-action="edu-open" data-id="${x.id}"><div class="item__main"><div class="item__title">${x.title}</div><div class="item__desc">${x.type}｜${x.category}｜约${x.minutes}分钟<br/>${x.summary}<br/>来源：${x.source}</div></div><div class="item__right">${readState[x.id] ? `<span class="pill pill--ok">已读</span>` : `<span class="pill pill--warn">未读</span>`}</div></div>`,
+              )
+              .join("")}
+          </div>
         </div>
       </div>
     `;
@@ -1151,22 +1390,30 @@
 
     const s = storage.get(KEYS.settings, defaultSettings);
     const famAuth = s.familyAuth ?? seedData.patient.family.map(() => true);
+    const eduRead = storage.get(KEYS.educationRead, {});
+    const voiceLogs = storage.get(KEYS.voiceFeedback, []);
+    const elder = !!storage.get(KEYS.elderMode, false);
+    const readCount = Object.values(eduRead).filter(Boolean).length;
     page.innerHTML = `
       <div class="stack">
         <div class="card">
           <div class="split">
-            <div>
-              <div class="title">${seedData.patient.name}</div>
-              <div class="muted" style="margin-top:4px">${seedData.patient.stage}｜ID: ${seedData.patient.id}｜随访医生: ${seedData.patient.doctor.name}</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(59,130,246,.16);font-weight:950;color:#1e3a8a">${seedData.patient.name.slice(0,1)}</div>
+              <div>
+                <div class="title">${seedData.patient.name}</div>
+                <div class="muted" style="margin-top:4px">${seedData.patient.stage}｜ID: ${seedData.patient.id}</div>
+              </div>
             </div>
             <span class="pill pill--warn">${seedData.patient.risk.level}</span>
           </div>
           <div class="divider"></div>
-          <div class="grid-2">
-            <div class="stat"><div class="stat__label">身份证号</div><div class="stat__value" style="font-size:13px">${seedData.patient.masked.idCard}</div></div>
-            <div class="stat"><div class="stat__label">手机号</div><div class="stat__value" style="font-size:13px">${seedData.patient.masked.phone}</div></div>
-            <div class="stat"><div class="stat__label">手术日期</div><div class="stat__value" style="font-size:13px">${seedData.patient.surgeryDate}</div></div>
-            <div class="stat"><div class="stat__label">医院</div><div class="stat__value" style="font-size:13px">${seedData.patient.hospital}</div></div>
+          <div class="muted">随访医生：${seedData.patient.doctor.name}（${seedData.patient.doctor.dept}）</div>
+          <div class="muted" style="margin-top:6px">就诊医院：${seedData.patient.hospital}</div>
+          <div class="divider"></div>
+          <div class="list">
+            <div class="item clickable" data-action="open-profile-edit"><div class="item__main"><div class="item__title">资料设置</div><div class="item__desc">头像、昵称、联系方式管理</div></div><div class="item__right"><span class="pill pill--soft">进入</span></div></div>
+            <div class="item clickable" data-action="open-profile-security"><div class="item__main"><div class="item__title">账号与安全</div><div class="item__desc">登录密码、设备登录记录</div></div><div class="item__right"><span class="pill pill--soft">进入</span></div></div>
           </div>
           <div class="divider"></div>
           <div class="callout callout--warn">
@@ -1200,15 +1447,64 @@
         </div>
 
         <div class="card">
-          <div class="title">设置中心</div>
-          <div class="muted" style="margin-top:4px">演示：导出/隐私/关于</div>
-          <div class="divider"></div>
-          <div class="btn-row">
-            <button class="btn btn--ghost" data-action="export">📊 数据导出</button>
-            <button class="btn btn--ghost" data-action="privacy">📄 隐私政策</button>
+          <div class="split">
+            <div>
+              <div class="title">健康宣教</div>
+              <div class="muted" style="margin-top:4px">阅读记录会自动同步给医生端</div>
+            </div>
+            <span class="pill">${readCount}/${seedData.education.lessons.length}</span>
           </div>
           <div class="divider"></div>
-          <button class="btn btn--ghost" data-action="about">ℹ️ 关于我们</button>
+          <div class="list">
+            ${seedData.education.lessons
+              .map(
+                (x) => `<div class="item clickable" data-action="edu-open" data-id="${x.id}"><div class="item__main"><div class="item__title">${x.title}</div><div class="item__desc">${x.category}｜约${x.minutes}分钟</div></div><div class="item__right">${eduRead[x.id] ? `<span class="pill pill--ok">已读</span>` : `<span class="pill pill--warn">未读</span>`}</div></div>`,
+              )
+              .join("")}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="split">
+            <div>
+              <div class="title">语音反馈与长辈模式</div>
+              <div class="muted" style="margin-top:4px">支持语音入口与大字号模式（演示）</div>
+            </div>
+            <button class="tag ${elder ? "selected" : ""}" data-action="toggle-elder">${elder ? "长辈模式已开" : "开启长辈模式"}</button>
+          </div>
+          <div class="divider"></div>
+          <div class="btn-row">
+            <button class="btn btn--ghost" data-action="voice-add">录入语音反馈</button>
+            <button class="btn btn--primary" data-action="voice-list">查看反馈</button>
+          </div>
+          <div class="divider"></div>
+          <div class="muted">最近反馈：${voiceLogs.length ? voiceLogs[voiceLogs.length - 1].text : "暂无"}</div>
+        </div>
+
+        <div class="card">
+          <div class="split">
+            <div>
+              <div class="title">设备管理（可选）</div>
+              <div class="muted" style="margin-top:4px">不是所有患者都需要连接设备，按需使用</div>
+            </div>
+            <span class="pill">${seedData.devices.filter((d) => d.connected).length} 已连接</span>
+          </div>
+          <div class="divider"></div>
+          <div class="btn-row">
+            <button class="btn btn--ghost" data-action="open-device-center">查看设备</button>
+            <button class="btn btn--primary" data-action="scan-devices">扫描设备</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="title">系统信息</div>
+          <div class="muted" style="margin-top:4px">版本与关于页面</div>
+          <div class="divider"></div>
+          <div class="list">
+            <div class="item clickable" data-action="export"><div class="item__main"><div class="item__title">数据导出</div><div class="item__desc">导出随访与健康记录（演示）</div></div><div class="item__right"><span class="pill pill--soft">导出</span></div></div>
+            <div class="item clickable" data-action="privacy"><div class="item__main"><div class="item__title">隐私政策</div><div class="item__desc">查看数据使用与隐私说明</div></div><div class="item__right"><span class="pill pill--soft">查看</span></div></div>
+            <div class="item clickable" data-action="about"><div class="item__main"><div class="item__title">关于我们</div><div class="item__desc">系统版本 1.2.0</div></div><div class="item__right"><span class="pill pill--soft">详情</span></div></div>
+          </div>
           <div class="divider"></div>
           <button class="btn btn--danger" data-action="logout">退出登录</button>
         </div>
@@ -1298,6 +1594,29 @@
           </div>
         </div>
       </div>
+    `;
+  }
+
+  function buildDeviceCenterHtml() {
+    const history = storage.get(KEYS.deviceSync, []);
+    return `
+      <h2 class="h2">设备管理（演示）</h2>
+      <div class="muted">设备入口已并入“我的”，按需连接与同步。</div>
+      <div class="divider"></div>
+      <div class="list">
+        ${seedData.devices
+          .map(
+            (d) => `<div class="item"><div class="item__main"><div class="item__title">${d.name}</div><div class="item__desc">最新：${d.last.value}${d.last.unit}｜${d.last.time}</div></div><div class="item__right"><button class="btn btn--sm btn--ghost" data-action="sync-device" data-device="${d.key}">立即同步</button></div></div>`,
+          )
+          .join("")}
+      </div>
+      <div class="divider"></div>
+      <div class="title">同步历史</div>
+      <div class="list" style="margin-top:8px">
+        ${history.length ? history.slice().reverse().map((h) => `<div class="item"><div class="item__main"><div class="item__title">${h.title}</div><div class="item__desc">${h.desc}</div></div><div class="item__right"><span class="pill">${h.time}</span></div></div>`).join("") : `<div class="muted">暂无同步记录。</div>`}
+      </div>
+      <div class="divider"></div>
+      <button class="btn btn--primary" data-close="modal">关闭</button>
     `;
   }
 
@@ -1508,8 +1827,21 @@
       go("reminders");
       return;
     }
+    if (action === "go-medication") {
+      go("medication");
+      return;
+    }
+    if (action === "go-symptoms") {
+      go("symptoms");
+      return;
+    }
     if (action === "go-data") {
       go("data");
+      return;
+    }
+    if (action === "open-followup-sub") {
+      const sub = el.getAttribute("data-sub") || "reminders";
+      go(sub);
       return;
     }
     if (action === "consult") {
@@ -1642,7 +1974,8 @@
         const time = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())} ${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
         const id = `u${Math.floor(Math.random() * 1e6)}`;
         const list = storage.get(KEYS.uploadRecords, seedData.today.uploads);
-        const next = [{ id, time, name: type, status: "上传中" }, ...list];
+        const blurry = Math.random() < 0.35;
+        const next = [{ id, time, name: type, status: "上传中", rawSaved: true, structuredStatus: "待解析", blurry }, ...list];
         storage.set(KEYS.uploadRecords, next);
         renderHome();
 
@@ -1660,14 +1993,33 @@
               updateUploadStatus(id, "分析中");
               setTimeout(() => {
                 hint.textContent = "已完成";
-                updateUploadStatus(id, "已解析");
+                updateUploadStatus(id, blurry ? "待二次上传" : "已解析");
                 renderHome();
-                toast("上传完成：已解析（演示）");
+                toast(blurry ? "识别到图片模糊，建议二次上传" : "上传完成：已解析（演示）");
               }, 1100);
             }, 900);
           }
         }, 260);
       });
+      return;
+    }
+    if (action === "simulate-internal-report") {
+      const now = nowForDemo();
+      const time = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())} ${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+      const list = storage.get(KEYS.uploadRecords, seedData.today.uploads);
+      storage.set(KEYS.uploadRecords, [{ id: `u${Date.now()}`, time, name: "院内调取报告", status: "已解析", rawSaved: true, structuredStatus: "已结构化", blurry: false }, ...list]);
+      renderHome();
+      toast("已调取院内报告");
+      return;
+    }
+    if (action === "retry-upload") {
+      const id = el.getAttribute("data-upload");
+      if (!id) return;
+      const list = storage.get(KEYS.uploadRecords, seedData.today.uploads);
+      const next = list.map((u) => (u.id === id ? { ...u, blurry: false, status: "已解析", structuredStatus: "已结构化" } : u));
+      storage.set(KEYS.uploadRecords, next);
+      renderHome();
+      toast("二次上传成功，结构化完成");
       return;
     }
 
@@ -1676,7 +2028,7 @@
       const uploads = storage.get(KEYS.uploadRecords, seedData.today.uploads);
       const u = uploads.find((x) => x.id === id);
       openModal(
-        `<h2 class="h2">${u?.name ?? "报告详情"}</h2><div class="muted">状态：${u?.status ?? "—"}<br/>时间：${u?.time ?? "—"}</div><div class="divider"></div><div class="callout callout--info"><div class="callout__title">解析结果（演示）</div><div class="callout__body">这里可展示 OCR 提取的关键指标与变化趋势。演示版不输出诊断性结论。</div></div>${disclaimerBlock()}<button class="btn btn--primary" style="margin-top:10px" data-close="modal">关闭</button>`,
+        `<h2 class="h2">${u?.name ?? "报告详情"}</h2><div class="muted">状态：${u?.status ?? "—"}<br/>结构化：${u?.structuredStatus || u?.status || "—"}<br/>原始文件：${u?.rawSaved ? "已保留" : "未知"}<br/>时间：${u?.time ?? "—"}</div><div class="divider"></div><div class="callout callout--info"><div class="callout__title">解析结果（演示）</div><div class="callout__body">这里可展示 OCR 提取的关键指标与变化趋势。演示版不输出诊断性结论。</div></div>${u?.blurry ? `<div class="divider"></div><button class="btn btn--ghost" data-action="retry-upload" data-upload="${u.id}">图片模糊，点击二次上传</button>` : ""}${disclaimerBlock()}<button class="btn btn--primary" style="margin-top:10px" data-close="modal">关闭</button>`,
         { fullscreen: true },
       );
       return;
@@ -1822,6 +2174,75 @@
       return;
     }
 
+    if (action === "outside-med-add") {
+      openSheet(`
+        <h2 class="h2">院外用药识别（演示）</h2>
+        <div class="muted">上传处方/药盒后可识别药名与剂量，提交医生审核。</div>
+        <div class="divider"></div>
+        <div class="field"><div class="label">药名</div><input id="omDrug" type="text" value="他克莫司" /></div>
+        <div class="field"><div class="label">剂量</div><input id="omDose" type="text" value="1mg bid" /></div>
+        <div class="field"><div class="label">来源说明</div><input id="omSource" type="text" value="门诊处方拍照识别" /></div>
+        <div class="divider"></div>
+        <div class="btn-row">
+          <button class="btn btn--ghost" data-close="sheet">取消</button>
+          <button class="btn btn--primary" id="omSave">提交审核</button>
+        </div>
+      `);
+      setTimeout(() => {
+        $("#omSave")?.addEventListener("click", () => {
+          const drug = String($("#omDrug")?.value || "").trim();
+          const dose = String($("#omDose")?.value || "").trim();
+          const source = String($("#omSource")?.value || "").trim();
+          if (!drug || !dose) return toast("请填写药名和剂量");
+          const list = storage.get(KEYS.outsideMeds, []);
+          list.unshift({ id: `om-${Date.now()}`, drug, dose, source: source || "患者手填", status: "待医生审核" });
+          storage.set(KEYS.outsideMeds, list);
+          closeSheet();
+          renderMedication();
+          toast("已提交医生审核");
+        });
+      }, 0);
+      return;
+    }
+
+    if (action === "edu-open") {
+      const id = el.getAttribute("data-id") || "";
+      const lesson = seedData.education.lessons.find((x) => x.id === id);
+      if (!lesson) return;
+      markEducationRead(lesson.id);
+      renderEducation();
+      renderProfile();
+      const detailRows = getLessonDetail(lesson).map((x) => `<li>${x}</li>`).join("");
+      openModal(
+        `<h2 class="h2">${lesson.title}</h2><div class="muted">${lesson.type}｜${lesson.category}｜约${lesson.minutes}分钟｜来源：${lesson.source}</div><div class="divider"></div><div class="callout callout--info"><div class="callout__title">内容摘要</div><div class="callout__body">${lesson.summary}<br/>系统已自动记录：已阅读。</div></div><div class="divider"></div><div class="title">核心要点</div><ul class="bullet" style="margin:8px 0 0 0;padding-left:18px">${detailRows}</ul><div class="divider"></div><button class="btn btn--primary" data-close="modal">关闭</button>`,
+        { fullscreen: true },
+      );
+      return;
+    }
+    if (action === "edu-filter") {
+      const group = el.getAttribute("data-group") || "全部";
+      storage.set(KEYS.educationFilter, group);
+      renderEducation();
+      return;
+    }
+    if (action === "open-device-center") {
+      openModal(buildDeviceCenterHtml(), { fullscreen: true });
+      return;
+    }
+    if (action === "open-profile-edit") {
+      openSheet(
+        `<h2 class="h2">资料设置</h2><div class="muted">可维护头像、昵称、联系方式（演示）</div><div class="divider"></div><div class="field"><div class="label">头像</div><input type="text" value="默认头像" disabled /></div><div class="field"><div class="label">昵称</div><input type="text" value="${seedData.patient.name}" disabled /></div><div class="field"><div class="label">手机号</div><input type="text" value="${seedData.patient.masked.phone}" disabled /></div><div class="divider"></div><button class="btn btn--primary" data-close="sheet">完成</button>`,
+      );
+      return;
+    }
+    if (action === "open-profile-security") {
+      openModal(
+        `<h2 class="h2">账号与安全</h2><div class="muted">密码管理、登录设备管理（演示）</div><div class="divider"></div><div class="list"><div class="item"><div class="item__main"><div class="item__title">最近登录设备</div><div class="item__desc">iPhone 14 · 山东</div></div><div class="item__right"><span class="pill">当前</span></div></div><div class="item"><div class="item__main"><div class="item__title">密码状态</div><div class="item__desc">上次修改：30天前</div></div><div class="item__right"><span class="pill pill--soft">正常</span></div></div></div><div class="divider"></div><button class="btn btn--primary" data-close="modal">关闭</button>`,
+        { fullscreen: true },
+      );
+      return;
+    }
+
     if (action === "submit-symptoms") {
       const tagsRoot = $("#symptomTags");
       const chosen = $$(".tag.selected", tagsRoot).map((x) => x.getAttribute("data-tag")).filter(Boolean);
@@ -1874,7 +2295,7 @@
           desc: `设备：${seedData.devices.find((d) => d.key === key)?.name ?? key}（演示）`,
         });
         storage.set(KEYS.deviceSync, hist);
-        renderDevices();
+        renderProfile();
         toast("同步成功");
       }, 1100);
       return;
@@ -1917,6 +2338,47 @@
       return;
     }
 
+    if (action === "edu-toggle") return;
+    if (action === "toggle-elder") {
+      const next = !storage.get(KEYS.elderMode, false);
+      storage.set(KEYS.elderMode, next);
+      document.body.classList.toggle("elder-mode", next);
+      renderAll();
+      toast(next ? "已开启长辈模式" : "已关闭长辈模式");
+      return;
+    }
+    if (action === "voice-add") {
+      openSheet(`
+        <h2 class="h2">语音反馈（演示）</h2>
+        <div class="muted">可替代语音识别结果输入文字，提交给随访团队。</div>
+        <div class="divider"></div>
+        <div class="field"><div class="label">反馈内容</div><textarea id="voiceText" placeholder="例如：最近晚上手抖加重，服药后1小时缓解"></textarea></div>
+        <div class="divider"></div>
+        <div class="btn-row"><button class="btn btn--ghost" data-close="sheet">取消</button><button class="btn btn--primary" id="voiceSave">提交</button></div>
+      `);
+      setTimeout(() => {
+        $("#voiceSave")?.addEventListener("click", () => {
+          const text = String($("#voiceText")?.value || "").trim();
+          if (!text) return toast("请填写反馈内容");
+          const logs = storage.get(KEYS.voiceFeedback, []);
+          logs.push({ at: `${seedData.today.date} 15:00`, text });
+          storage.set(KEYS.voiceFeedback, logs);
+          closeSheet();
+          renderProfile();
+          toast("已提交语音反馈");
+        });
+      }, 0);
+      return;
+    }
+    if (action === "voice-list") {
+      const logs = storage.get(KEYS.voiceFeedback, []);
+      openModal(
+        `<h2 class="h2">语音反馈记录</h2><div class="divider"></div><div class="list">${logs.length ? logs.slice().reverse().map((x) => `<div class="item"><div class="item__main"><div class="item__title">患者反馈</div><div class="item__desc">${x.text}</div></div><div class="item__right"><span class="pill">${x.at}</span></div></div>`).join("") : `<div class="muted">暂无反馈记录</div>`}</div><div class="divider"></div><button class="btn btn--primary" data-close="modal">关闭</button>`,
+        { fullscreen: true },
+      );
+      return;
+    }
+
     if (action === "privacy") {
       openModal(
         `<h2 class="h2">隐私政策（演示）</h2><div class="muted">此处展示隐私条款摘要与完整内容入口（演示）。</div><div class="divider"></div><button class="btn btn--primary" data-close="modal">关闭</button>`,
@@ -1952,17 +2414,15 @@
     }
     if (action === "logout") {
       openModal(
-        `<h2 class="h2">确认退出？</h2><div class="muted">演示版可选择清空本地记录。</div><div class="divider"></div><div class="btn-row"><button class="btn btn--ghost" data-close="modal">取消</button><button class="btn btn--danger" id="btnClearAndExit">清空并退出</button></div>`,
+        `<h2 class="h2">确认退出？</h2><div class="muted">退出后将返回登录页。</div><div class="divider"></div><div class="btn-row"><button class="btn btn--ghost" data-close="modal">取消</button><button class="btn btn--danger" id="btnClearAndExit">退出登录</button></div>`,
         { fullscreen: false },
       );
       setTimeout(() => {
         $("#btnClearAndExit")?.addEventListener("click", () => {
-          Object.values(KEYS).forEach((k) => storage.del(k));
-          storage.del("demo.patient.data.metric");
-          storage.del("demo.patient.data.range");
+          clearAuth();
           closeModal();
-          toast("已清空本地数据（演示）");
-          renderAll();
+          applyAuthView();
+          toast("已退出登录");
         });
       }, 0);
       return;
@@ -1982,22 +2442,64 @@
 
   function updateUploadStatus(id, status) {
     const list = storage.get(KEYS.uploadRecords, seedData.today.uploads);
-    const next = list.map((u) => (u.id === id ? { ...u, status } : u));
+    const next = list.map((u) =>
+      u.id === id
+        ? {
+            ...u,
+            status,
+            structuredStatus: status === "已解析" ? "已结构化" : status,
+          }
+        : u,
+    );
     storage.set(KEYS.uploadRecords, next);
   }
 
   function renderAll() {
+    const elder = !!storage.get(KEYS.elderMode, false);
+    document.body.classList.toggle("elder-mode", elder);
     renderHome();
     renderReminders();
+    renderEducation();
     renderMedication();
     renderSymptoms();
     renderData();
-    renderDevices();
     renderProfile();
   }
 
   // init
+  loginSubmitEl?.addEventListener("click", () => {
+    if (loginSubmitEl.disabled) return;
+    const user = String(loginUserEl?.value || "").trim();
+    const pass = String(loginPassEl?.value || "").trim();
+    if (!/^1\d{10}$/.test(user)) {
+      setLoginHint("请输入11位手机号", true);
+      return toast("请输入11位手机号");
+    }
+    if (!pass) {
+      setLoginHint("请输入密码", true);
+      return toast("请输入密码");
+    }
+    loginSubmitEl.disabled = true;
+    loginSubmitEl.textContent = "登录中...";
+    setTimeout(() => {
+      setAuth(user);
+      applyAuthView();
+      go("home");
+      renderAll();
+      toast("登录成功");
+    }, 260);
+  });
+  loginUserEl?.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") loginSubmitEl?.click();
+  });
+  loginPassEl?.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") loginSubmitEl?.click();
+  });
+  loginUserEl?.addEventListener("input", () => setLoginHint(patientDemoHint, false));
+  loginPassEl?.addEventListener("input", () => setLoginHint(patientDemoHint, false));
+
+  applyAuthView();
   initSearchDockAutoHide();
-  renderAll();
+  if (isAuthed()) renderAll();
 })();
 
