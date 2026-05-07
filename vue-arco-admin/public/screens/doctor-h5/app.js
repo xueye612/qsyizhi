@@ -21,7 +21,6 @@
 
   const KEYS = {
     doctorFilters: "demo.doctor.filters",
-    waitlistFilter: "demo.doctor.waitlist.filter",
     globalSearchHistory: "demo.doctor.search.history",
     alertState: "demo.doctor.alerts",
     patientNotes: "demo.doctor.patientNotes",
@@ -331,8 +330,8 @@
         tag: "配型患者",
         text: `${w.patientName} ${w.patientId} ${w.bloodType} ${w.hla} ${w.status} ${w.risk}`,
         run: () => {
-          go("waitlist");
-          renderWaitlist();
+          go("patients");
+          renderPatients();
           openWaitlistDetail(w.id);
         },
       });
@@ -522,17 +521,18 @@
   const pages = $$(".page");
   const tabs = $$(".tab");
   function go(page) {
-    const next = pages.find((p) => p.dataset.page === page);
+    const targetPage = pages.some((p) => p.dataset.page === page) ? page : "patients";
+    const next = pages.find((p) => p.dataset.page === targetPage);
     const prev = pages.find((p) => p.dataset.page === current);
     if (!next || next === prev) return;
     prev?.classList.remove("active");
     next.classList.add("active");
     tabs.forEach((t) => {
-      const active = t.dataset.nav === page;
+      const active = t.dataset.nav === targetPage;
       t.classList.toggle("active", active);
       t.toggleAttribute("aria-current", active);
     });
-    current = page;
+    current = targetPage;
   }
   tabs.forEach((t) => t.addEventListener("click", () => t.dataset.nav && go(t.dataset.nav)));
 
@@ -555,16 +555,48 @@
     const page = pages.find((p) => p.dataset.page === "patients");
     if (!page) return;
 
-    const filters = storage.get(KEYS.doctorFilters, { group: "全部患者", q: "" });
-    const groups = ["全部患者", "异常", "需关注", "术后", "术前"];
+    const groups = ["全部患者", "待配型", "异常", "需关注", "术后", "术前"];
+    const rawFilters = storage.get(KEYS.doctorFilters, { group: "全部患者", q: "" }) || {};
+    const activeGroup = groups.includes(rawFilters.group) ? rawFilters.group : "全部患者";
+    const filters = { group: activeGroup, q: String(rawFilters.q || "") };
 
-    const q = String(filters.q || "").trim();
-    let list = seed.patients.slice();
+    const waitlistRows = seed.waitlist.map((w) => {
+      const mappedRisk = w.risk === "高危" ? "异常" : w.risk === "关注" ? "需关注" : "正常";
+      return {
+        kind: "waitlist",
+        id: w.id,
+        patientId: w.patientId,
+        name: w.patientName,
+        stage: "待配型",
+        risk: mappedRisk,
+        waitStatus: w.status,
+        waitDays: w.waitDays,
+        hla: w.hla,
+        updatedAt: `下次复查 ${w.nextReviewAt}`,
+        metrics: {
+          creatinine: Number.NaN,
+          tacrolimus: Number.NaN,
+          weight: Number.NaN
+        },
+        raw: w
+      };
+    });
+
+    let list = [
+      ...seed.patients.map((p) => ({ kind: "patient", ...p })),
+      ...waitlistRows
+    ];
+
+    if (filters.group === "待配型") list = list.filter((p) => p.kind === "waitlist");
     if (filters.group === "异常") list = list.filter((p) => p.risk === "异常");
     if (filters.group === "需关注") list = list.filter((p) => p.risk === "需关注");
-    if (filters.group === "术后") list = list.filter((p) => p.stage.includes("术后"));
-    if (filters.group === "术前") list = list.filter((p) => p.stage.includes("术前"));
-    if (q) list = list.filter((p) => `${p.name}${p.id}`.includes(q));
+    if (filters.group === "术后") list = list.filter((p) => String(p.stage || "").includes("术后"));
+    if (filters.group === "术前") list = list.filter((p) => String(p.stage || "").includes("术前"));
+
+    const q = String(filters.q || "").trim();
+    if (q) {
+      list = list.filter((p) => `${p.name}${p.id}${p.patientId || ""}${p.hla || ""}${p.waitStatus || ""}`.includes(q));
+    }
 
     page.innerHTML = `
       <div class="stack">
@@ -596,17 +628,20 @@
               .join("")}
           </div>
           <div style="height:10px"></div>
+          <div class="wait-merge-tip">待配型患者已并入本列表，可直接通过“待配型”筛选。</div>
+          <div style="height:10px"></div>
           <div class="stack">
             ${list
               .map(
                 (p) => `
-              <div class="patient-card clickable" data-action="open-patient" data-id="${p.id}">
+              <div class="patient-card ${p.kind === "waitlist" ? "patient-card--waitlist" : ""} clickable" data-action="open-patient" data-id="${p.id}" data-kind="${p.kind}">
                 <div class="patient-top">
                   <div style="min-width:0">
                     <div class="patient-name">${p.name}</div>
                     <div class="patient-meta">
                       <span class="pill pill--soft">${p.stage}</span>
-                      <span class="pill pill--soft">ID: ${p.id}</span>
+                      <span class="pill pill--soft">ID: ${p.patientId || p.id}</span>
+                      ${p.kind === "waitlist" ? `<span class="pill pill--danger">待配型</span>` : ""}
                     </div>
                   </div>
                   <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
@@ -616,128 +651,27 @@
                 </div>
                 <div class="metric-row">
                   <div class="metric">
-                    <div class="metric__v">${fmt(p.metrics.creatinine)}</div>
-                    <div class="metric__u">肌酐 μmol/L</div>
+                    <div class="metric__v">${p.kind === "waitlist" ? fmt(p.waitDays) : fmt(p.metrics.creatinine)}</div>
+                    <div class="metric__u">${p.kind === "waitlist" ? "等待天数 d" : "肌酐 μmol/L"}</div>
                   </div>
                   <div class="metric">
-                    <div class="metric__v">${fmt(p.metrics.tacrolimus)}</div>
-                    <div class="metric__u">血药浓度 ng/ml</div>
+                    <div class="metric__v">${p.kind === "waitlist" ? (p.hla || "—") : fmt(p.metrics.tacrolimus)}</div>
+                    <div class="metric__u">${p.kind === "waitlist" ? "HLA摘要" : "血药浓度 ng/ml"}</div>
                   </div>
                   <div class="metric">
-                    <div class="metric__v">${fmt(p.metrics.weight)}</div>
-                    <div class="metric__u">体重 kg</div>
+                    <div class="metric__v">${p.kind === "waitlist" ? (p.waitStatus || "—") : fmt(p.metrics.weight)}</div>
+                    <div class="metric__u">${p.kind === "waitlist" ? "配型状态" : "体重 kg"}</div>
                   </div>
                 </div>
                 <div class="patient-foot">
                   <div class="patient-updated">最后更新：${p.updatedAt}</div>
-                  <span class="pill pill--soft">点击卡片打开</span>
+                  <span class="pill pill--soft">${p.kind === "waitlist" ? "配型详情" : "点击卡片打开"}</span>
                 </div>
               </div>
             `,
               )
               .join("")}
           </div>
-        </div>
-      </div>
-    `;
-  }
-
-  function renderWaitlist() {
-    const page = pages.find((p) => p.dataset.page === "waitlist");
-    if (!page) return;
-    const st = storage.get(KEYS.waitlistFilter, { view: "all" });
-    const view = String(st.view || "all");
-    let list = seed.waitlist.slice();
-    if (view === "high") list = list.filter((x) => x.risk === "高危");
-    if (view === "review") list = list.filter((x) => x.status === "待复查");
-
-    const high = seed.waitlist.filter((x) => x.risk === "高危").length;
-    const due = seed.waitlist.filter((x) => x.status === "待复查").length;
-    const externalPending = seed.waitlist.filter((x) => x.externalResultStatus === "待上传").length;
-    const pendingMatch = seed.waitlist.filter((x) => x.status === "待配型").length;
-    const matching = seed.waitlist.filter((x) => x.status === "配型中").length;
-    const highList = seed.waitlist
-      .filter((x) => x.risk === "高危")
-      .sort((a, b) => b.waitDays - a.waitDays)
-      .slice(0, 2);
-
-    page.innerHTML = `
-      <div class="stack">
-        <div class="card">
-          <div class="split">
-            <div>
-              <div class="title">等待配型患者</div>
-              <div class="muted" style="margin-top:4px">等待周期常为 1-2 年，需半年度随访复查（演示）</div>
-            </div>
-            <span class="pill pill--soft">总人数 ${seed.waitlist.length}</span>
-          </div>
-          <div class="divider"></div>
-          <div class="grid-3">
-            <div class="kpi"><div class="kpi__label">总等待人数</div><div class="kpi__value">${seed.waitlist.length}</div></div>
-            <div class="kpi kpi--danger"><div class="kpi__label">高风险</div><div class="kpi__value">${high}</div></div>
-            <div class="kpi kpi--warn"><div class="kpi__label">近30天待复查</div><div class="kpi__value">${due}</div></div>
-          </div>
-          <div class="divider"></div>
-          <div class="wait-flow">
-            <div class="wait-flow__step"><span class="wait-flow__idx">1</span><div><div class="wait-flow__title">入组等待</div><div class="wait-flow__desc">进入候选池</div></div></div>
-            <div class="wait-flow__step"><span class="wait-flow__idx">2</span><div><div class="wait-flow__title">半年复查</div><div class="wait-flow__desc">动态评估风险</div></div></div>
-            <div class="wait-flow__step"><span class="wait-flow__idx">3</span><div><div class="wait-flow__title">外院上传</div><div class="wait-flow__desc">补齐关键结果</div></div></div>
-            <div class="wait-flow__step"><span class="wait-flow__idx">4</span><div><div class="wait-flow__title">本院调取</div><div class="wait-flow__desc">复核完整数据</div></div></div>
-            <div class="wait-flow__step"><span class="wait-flow__idx">5</span><div><div class="wait-flow__title">进入配型</div><div class="wait-flow__desc">优先级排序</div></div></div>
-          </div>
-          <div style="height:10px"></div>
-          <div class="wait-status-grid">
-            <div class="wait-status wait-status--blue"><div class="wait-status__label">待配型</div><div class="wait-status__value">${pendingMatch}</div></div>
-            <div class="wait-status wait-status--cyan"><div class="wait-status__label">配型中</div><div class="wait-status__value">${matching}</div></div>
-            <div class="wait-status wait-status--amber"><div class="wait-status__label">待复查</div><div class="wait-status__value">${due}</div></div>
-            <div class="wait-status wait-status--red"><div class="wait-status__label">高风险</div><div class="wait-status__value">${high}</div></div>
-          </div>
-          <div style="height:10px"></div>
-          <div class="callout callout--info">
-            <div class="callout__title">重点关注（高风险）</div>
-            <div class="callout__body">
-              ${highList.length
-                ? highList
-                    .map((x) => `${x.patientName}（${x.patientId}）· 等待 ${x.waitDays} 天 · 下次复查 ${x.nextReviewAt}`)
-                    .join("<br/>")
-                : "暂无高风险患者"}
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="split">
-            <div class="title">配型等待列表</div>
-            <button class="btn btn--sm btn--ghost" data-action="open-search">搜索</button>
-          </div>
-          <div class="divider"></div>
-          <div class="segmented">
-            <button class="seg-btn ${view === "all" ? "active" : ""}" data-action="set-waitlist-filter" data-view="all">全部</button>
-            <button class="seg-btn ${view === "high" ? "active" : ""}" data-action="set-waitlist-filter" data-view="high">高风险</button>
-            <button class="seg-btn ${view === "review" ? "active" : ""}" data-action="set-waitlist-filter" data-view="review">待复查</button>
-          </div>
-          <div style="height:10px"></div>
-          <div class="stack">
-            ${list
-              .map(
-                (r) => `
-                <div class="item wait-item wait-item--${r.risk === "高危" ? "high" : r.risk === "关注" ? "warn" : "normal"} clickable" data-action="open-waitlist" data-id="${r.id}">
-                  <div class="item__main">
-                    <div class="item__title">${r.patientName} <span class="muted">${r.patientId}</span></div>
-                    <div class="item__desc">血型 ${r.bloodType}｜HLA ${r.hla}｜等待 ${r.waitDays} 天（约 ${Math.max(1, Math.round(r.waitDays / 365))} 年）<br/>下次复查：${r.nextReviewAt}｜外院：${r.externalResultStatus}｜状态：${r.status}</div>
-                    <div class="wait-item__meta">复查周期：${r.followupCycle}｜本院调取：${r.internalResultStatus}｜宣教：${r.educationStatus}</div>
-                  </div>
-                  <div class="item__right">
-                    ${r.risk === "高危" ? pill("danger", "高危") : r.risk === "关注" ? pill("warn", "关注") : pill("ok", "稳定")}
-                    <span class="pill pill--soft">查看</span>
-                  </div>
-                </div>
-              `,
-              )
-              .join("")}
-          </div>
-          <div class="divider"></div>
-          <div class="muted">外院待上传：${externalPending} 人；建议优先补齐后再进入配型复核流程。</div>
         </div>
       </div>
     `;
@@ -1388,20 +1322,15 @@
       renderPatients();
       return;
     }
-    if (action === "set-waitlist-filter") {
-      const view = el.getAttribute("data-view") ?? "all";
-      storage.set(KEYS.waitlistFilter, { view });
-      renderWaitlist();
-      return;
-    }
     if (action === "open-patient") {
       const id = el.getAttribute("data-id");
-      if (id) openPatientDetail(id);
-      return;
-    }
-    if (action === "open-waitlist") {
-      const id = el.getAttribute("data-id");
-      if (id) openWaitlistDetail(id);
+      const kind = el.getAttribute("data-kind") || "patient";
+      if (!id) return;
+      if (kind === "waitlist") {
+        openWaitlistDetail(id);
+      } else {
+        openPatientDetail(id);
+      }
       return;
     }
     if (action === "open-alert") {
@@ -1595,7 +1524,6 @@
 
   function renderAll() {
     renderPatients();
-    renderWaitlist();
     renderAlerts();
     renderDonors();
     renderResearch();

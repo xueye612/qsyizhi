@@ -1,7 +1,6 @@
 /** 标准模块页：副标题与表格列文案（路由 name === menu item key） */
 
 export const MODULE_SUBTITLE: Record<string, string> = {
-  'patients.waitlist': '等待配型（1-2年）管理、半年复查提醒、外院上传与本院调取',
   'follow.tasks': '任务分派、到期提醒与随访闭环',
   'follow.records': '电话 / 门诊 / 住院随访记录检索',
   'follow.plan': '个体化监护与复查计划配置',

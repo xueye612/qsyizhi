@@ -52,6 +52,11 @@
           <a-tab-pane key="labs" title="检验明细">
             <section class="sec">
               <header class="sec-h"><h3>检验记录</h3><small>最近 90 天 · 共 {{ labRows.length }} 行</small></header>
+              <div class="report-tools">
+                <a-button type="primary" size="small" @click="triggerReportPick">上传报告并识别（演示）</a-button>
+                <span class="report-note">{{ reportFileName ? `已识别：${reportFileName}` : '支持上传检验/检查报告，自动补充关键指标。' }}</span>
+                <input ref="reportInputRef" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none" @change="onReportPicked" />
+              </div>
               <a-table
                 :data="labRows"
                 :columns="labCols"
@@ -129,6 +134,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { Message, Modal } from '@arco-design/web-vue';
 import { IconLeft } from '@arco-design/web-vue/es/icon';
 import { seedPatients } from '@/mock/patients';
 import PatientHeaderBanner from '@/components/clinical/PatientHeaderBanner.vue';
@@ -148,10 +154,17 @@ const router = useRouter();
 const all = seedPatients();
 const id = computed(() => String(route.params.id || ''));
 const patient = computed(() => all.find((p) => p.id === id.value) || all[0]);
+const reportInputRef = ref<HTMLInputElement | null>(null);
+const reportFileName = ref('');
+const recognizedLab = ref<{ ts: string; scr?: number | null; egfr?: number | null; tac?: number | null; prot?: number | null } | null>(null);
 
 const tab = ref<'overview' | 'labs' | 'meds' | 'enc' | 'notes'>('overview');
 
-const labRows = computed(() => (patient.value.clinical?.labs || []).slice().reverse());
+const labRows = computed(() => {
+  const rows = (patient.value.clinical?.labs || []).slice().reverse();
+  if (!recognizedLab.value) return rows;
+  return [recognizedLab.value, ...rows];
+});
 const labCols = [
   { title: '日期', dataIndex: 'ts', width: 110 },
   { title: 'Scr', dataIndex: 'scr' },
@@ -183,6 +196,85 @@ const imgCols = [
 ];
 
 function goBack() { router.push({ name: 'patients.list' }); }
+
+function triggerReportPick() {
+  reportInputRef.value?.click();
+}
+
+function parseLabFromName(name: string) {
+  const out: { scr?: number; egfr?: number; tac?: number; prot?: number } = {};
+
+  function pickNum(patterns: RegExp[]) {
+    for (const p of patterns) {
+      const m = name.match(p);
+      if (m?.[1]) return Number(m[1]);
+    }
+    return undefined;
+  }
+
+  out.scr = pickNum([
+    /(?:scr|serum\s*creatinine|creatinine|肌酐)\s*[:=：]?\s*(\d{2,3})/i,
+    /(?:scr|肌酐)[_\-\s]?(\d{2,3})/i
+  ]);
+  out.egfr = pickNum([
+    /(?:egfr|gfr|肾小球滤过率)\s*[:=：]?\s*(\d{2,3})/i,
+    /(?:egfr|gfr)[_\-\s]?(\d{2,3})/i
+  ]);
+  out.tac = pickNum([
+    /(?:tac|tacrolimus|fk506|他克莫司)\s*[:=：]?\s*(\d{1,2}(?:\.\d)?)/i,
+    /(?:tac|他克莫司)[_\-\s]?(\d{1,2}(?:\.\d)?)/i
+  ]);
+  out.prot = pickNum([
+    /(?:prot|proteinuria|尿蛋白|蛋白尿)\s*[:=：]?\s*(\d{1,2}(?:\.\d)?)/i,
+    /(?:prot|尿蛋白|蛋白尿)[_\-\s]?(\d{1,2}(?:\.\d)?)/i
+  ]);
+
+  return out;
+}
+
+function onReportPicked(ev: Event) {
+  const input = ev.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  reportFileName.value = file.name;
+  const parsed = parseLabFromName(file.name);
+  const next = {
+    ts: new Date().toISOString().slice(0, 10),
+    scr: parsed.scr ?? 116,
+    egfr: parsed.egfr ?? 56,
+    tac: parsed.tac ?? 7.1,
+    prot: parsed.prot ?? 8.8
+  };
+  const latest = recognizedLab.value || (patient.value.clinical?.labs || []).slice().reverse()[0] || null;
+  const prev = {
+    scr: typeof latest?.scr === 'number' ? latest.scr : null,
+    egfr: typeof latest?.egfr === 'number' ? latest.egfr : null,
+    tac: typeof latest?.tac === 'number' ? latest.tac : null,
+    prot: typeof latest?.prot === 'number' ? latest.prot : null
+  };
+  const fmt = (v: number | null) => (v == null ? '—' : String(v));
+
+  Modal.confirm({
+    title: '识别结果确认',
+    content:
+      `文件：${file.name}\n` +
+      `Scr：${fmt(prev.scr)} -> ${next.scr}\n` +
+      `eGFR：${fmt(prev.egfr)} -> ${next.egfr}\n` +
+      `Tac：${fmt(prev.tac)} -> ${next.tac}\n` +
+      `尿蛋白：${fmt(prev.prot)} -> ${next.prot}\n` +
+      '是否追加到检验记录？',
+    okText: '确认追加',
+    cancelText: '取消',
+    onOk: () => {
+      recognizedLab.value = next;
+      Message.success('报告识别完成（演示）：已追加到检验记录顶部');
+    },
+    onCancel: () => {
+      Message.info('已取消本次追加');
+    }
+  });
+  input.value = '';
+}
 </script>
 
 <style scoped>
@@ -242,6 +334,19 @@ function goBack() { router.push({ name: 'patients.list' }); }
 .risk-card-h { font-size: 12px; color: var(--c-text-2); font-weight: 600; margin-bottom: 8px; }
 
 .pp-tabs :deep(.arco-tabs-nav) { padding-left: 4px; }
+
+.report-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.report-note {
+  font-size: 12px;
+  color: var(--c-text-muted);
+}
 
 .notes { display: flex; flex-direction: column; gap: 10px; }
 .note-card {

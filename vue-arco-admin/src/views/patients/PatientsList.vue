@@ -42,6 +42,14 @@
             <a-option value="abn">仅异常</a-option>
           </a-select>
         </div>
+        <div class="qItem">
+          <div class="qlabel">配型标识</div>
+          <a-select v-model="matching" class="sel" :trigger-props="{ autoFitPopupMinWidth: true }">
+            <a-option value="all">全部</a-option>
+            <a-option value="wait">待配型</a-option>
+            <a-option value="non-wait">非待配型</a-option>
+          </a-select>
+        </div>
         <a-tag v-if="preset === 'abnormal'" color="orangered" size="small">已锁定：异常标记 / 中高风险检验</a-tag>
         <a-tag v-if="preset === 'recent'" color="arcoblue" size="small">默认：最近更新时间倒序</a-tag>
         <div class="qActions">
@@ -55,7 +63,7 @@
           <MedStatCard label="总患者" hint="当前列表" :value="kpi.total" tone="primary" trend="列表口径" trend-dir="flat" :sparkline="spark(1, kpi.total)" />
           <MedStatCard label="异常患者" hint="异常标记" :value="kpi.abn" tone="danger" trend="优先复核" trend-dir="flat" :sparkline="spark(2, kpi.abn)" />
           <MedStatCard label="高风险" hint="分层=高" :value="kpi.high" tone="danger" trend="当日关注" trend-dir="flat" :sparkline="spark(3, kpi.high)" />
-          <MedStatCard label="最近更新" hint="日期" :value="kpi.updated" tone="default" trend="按列表排序" trend-dir="flat" :sparkline="spark(4, kpi.last24)" />
+          <MedStatCard label="待配型" hint="并入患者列表" :value="kpi.waiting" tone="warning" trend="可直接筛选" trend-dir="flat" :sparkline="spark(4, kpi.waiting)" />
         </template>
         <template v-else-if="preset === 'abnormal'">
           <MedStatCard label="纳入人数" hint="关注队列" :value="kpi.total" tone="primary" trend="队列规模" trend-dir="flat" :sparkline="spark(1, kpi.total)" />
@@ -159,6 +167,7 @@ const patients = ref<Patient[]>(seedPatients());
 const q = ref(String(route.query.q || ''));
 const status = ref<'all' | '术前' | '术后'>('all');
 const abn = ref<'all' | 'abn'>('all');
+const matching = ref<'all' | 'wait' | 'non-wait'>('all');
 
 type SortState = { field?: string; direction?: 'ascend' | 'descend' };
 const sortState = reactive<SortState>({ field: 'updatedAt', direction: 'descend' });
@@ -174,7 +183,7 @@ const pageTitle = computed(() => {
 const pageSub = computed(() => {
   if (props.preset === 'abnormal') return '工作台 · 关注队列';
   if (props.preset === 'recent') return '工作台 · 变更追踪';
-  return '按姓名、患者ID、状态与异常标记筛选';
+  return '按姓名、患者ID、状态、异常标记与配型标识筛选';
 });
 const tableTitle = computed(() => {
   if (props.preset === 'abnormal') return '异常 / 中高风险患者';
@@ -226,6 +235,7 @@ const headerChips = computed<HeaderChip[]>(() => {
     out.push({ label: '高风险', value: k.high, tone: k.high > 0 ? 'danger' : 'success' });
   } else {
     out.push({ label: '异常', value: k.abn, tone: k.abn > 0 ? 'danger' : 'success' });
+    out.push({ label: '待配型', value: k.waiting, tone: k.waiting > 0 ? 'warning' : 'success' });
     out.push({ label: '高风险', value: k.high, tone: k.high > 0 ? 'danger' : 'success' });
     out.push({ label: '最近更新', value: k.updated, tone: 'info' });
   }
@@ -375,6 +385,8 @@ const rows = computed(() => {
     list = list.filter((p) => p.name.toLowerCase().includes(qq) || p.id.toLowerCase().includes(qq));
   }
   if (status.value !== 'all') list = list.filter((p) => p.status === status.value);
+  if (matching.value === 'wait') list = list.filter((p) => !!p.matchingTag);
+  if (matching.value === 'non-wait') list = list.filter((p) => !p.matchingTag);
 
   if (props.preset === 'abnormal') {
     list = list.filter((p) => !!p.flags?.abnormal || riskLevel(p) !== 'low');
@@ -395,6 +407,13 @@ function fmtTs(iso?: string) {
   return s ? s.slice(0, 19).replace('T', ' ') : '—';
 }
 
+function compactPatientId(id?: string) {
+  const s = String(id || '');
+  if (!s) return '—';
+  if (s.length <= 8) return s;
+  return `${s.slice(0, 2)}***${s.slice(-4)}`;
+}
+
 function hoursAgoFrom(iso?: string) {
   const t = toMillis(iso);
   if (t == null) return Number.POSITIVE_INFINITY;
@@ -406,6 +425,7 @@ const kpi = computed(() => {
   const total = list.length;
   const abn0 = list.filter((p) => !!p.flags?.abnormal).length;
   const high = list.filter((p) => riskLevel(p) === 'high').length;
+  const waiting = list.filter((p) => !!p.matchingTag).length;
   const midHigh = list.filter((p) => {
     const lvl = riskLevel(p);
     return lvl === 'high' || lvl === 'mid';
@@ -428,6 +448,7 @@ const kpi = computed(() => {
     midHigh,
     critical,
     high,
+    waiting,
     last24,
     last72,
     updated: updated ? updated.slice(0, 10) : '—'
@@ -484,15 +505,28 @@ const pagination = reactive({
 });
 
 const columns = computed<TableColumnData[]>(() => [
-  { title: '患者ID', dataIndex: 'id', width: 160, sortable: { sortDirections: ['ascend', 'descend'] } },
-  { title: '姓名', dataIndex: 'name', width: 120 },
+  {
+    title: 'ID',
+    dataIndex: 'id',
+    width: 120,
+    sortable: { sortDirections: ['ascend', 'descend'] },
+    render: ({ record }: any) => {
+      const full = String((record as Patient).id || '');
+      return h(
+        'span',
+        { class: 'mono cell-nowrap', title: full },
+        compactPatientId(full)
+      );
+    }
+  },
+  { title: '姓名', dataIndex: 'name', width: 96 },
   { title: '性别', dataIndex: 'sex', width: 70 },
-  { title: '年龄', dataIndex: 'age', width: 70, sortable: { sortDirections: ['ascend', 'descend'] } },
-  { title: '患者状态', dataIndex: 'status', width: 110 },
+  { title: '年龄', dataIndex: 'age', width: 88, sortable: { sortDirections: ['ascend', 'descend'] } },
+  { title: '手术状态', dataIndex: 'status', width: 110 },
   {
     title: '状态/风险',
     dataIndex: 'flags',
-    width: 180,
+    width: 240,
     render: ({ record }: any) => {
       const p = record as Patient;
       const lvl = riskLevel(p);
@@ -502,10 +536,11 @@ const columns = computed<TableColumnData[]>(() => [
       const ATag = resolveComponent('a-tag') as any;
       return h(
         'div',
-        { style: 'display:flex;gap:8px;align-items:center;' },
+        { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap;' },
         [
           h(ATag, { color: abnF ? 'red' : 'green' }, () => (abnF ? '异常' : '正常')),
-          h(ATag, { color: riskTag }, () => `风险 ${risk}`)
+          h(ATag, { color: riskTag }, () => `风险 ${risk}`),
+          p.matchingTag ? h(ATag, { color: 'magenta' }, () => '待配型') : null
         ]
       );
     }
@@ -544,7 +579,10 @@ function onSorterChange(dataIndex: string, direction: 'ascend' | 'descend' | '')
 }
 
 function rowClass(record: any) {
-  return record.id === selectedId.value ? 'row-selected' : '';
+  const cls: string[] = [];
+  if (record.id === selectedId.value) cls.push('row-selected');
+  if (record.matchingTag) cls.push('row-waiting-match');
+  return cls.join(' ');
 }
 
 function removeSelected() {
@@ -717,6 +755,9 @@ function removeSelected() {
 }
 :deep(.row-selected .arco-table-td) {
   background: rgba(22, 119, 255, 0.06) !important;
+}
+:deep(.row-waiting-match .arco-table-td:first-child) {
+  box-shadow: inset 4px 0 0 #cb3cff;
 }
 :deep(.cell-nowrap) {
   white-space: nowrap;

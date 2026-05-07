@@ -33,7 +33,6 @@ export const MENU: MenuGroup[] = [
     icon: 'mdi:account-heart-outline',
     items: [
       { key: 'patients.list', label: '患者列表', icon: 'mdi:format-list-bulleted' },
-      { key: 'patients.waitlist', label: '等待配型患者', icon: 'mdi:account-clock-outline' },
       { key: 'patients.new', label: '新增患者', icon: 'mdi:account-plus-outline' },
       { key: 'patients.tags', label: '患者标签', icon: 'mdi:tag-outline' }
     ]

@@ -11,7 +11,6 @@ import PatientsList from '@/views/patients/PatientsList.vue';
 import PatientsNew from '@/views/patients/PatientsNew.vue';
 import PatientsTags from '@/views/patients/PatientsTags.vue';
 import PatientProfile from '@/views/patients/PatientProfile.vue';
-import PatientsWaitlistView from '@/views/modules/PatientsWaitlistView.vue';
 import WbTodo from '@/views/workbench/WbTodo.vue';
 import WbAbnormal from '@/views/workbench/WbAbnormal.vue';
 import WbRecent from '@/views/workbench/WbRecent.vue';
@@ -49,7 +48,6 @@ import SysCfgView from '@/views/modules/SysCfgView.vue';
 
 const PAGE_MAP: Record<string, Component> = {
   'patients.list': PatientsList,
-  'patients.waitlist': PatientsWaitlistView,
   'patients.new': PatientsNew,
   'patients.tags': PatientsTags,
   'wb.todo': WbTodo,

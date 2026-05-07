@@ -557,9 +557,22 @@ canvas{width:100%; height: 160px; display:block}
   border: 1px solid rgba(15,23,42,.08);
   box-shadow: 0 10px 22px rgba(17,24,39,.07);
 }
+.patient-card--waitlist{
+  border-color: rgba(203,60,255,.35);
+  box-shadow: 0 10px 22px rgba(203,60,255,.12);
+}
 .patient-card.clickable{cursor:pointer}
 .patient-card:hover{box-shadow: 0 14px 30px rgba(17,24,39,.10)}
 .patient-card:active{transform: scale(.995)}
+.wait-merge-tip{
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #7a227c;
+  background: linear-gradient(135deg, rgba(203,60,255,.10) 0%, rgba(236,72,153,.08) 100%);
+  border: 1px solid rgba(203,60,255,.22);
+}
 .patient-top{
   display:flex;
   align-items:flex-start;

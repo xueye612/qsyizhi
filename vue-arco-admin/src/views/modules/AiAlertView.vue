@@ -13,6 +13,33 @@
     :scroll-x="1200"
     can-view
   >
+    <template #drawer-view="{ record }">
+      <div class="detail" v-if="record">
+        <div class="detail__head">
+          <div>
+            <div class="detail__title">{{ record.metric }} 报警</div>
+            <div class="detail__meta">{{ record.patientName }}（{{ record.patientId }}）· 触发 {{ record.firedAt }}</div>
+          </div>
+          <a-tag :color="record.severity === '高' ? 'red' : record.severity === '中' ? 'orangered' : 'arcoblue'">{{ record.severity }}严重度</a-tag>
+        </div>
+
+        <div class="detail__grid">
+          <div class="detail__card">
+            <div class="detail__card-title">报警信息</div>
+            <div class="detail__line">报警编号：{{ record.id }}</div>
+            <div class="detail__line">报警指标：{{ record.metric }}</div>
+            <div class="detail__line">越阈说明：{{ record.breach }}</div>
+          </div>
+          <div class="detail__card">
+            <div class="detail__card-title">处置信息</div>
+            <div class="detail__line">通知渠道：{{ record.channel }}</div>
+            <div class="detail__line">当前状态：{{ record.status }}</div>
+            <div class="detail__line">建议动作：{{ record.status === '待处置' ? '优先确认并记录处置结论' : record.status === '已确认' ? '继续跟踪闭环' : '回溯阈值并优化规则' }}</div>
+          </div>
+        </div>
+      </div>
+    </template>
+
     <template #filters>
       <a-select v-model="filterSeverity" class="sel">
         <a-option value="all">全部严重度</a-option>
@@ -124,4 +151,27 @@ const columns: TableColumnData[] = [
   { title: '触发时间', dataIndex: 'firedAt', width: 150 }
 ];
 </script>
-<style scoped>.sel{width:130px}</style>
+<style scoped>
+.sel{width:130px}
+
+.detail { display: grid; gap: 10px; }
+.detail__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fff6f6 0%, #fff0f0 100%);
+  border: 1px solid #ffd8d8;
+}
+.detail__title { font-size: 14px; font-weight: 700; color: #1d2129; }
+.detail__meta { margin-top: 4px; font-size: 12px; color: #4e5969; }
+.detail__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.detail__card { padding: 10px; border-radius: 10px; border: 1px solid #e5e6eb; background: #fff; }
+.detail__card-title { font-size: 12px; font-weight: 700; color: #1d2129; margin-bottom: 8px; }
+.detail__line { font-size: 12px; color: #4e5969; line-height: 1.7; }
+@media (max-width: 720px) {
+  .detail__grid { grid-template-columns: 1fr; }
+}
+</style>

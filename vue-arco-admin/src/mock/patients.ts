@@ -14,6 +14,9 @@ export type Patient = {
   sex?: string;
   age?: number;
   status?: '术前' | '术后' | string;
+  matchingStatus?: '待配型' | '配型中' | '待复查' | '已入组手术' | null;
+  matchingTag?: boolean;
+  waitDays?: number;
   surgeryDate?: string;
   donorInfo?: string;
   flags?: { abnormal?: boolean };
@@ -126,6 +129,21 @@ export function seedPatients(): Patient[] {
   list[7].flags = { abnormal: true };
   list[11].records = { labs: mkLabs(118, 58, 4.4, 10.8, 1) };
   list[11].flags = { abnormal: true };
+
+  // 等待配型标识（并入患者列表后支持明显展示与可筛选）
+  const waitTagged: Array<{ idx: number; st: NonNullable<Patient['matchingStatus']>; days: number }> = [
+    { idx: 1, st: '待配型', days: 132 },
+    { idx: 4, st: '配型中', days: 198 },
+    { idx: 8, st: '待复查', days: 226 },
+    { idx: 13, st: '待配型', days: 104 },
+    { idx: 16, st: '配型中', days: 241 }
+  ];
+  waitTagged.forEach(({ idx, st, days }) => {
+    if (!list[idx]) return;
+    list[idx].matchingTag = true;
+    list[idx].matchingStatus = st;
+    list[idx].waitDays = days;
+  });
 
   // ===== v2: 为每位患者挂载完整临床档案（按需消费） =====
   for (let i = 0; i < list.length; i++) {

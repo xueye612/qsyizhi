@@ -14,6 +14,33 @@
     :scroll-x="1300"
     can-view
   >
+    <template #drawer-view="{ record }">
+      <div class="detail" v-if="record">
+        <div class="detail__head">
+          <div>
+            <div class="detail__title">{{ record.planName }}</div>
+            <div class="detail__meta">{{ record.patientName }}（{{ record.patientId }}）· 负责人 {{ record.owner }}</div>
+          </div>
+          <a-tag :color="record.status === '生效中' ? 'green' : record.status === '待启动' ? 'arcoblue' : record.status === '已暂停' ? 'orangered' : 'gray'">{{ record.status }}</a-tag>
+        </div>
+
+        <div class="detail__grid">
+          <div class="detail__card">
+            <div class="detail__card-title">计划信息</div>
+            <div class="detail__line">计划编号：{{ record.id }}</div>
+            <div class="detail__line">随访路径：{{ record.pathway }}</div>
+            <div class="detail__line">随访周期：{{ record.cycle }}</div>
+          </div>
+          <div class="detail__card">
+            <div class="detail__card-title">节点信息</div>
+            <div class="detail__line">上次随访：{{ record.lastReview }}</div>
+            <div class="detail__line">下次随访：{{ record.nextReview }}</div>
+            <div class="detail__line">当前状态：{{ record.status }}</div>
+          </div>
+        </div>
+      </div>
+    </template>
+
     <template #filters>
       <a-select v-model="filterStatus" class="sel">
         <a-option value="all">全部状态</a-option>
@@ -183,4 +210,25 @@ const chartOption = computed(() => {
 <style scoped>
 .sel { width: 130px; }
 .sel-wide { width: 160px; }
+
+.detail { display: grid; gap: 10px; }
+.detail__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f4f8ff 0%, #ecf3ff 100%);
+  border: 1px solid #dbe7ff;
+}
+.detail__title { font-size: 14px; font-weight: 700; color: #1d2129; }
+.detail__meta { margin-top: 4px; font-size: 12px; color: #4e5969; }
+.detail__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.detail__card { padding: 10px; border-radius: 10px; border: 1px solid #e5e6eb; background: #fff; }
+.detail__card-title { font-size: 12px; font-weight: 700; color: #1d2129; margin-bottom: 8px; }
+.detail__line { font-size: 12px; color: #4e5969; line-height: 1.7; }
+@media (max-width: 720px) {
+  .detail__grid { grid-template-columns: 1fr; }
+}
 </style>
