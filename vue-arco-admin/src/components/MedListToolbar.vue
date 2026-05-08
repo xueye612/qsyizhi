@@ -199,24 +199,24 @@ function resetColumns() {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   margin-bottom: 12px;
 }
 .left {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   flex: 1 1 0;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .right {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   flex-shrink: 0;
   margin-left: auto;
   justify-content: flex-end;
@@ -226,8 +226,8 @@ function resetColumns() {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: nowrap;
-  flex-shrink: 0;
+  flex-wrap: wrap;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -242,7 +242,8 @@ function resetColumns() {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-shrink: 0;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
 }
 .view-chip {
   appearance: none;
@@ -320,6 +321,11 @@ function resetColumns() {
 }
 
 @media (max-width: 720px) {
+  .right :deep(.arco-btn),
+  .right > .density,
+  .right :deep(.arco-dropdown) {
+    flex: 1 1 auto;
+  }
   .search {
     width: 100%;
     flex-basis: 100%;

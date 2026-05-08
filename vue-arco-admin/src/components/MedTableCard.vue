@@ -23,6 +23,11 @@ withDefaults(
 </script>
 
 <style scoped>
+.tableWrap{
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+}
 .tableWrap :deep(.arco-table-th) {
   background: #fafafa !important;
   font-weight: 600;
@@ -35,6 +40,26 @@ withDefaults(
 .tableWrap.density-compact :deep(.arco-table-td),
 .tableWrap.density-compact :deep(.arco-table-th) {
   padding: 6px 10px !important;
+}
+
+.tableWrap :deep(.arco-table-container) {
+  border-radius: var(--med-radius, 8px);
+}
+
+.tableWrap :deep(.arco-table-content-scroll-x) {
+  overflow-x: auto;
+}
+
+.tableWrap :deep(.arco-table-pagination) {
+  padding: 0 2px;
+}
+
+@media (max-width: 720px) {
+  .tableWrap :deep(.arco-table-td),
+  .tableWrap :deep(.arco-table-th) {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
 }
 /* 行左侧色条（语义色调） */
 .tableWrap :deep(.row-tone--danger .arco-table-td:first-child) {

@@ -1,6 +1,8 @@
 <template>
-  <a-layout style="height: 100vh;">
+  <a-layout class="app-shell" :class="{ 'is-mobile': isMobile, 'menu-open': isMobile && !collapsed }" style="height: 100vh;">
+    <div v-if="isMobile && !collapsed" class="mobile-mask" @click="collapsed = true" />
     <a-layout-sider
+      class="app-sider"
       :collapsed="collapsed"
       collapsible
       :width="264"
@@ -29,7 +31,7 @@
     <a-layout>
       <a-layout-header class="topbar">
         <div class="topbar-left">
-          <a-button type="text" class="iconbtn collapse-btn" @click="collapsed = !collapsed">
+          <a-button type="text" class="iconbtn collapse-btn" @click="toggleMenu">
             <component :is="collapsed ? IconMenuUnfold : IconMenuFold" />
           </a-button>
           <div class="page-titles">
@@ -138,6 +140,7 @@ const route = useRoute();
 const router = useRouter();
 
 const collapsed = ref(false);
+const isMobile = ref(false);
 const globalQuery = ref('');
 
 const selectedKeys = computed(() => [String(route.name || '')]);
@@ -179,6 +182,16 @@ function onMenuItemClick(key: string) {
     return;
   }
   router.push(routePathFromKey(key));
+  if (isMobile.value) collapsed.value = true;
+}
+
+function syncViewport() {
+  isMobile.value = window.innerWidth <= 900;
+  if (isMobile.value) collapsed.value = true;
+}
+
+function toggleMenu() {
+  collapsed.value = !collapsed.value;
 }
 
 /* ===== 通知中心 ===== */
@@ -269,10 +282,13 @@ function tick() {
 }
 
 onMounted(() => {
+  syncViewport();
+  window.addEventListener('resize', syncViewport);
   tick();
   timer = window.setInterval(tick, 1000);
 });
 onUnmounted(() => {
+  window.removeEventListener('resize', syncViewport);
   if (timer) window.clearInterval(timer);
 });
 
@@ -287,7 +303,7 @@ onUnmounted(() => {
   align-items:center;
   gap:10px;
   padding:0 16px;
-  background: #f0f4fc;
+  background: #f5f7fb;
   border-bottom:1px solid rgba(148,163,184,0.18);
   position: relative;
 }
@@ -301,10 +317,10 @@ onUnmounted(() => {
 .brand.collapsed{justify-content:center;padding:0 8px}
 .logo{
   flex-shrink:0;
-  width:32px;height:32px;border-radius:10px;
-  background: linear-gradient(135deg,#1677FF 0%,#0f52c8 100%);
+  width:32px;height:32px;border-radius:8px;
+  background: #1f6feb;
   display:flex;align-items:center;justify-content:center;
-  box-shadow: 0 2px 8px rgba(22,119,255,0.35);
+  box-shadow: 0 1px 4px rgba(22,119,255,0.25);
   font-size:14px;color:#fff;font-weight:900;letter-spacing:-0.02em;
   user-select:none;
 }
@@ -321,7 +337,7 @@ onUnmounted(() => {
   align-items:center;
   justify-content:space-between;
   gap:14px;
-  padding:10px 18px;
+  padding:8px 18px;
   border-bottom:1px solid rgba(148,163,184,0.18);
 }
 .topbar-left{display:flex;align-items:center;gap:10px;min-width:0}
@@ -348,7 +364,7 @@ onUnmounted(() => {
 .breadcrumb{font-size:12px;line-height:1.35;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 .topbar-mid{flex:1;display:flex;justify-content:center;min-width:0;padding:0 8px}
-.global-search{width:100%;max-width:min(400px,36vw);border-radius:999px}
+.global-search{width:100%;max-width:min(420px,38vw);border-radius:999px}
 
 .topbar-right{display:flex;align-items:center;gap:10px}
 .iconbtn{border-radius:10px}
@@ -357,8 +373,9 @@ onUnmounted(() => {
 .clock{font-size:12px;color:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 
 .content{
-  padding:12px 16px 16px;
+  padding:10px 14px 16px;
   overflow:auto;
+  min-width:0;
 }
 
 .notify-panel{
@@ -377,5 +394,53 @@ onUnmounted(() => {
 .notify-item.unread{background:rgba(22,119,255,0.04)}
 .notify-ts{font-size:12px;color:var(--med-muted);font-variant-numeric:tabular-nums}
 .notify-foot{padding:8px 12px;border-top:1px solid rgba(148,163,184,0.18);text-align:right}
+
+.mobile-mask{
+  position:fixed;
+  inset:0;
+  z-index:98;
+  background:rgba(15,23,42,.34);
+}
+
+@media (max-width: 1180px){
+  .clock{display:none}
+  .global-search{max-width:320px}
+}
+
+@media (max-width: 900px){
+  .app-sider{
+    position:fixed !important;
+    inset:0 auto 0 0;
+    z-index:99;
+    width:264px !important;
+    max-width:82vw;
+    transform:translateX(-100%);
+    transition:transform .18s ease;
+    box-shadow:8px 0 28px rgba(15,23,42,.18);
+  }
+  .app-shell.menu-open .app-sider{transform:translateX(0)}
+  .topbar{
+    min-height:54px;
+    gap:8px;
+    padding:8px 10px;
+  }
+  .page-titles{gap:2px}
+  .breadcrumb{display:none}
+  .page-title{font-size:16px;max-width:38vw}
+  .topbar-mid{flex:1 1 auto;padding:0 4px}
+  .global-search{max-width:none}
+  .uname{display:none}
+  .topbar-right{gap:4px}
+  .content{padding:8px;overflow:auto}
+}
+
+@media (max-width: 560px){
+  .topbar{flex-wrap:wrap;align-items:center}
+  .topbar-left{flex:1 1 auto}
+  .topbar-mid{order:3;flex:1 0 100%;padding:0}
+  .topbar-right{margin-left:auto}
+  .page-title{max-width:52vw}
+  .notify-panel{width:min(340px, calc(100vw - 32px))}
+}
 </style>
 

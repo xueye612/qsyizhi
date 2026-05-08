@@ -152,16 +152,15 @@ const statusPills = computed(() => {
 .med-hero {
   position: relative;
   display: grid;
-  grid-template-columns: auto auto 1fr auto auto;
+  grid-template-columns: auto auto minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 14px;
-  padding: 14px 18px 14px 22px;
-  margin-bottom: 14px;
+  gap: 12px;
+  padding: 12px 16px 12px 20px;
+  margin-bottom: 10px;
   border: 1px solid var(--med-border, #e5e6eb);
-  border-radius: 12px;
-  background:
-    linear-gradient(135deg, var(--hero-bg-1, #f4f8ff) 0%, #ffffff 60%, var(--hero-bg-2, #fafbfc) 100%);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .03), 0 4px 12px rgba(31, 111, 235, .04);
+  border-radius: var(--med-radius, 8px);
+  background: #fff;
+  box-shadow: var(--med-shadow, 0 1px 2px rgba(0, 0, 0, .04));
   overflow: hidden;
 }
 .hero-accent {
@@ -171,12 +170,12 @@ const statusPills = computed(() => {
   background: linear-gradient(180deg, var(--hero-accent-1, #1F6FEB), var(--hero-accent-2, #36cfc9));
 }
 .hero-icon {
-  width: 44px; height: 44px;
+  width: 40px; height: 40px;
   display: inline-flex; align-items: center; justify-content: center;
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--hero-icon-bg, rgba(31,111,235,.1));
   color: var(--hero-accent-1, #1F6FEB);
-  font-size: 22px;
+  font-size: 20px;
   flex-shrink: 0;
 }
 .hero-main { min-width: 0; }
@@ -188,14 +187,14 @@ const statusPills = computed(() => {
 }
 .bc-sep { opacity: .5; }
 .bc-i:last-of-type { color: var(--med-text-2, #4e5969); font-weight: 500; }
-.title-line { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.title-line { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .title {
   margin: 0;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   line-height: 1.3;
   color: var(--med-text, #1d2129);
-  letter-spacing: -.01em;
+  letter-spacing: 0;
 }
 .badge {
   font-size: 11px; font-weight: 600;
@@ -216,15 +215,16 @@ const statusPills = computed(() => {
 }
 
 .hero-meta {
-  display: flex; align-items: center; gap: 14px;
-  padding: 0 8px;
+  display: flex; align-items: stretch; gap: 10px;
+  padding: 0 4px;
+  min-width: 0;
 }
 .meta-cell {
   display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-  min-width: 56px;
+  min-width: 54px;
 }
 .m-k { font-size: 11px; color: var(--med-muted, #86909c); }
-.m-v { font-size: 18px; font-weight: 700; color: var(--med-text, #1d2129); line-height: 1.1; }
+.m-v { font-size: 17px; font-weight: 700; color: var(--med-text, #1d2129); line-height: 1.1; }
 .meta--primary .m-v { color: #1F6FEB; }
 .meta--success .m-v { color: #237804; }
 .meta--warning .m-v { color: #d25f00; }
@@ -232,7 +232,7 @@ const statusPills = computed(() => {
 .meta--info    .m-v { color: #08979c; }
 .meta-sep { width: 1px; height: 28px; background: var(--med-border, #e5e6eb); }
 
-.hero-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hero-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; min-width: 0; }
 .pill {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 12px; line-height: 22px;
@@ -264,9 +264,22 @@ const statusPills = computed(() => {
 .hero--default  { --hero-bg-1:#f4f8ff; --hero-bg-2:#fafbfc; --hero-accent-1:#1F6FEB; --hero-accent-2:#36cfc9; --hero-icon-bg:rgba(31,111,235,.1); }
 
 @media (max-width: 1100px) {
-  .med-hero { grid-template-columns: auto 1fr auto; }
-  .hero-icon { grid-row: 1 / 3; }
-  .hero-meta { grid-column: 1 / -1; padding: 0; }
-  .hero-right { grid-column: 1 / -1; justify-content: flex-end; }
+  .med-hero { grid-template-columns: auto minmax(0, 1fr); }
+  .hero-accent { width: 3px; }
+  .hero-icon { grid-row: 1 / 2; }
+  .hero-meta { grid-column: 1 / -1; padding: 2px 0 0; flex-wrap: wrap; }
+  .hero-right { grid-column: 1 / -1; justify-content: flex-start; }
+  .meta-sep { display: none; }
+  .meta-cell { min-width: 72px; }
+}
+
+@media (max-width: 640px) {
+  .med-hero { padding: 12px 12px 12px 16px; gap: 10px; }
+  .hero-icon { width: 36px; height: 36px; font-size: 18px; }
+  .bc { font-size: 11px; gap: 4px; }
+  .title { font-size: 17px; }
+  .desc { font-size: 12px; }
+  .hero-right :deep(.arco-btn) { flex: 1 1 auto; }
+  .pill { line-height: 20px; padding: 0 8px; }
 }
 </style>

@@ -34,6 +34,17 @@
     dsaRange: "demo.doctor.dsaRange",
   };
 
+  const PATIENT_PORTAL = {
+    id: "PT20260125",
+    name: "李明",
+    uploadRecordsKey: "demo.patient.uploadRecords",
+  };
+
+  const patientPortalUploadFallback = [
+    { id: "u1", time: "2026-03-31 09:30", name: "肾功能检查报告", status: "已解析", source: "院外上传", rawSaved: false, structuredStatus: "已解析", blurry: false },
+    { id: "u2", time: "2026-03-28 14:15", name: "血常规检查报告", status: "分析中", source: "院外上传", rawSaved: false, structuredStatus: "分析中", blurry: false },
+  ];
+
   // --- demo data generator (deterministic "random") ---
   function mulberry32(seedNum) {
     let a = seedNum >>> 0;
@@ -259,6 +270,7 @@
   };
 
   function getPatientLabel(patientId) {
+    if (patientId === PATIENT_PORTAL.id) return `${PATIENT_PORTAL.name} (${PATIENT_PORTAL.id})`;
     const p = seed.patients.find((x) => x.id === patientId);
     if (p) return `${p.name} (${p.id})`;
     const w = seed.waitlist.find((x) => x.patientId === patientId);
@@ -289,8 +301,29 @@
       { id: "rep-1", patientId: "PT20260241", title: "肾功能报告", at: "2026-04-01 09:10", status: "已结构化", rawSaved: true, blurry: false, source: "院外上传" },
       { id: "rep-2", patientId: "PT20260309", title: "血药浓度报告", at: "2026-04-01 08:36", status: "待二次上传", rawSaved: true, blurry: true, source: "院外上传" },
       { id: "rep-3", patientId: "PT20260177", title: "尿常规报告", at: "2026-03-31 17:45", status: "已结构化", rawSaved: true, blurry: false, source: "院内调取" },
+      { id: "rep-patient-demo", patientId: PATIENT_PORTAL.id, title: "患者端演示账号", at: "2026-04-01 10:20", status: "可调取", rawSaved: true, blurry: false, source: "患者档案" },
     ];
     return storage.get(KEYS.reportCenter, fallback);
+  }
+
+  function syncFetchedReportToPatientPortal(report) {
+    if (report.patientId !== PATIENT_PORTAL.id) return;
+    const current = storage.get(PATIENT_PORTAL.uploadRecordsKey, patientPortalUploadFallback);
+    const next = [
+      {
+        id: `doctor-${report.id}`,
+        time: report.at,
+        name: report.title,
+        status: "已解析",
+        source: "院内调取",
+        rawSaved: true,
+        structuredStatus: report.status,
+        blurry: false,
+        fetchedByDoctor: true,
+      },
+      ...current,
+    ];
+    storage.set(PATIENT_PORTAL.uploadRecordsKey, next);
   }
 
   function getExternalMeds() {
@@ -401,6 +434,8 @@
   const searchState = { items: [] };
   let lastSearchOpenAt = 0;
   const doctorDemoHint = "演示账号：DR1001，密码任意非空";
+  const doctorDemoUser = "DR1001";
+  const doctorDemoPass = "123456";
 
   function setLoginHint(msg, isError = false) {
     if (!loginHintEl) return;
@@ -429,6 +464,8 @@
         loginSubmitEl.disabled = false;
         loginSubmitEl.textContent = "登录";
       }
+      if (loginUserEl) loginUserEl.value = doctorDemoUser;
+      if (loginPassEl) loginPassEl.value = doctorDemoPass;
       setLoginHint(doctorDemoHint, false);
     }
   }
@@ -703,7 +740,7 @@
           <div class="split">
             <div>
               <div class="title">医生工作台首页</div>
-              <div class="muted" style="margin-top:4px">默认展示：首页、预警、关键数据</div>
+              <div class="muted" style="margin-top:4px">聚合今日随访、预警与复诊安排</div>
             </div>
             <span class="pill pill--soft">${seed.me.name}</span>
           </div>
@@ -732,7 +769,7 @@
 
         <div class="card">
           <div class="title">业务模块直达</div>
-          <div class="muted" style="margin-top:4px">简化后模块统一放在首页，不再放在“我的”中</div>
+          <div class="muted" style="margin-top:4px">常用扩展模块集中入口</div>
           <div class="divider"></div>
           <div class="stack">
             <div class="item clickable" data-action="open-donors"><div class="item__main"><div class="item__title">供体管理</div><div class="item__desc">供体列表、评估进度、时间线</div></div><div class="item__right"><span class="pill pill--soft">进入</span></div></div>
@@ -1779,7 +1816,7 @@
         $("#fetchOneSave")?.addEventListener("click", () => {
           const type = String($("#fetchType")?.value || "院内调取报告");
           const reports = getReportCenter();
-          reports.unshift({
+          const fetchedReport = {
             id: `rep-${Date.now()}`,
             patientId,
             title: type,
@@ -1788,8 +1825,10 @@
             rawSaved: true,
             blurry: false,
             source: "院内调取",
-          });
+          };
+          reports.unshift(fetchedReport);
           storage.set(KEYS.reportCenter, reports);
+          syncFetchedReportToPatientPortal(fetchedReport);
           closeSheet();
           renderPatients();
           toast(`已为 ${getPatientLabel(patientId)} 调取院内报告`);

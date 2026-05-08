@@ -138,8 +138,8 @@ const sparkArea = computed(() => {
 
 .med-stat-card :deep(.arco-card-body) {
   box-sizing: border-box;
-  padding: 12px 14px;
-  min-height: 84px;
+  padding: 10px 12px;
+  min-height: 78px;
   height: 100%;
 }
 
@@ -218,10 +218,10 @@ const sparkArea = computed(() => {
 
 .value {
   margin-top: 2px;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1.05;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--med-text, #1d2129);
   font-variant-numeric: tabular-nums;
 }
@@ -287,4 +287,11 @@ const sparkArea = computed(() => {
   opacity: .9;
 }
 .spark svg { display: block; }
+
+@media (max-width: 720px) {
+  .inner { align-items: flex-start; }
+  .spark { display: none; }
+  .trend { max-width: 42%; }
+  .value { font-size: 19px; }
+}
 </style>

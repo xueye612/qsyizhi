@@ -34,6 +34,8 @@
     educationRead: "demo.patient.educationRead",
     educationFilter: "demo.patient.educationFilter",
     voiceFeedback: "demo.patient.voiceFeedback",
+    homeSymptomLastAt: "demo.patient.homeSymptomLastAt",
+    appointmentBooking: "demo.patient.appointmentBooking",
     elderMode: "demo.patient.elderMode",
     authSession: "demo.patient.authSession",
   };
@@ -286,6 +288,8 @@
   const searchState = { items: [] };
   let lastSearchOpenAt = 0;
   const patientDemoHint = "演示账号：13800000000，密码任意非空";
+  const patientDemoUser = "13800000000";
+  const patientDemoPass = "123456";
 
   function setLoginHint(msg, isError = false) {
     if (!loginHintEl) return;
@@ -314,6 +318,8 @@
         loginSubmitEl.disabled = false;
         loginSubmitEl.textContent = "登录";
       }
+      if (loginUserEl) loginUserEl.value = patientDemoUser;
+      if (loginPassEl) loginPassEl.value = patientDemoPass;
       setLoginHint(patientDemoHint, false);
     }
   }
@@ -629,6 +635,21 @@
     // 固定“演示当前时间”：2026-04-01 12:00，便于稳定展示倒计时
     return new Date("2026-04-01T12:00:00");
   }
+  function getAppointmentBooking() {
+    return storage.get(KEYS.appointmentBooking, {
+      dept: "肾移植科门诊",
+      doctor: seedData.patient.doctor.name,
+      date: "2026-04-02",
+      time: "09:00",
+      room: "第3诊室",
+      type: "复查挂号",
+      note: "带上最近检查报告和近3天血压、体重记录",
+      status: "待就诊",
+    });
+  }
+  function appointmentDesc(a) {
+    return `${a.date} ${a.time}｜${a.dept}｜${a.doctor}｜${a.status}`;
+  }
   function getStatusPill(status) {
     if (status === "ok") return `<span class="pill pill--ok">正常</span>`;
     if (status === "high") return `<span class="pill pill--danger">偏高</span>`;
@@ -722,6 +743,12 @@
 
     const ov = storage.get(KEYS.dailyVitals, seedData.today.healthOverview);
     const uploads = storage.get(KEYS.uploadRecords, seedData.today.uploads);
+    const appointment = getAppointmentBooking();
+    const symptomLogs = storage.get(KEYS.symptomLogs, []);
+    const homeSymptomLastAt = storage.get(KEYS.homeSymptomLastAt, "");
+    const latestSymptom = symptomLogs[symptomLogs.length - 1];
+    const pendingTasks = seedData.today.tasks.filter((t) => t.status === "待完成").length;
+    const latestUpload = uploads[0];
 
     page.innerHTML = `
       <div class="stack">
@@ -758,11 +785,12 @@
           <div class="reminder-block reminder-block--visit">
             <div class="split">
               <div style="min-width:0">
-                <div class="item__title">复诊预约提醒</div>
-                <div class="item__desc">${seedData.today.reminders[1].subtitle}</div>
+                <div class="item__title">复查挂号提醒</div>
+                <div class="item__desc">${appointmentDesc(appointment)}</div>
               </div>
               <div class="item__right" style="min-width:auto">
                 <span class="pill">明天</span>
+                <button class="action-btn" data-action="open-appointment-booking">挂号</button>
                 <button class="action-btn action-btn--primary" data-action="view-appointment">详情</button>
               </div>
             </div>
@@ -801,10 +829,37 @@
         <div class="card">
           <div class="split">
             <div>
-              <div class="title">AI智能分析报告</div>
-              <div class="muted" style="margin-top:4px">指标异常提醒与趋势关注</div>
+              <div class="title">症状反馈</div>
+              <div class="muted" style="margin-top:4px">首页用于快速上报今日不适，医生端会优先看到新反馈</div>
             </div>
-            <button class="btn btn--sm btn--ghost" data-action="open-ai-report">查看</button>
+            <button class="btn btn--sm btn--ghost" data-action="go-symptoms">完整评估</button>
+          </div>
+          <div class="divider"></div>
+          <div class="tag-row" id="homeSymptomTags">
+            ${["手抖", "乏力", "头痛", "恶心", "失眠", "食欲下降", "水肿", "尿量减少", "发热"].map((t) => `<button class="tag" data-tag="${t}">${t}</button>`).join("")}
+          </div>
+          <div class="divider"></div>
+          <div class="field">
+            <div class="label">补充描述（可选）</div>
+            <textarea id="homeSymptomText" placeholder="例如：晚饭后恶心较明显，持续约30分钟"></textarea>
+          </div>
+          <div class="divider"></div>
+          <div class="btn-row">
+            <button class="btn btn--primary" data-action="submit-home-symptom">提交反馈</button>
+            <button class="btn btn--ghost" data-action="go-profile">历史反馈</button>
+          </div>
+          ${homeSymptomLastAt ? `<div class="submit-hint">刚刚已提交（${homeSymptomLastAt}）</div>` : ""}
+          <div class="divider"></div>
+          <div class="muted">最近反馈：${latestSymptom ? `${latestSymptom.title}｜${latestSymptom.time}` : "暂无"}</div>
+        </div>
+
+        <div class="card">
+          <div class="split">
+            <div>
+              <div class="title">风险与待办</div>
+              <div class="muted" style="margin-top:4px">只展示需要今天关注的摘要</div>
+            </div>
+            <button class="btn btn--sm btn--ghost" data-action="open-ai-report">AI详情</button>
           </div>
           <div class="divider"></div>
           <div class="callout callout--info">
@@ -812,122 +867,30 @@
             <div class="callout__body">${seedData.today.aiSummary.alert}</div>
           </div>
           <div class="divider"></div>
-          <div class="muted"><b>AI分析结论：</b> ${seedData.today.aiSummary.conclusion.map((s) => `• ${s}`).join(" ")}</div>
-          ${disclaimerBlock()}
-        </div>
-
-        <div class="card">
-          <div class="split">
-            <div>
-              <div class="title">检查报告上传</div>
-              <div class="muted" style="margin-top:4px">保留原始报告 + 结构化解析，模糊图片可二次上传（演示）</div>
-            </div>
-            <button class="btn btn--sm btn--primary" data-action="upload-report">📸 上传</button>
-          </div>
-          <div class="divider"></div>
-          <div class="btn-row">
-            <button class="btn btn--ghost" data-action="upload-report">院外上传</button>
-            <button class="btn btn--ghost" data-action="simulate-internal-report">院内调取</button>
-          </div>
-          <div class="divider"></div>
-          <div class="list">
-            ${uploads
-              .map(
-                (u) => `
-              <div class="item clickable" data-action="view-upload" data-upload="${u.id}">
-                <div class="item__main">
-                  <div class="item__title">${u.name}</div>
-                  <div class="item__desc">${u.time}<br/>原始文件：${u.rawSaved ? "已保留" : "未知"}｜结构化：${u.structuredStatus || u.status}</div>
-                </div>
-                <div class="item__right">
-                  ${u.blurry ? `<button class="btn btn--sm btn--ghost" data-action="retry-upload" data-upload="${u.id}">二次上传</button>` : `<span class="pill">${u.status}</span>`}
-                </div>
-              </div>
-            `,
-              )
-              .join("")}
+          <div class="grid-3">
+            <div class="kpi"><div class="kpi__label">待办任务</div><div class="kpi__value">${pendingTasks}</div></div>
+            <div class="kpi"><div class="kpi__label">报告记录</div><div class="kpi__value">${uploads.length}</div></div>
+            <div class="kpi"><div class="kpi__label">最新肌酐</div><div class="kpi__value">128</div></div>
           </div>
         </div>
 
         <div class="card">
           <div class="split">
             <div>
-              <div class="title">随访任务</div>
-              <div class="muted" style="margin-top:4px">本周任务与截止时间</div>
+              <div class="title">常用入口</div>
+              <div class="muted" style="margin-top:4px">低频内容收起，操作仍可一步进入</div>
             </div>
-            <button class="btn btn--sm btn--ghost" data-action="go-reminders">去提醒</button>
+            <span class="pill pill--soft">${seedData.patient.doctor.online ? "医生在线" : "医生离线"}</span>
           </div>
           <div class="divider"></div>
-          <div class="list">
-            ${seedData.today.tasks
-              .map((t) => {
-                const pill =
-                  t.status === "待完成" ? `<span class="pill pill--warn">${t.status}</span>` : `<span class="pill pill--ok">${t.status}</span>`;
-                return `
-                  <div class="item clickable" data-action="open-task" data-task="${t.id}">
-                    <div class="item__main">
-                      <div class="item__title">${t.title}</div>
-                      <div class="item__desc">${t.desc}<br/>截止：${t.deadline}</div>
-                    </div>
-                    <div class="item__right">
-                      ${pill}
-                    </div>
-                  </div>
-                `;
-              })
-              .join("")}
+          <div class="grid-2">
+            <div class="item clickable" data-action="upload-report"><div class="item__main"><div class="item__title">上传报告</div><div class="item__desc">${latestUpload ? `${latestUpload.name}｜${latestUpload.status}` : "院外检查报告"}</div></div><div class="item__right"><span class="pill pill--soft">进入</span></div></div>
+            <div class="item clickable" data-action="go-reminders"><div class="item__main"><div class="item__title">随访任务</div><div class="item__desc">待完成 ${pendingTasks} 项</div></div><div class="item__right"><span class="pill pill--warn">提醒</span></div></div>
+            <div class="item clickable" data-action="go-data"><div class="item__main"><div class="item__title">趋势数据</div><div class="item__desc">肌酐、血药浓度、体重</div></div><div class="item__right"><span class="pill pill--soft">查看</span></div></div>
+            <div class="item clickable" data-action="open-appointment-booking"><div class="item__main"><div class="item__title">预约挂号</div><div class="item__desc">${appointment.date} ${appointment.time}｜${appointment.status}</div></div><div class="item__right"><span class="pill pill--soft">挂号</span></div></div>
+            <div class="item clickable" data-action="consult"><div class="item__main"><div class="item__title">在线咨询</div><div class="item__desc">${seedData.patient.doctor.name} · ${seedData.patient.doctor.dept}</div></div><div class="item__right"><span class="pill ${seedData.patient.doctor.online ? "pill--ok" : ""}">${seedData.patient.doctor.online ? "在线" : "离线"}</span></div></div>
+            <div class="item clickable" data-action="call"><div class="item__main"><div class="item__title">电话联系</div><div class="item__desc">紧急情况可直接联系</div></div><div class="item__right"><span class="pill pill--soft">拨打</span></div></div>
           </div>
-        </div>
-
-        <div class="card">
-          <div class="split">
-            <div>
-              <div class="title">随访医生</div>
-              <div class="muted" style="margin-top:4px">${seedData.patient.doctor.name} · ${seedData.patient.doctor.dept} · ${seedData.patient.doctor.title}</div>
-            </div>
-            <span class="pill ${seedData.patient.doctor.online ? "pill--ok" : ""}">${seedData.patient.doctor.online ? "在线" : "离线"}</span>
-          </div>
-          <div class="divider"></div>
-          <div class="btn-row">
-            <button class="btn btn--ghost" data-action="consult">💬 在线咨询</button>
-            <button class="btn btn--ghost" data-action="call">📞 电话联系</button>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="split">
-            <div>
-              <div class="title">历史数据记录</div>
-              <div class="muted" style="margin-top:4px">最近三次关键指标</div>
-            </div>
-            <button class="btn btn--sm btn--ghost" data-action="go-data">查看趋势</button>
-          </div>
-          <div class="divider"></div>
-          <div class="list">
-            <div class="item">
-              <div class="item__main">
-                <div class="item__title">2026-03-31</div>
-                <div class="item__desc">128 肌酐 · 8.2 血药浓度 · 68.5 体重</div>
-              </div>
-              <div class="item__right">${getStatusPill("high")}</div>
-            </div>
-            <div class="item">
-              <div class="item__main">
-                <div class="item__title">2026-03-30</div>
-                <div class="item__desc">118 肌酐 · 8.0 血药浓度 · 68.8 体重</div>
-              </div>
-              <div class="item__right">${getStatusPill("ok")}</div>
-            </div>
-            <div class="item">
-              <div class="item__main">
-                <div class="item__title">2026-03-29</div>
-                <div class="item__desc">110 肌酐 · 7.8 血药浓度 · 69.2 体重</div>
-              </div>
-              <div class="item__right">${getStatusPill("ok")}</div>
-            </div>
-          </div>
-          <div class="divider"></div>
-          <div class="muted"><b>数据解读：</b> • 近期肌酐呈上升趋势，建议增加复查频率 • 血药浓度在治疗窗范围内 • 体重稳定</div>
         </div>
       </div>
     `;
@@ -1127,19 +1090,23 @@
         </div>
 
         <div class="card">
-          <div class="title">副作用反馈</div>
-          <div class="muted" style="margin-top:4px">提交后会在“症状”页历史中展示</div>
-          <div class="divider"></div>
-          <div class="tag-row" id="sideEffectTags">
-            ${["手抖", "头痛", "恶心", "腹泻", "失眠", "皮疹"].map((t) => `<button class="tag" data-tag="${t}">${t}</button>`).join("")}
+          <div class="split">
+            <div>
+              <div class="title">药物不适反馈</div>
+              <div class="muted" style="margin-top:4px">如出现手抖、恶心、腹泻等不适，请在首页症状反馈中统一提交</div>
+            </div>
+            <span class="pill pill--soft">统一入口</span>
           </div>
           <div class="divider"></div>
-          <div class="field">
-            <div class="label">其他不适描述</div>
-            <textarea id="sideEffectText" placeholder="可简单描述持续时间、程度等（演示）"></textarea>
+          <div class="callout callout--info">
+            <div class="callout__title">为什么统一到首页？</div>
+            <div class="callout__body">症状、药物不适和日常身体感受都属于患者主动反馈，放在首页更容易及时上报；历史记录则在“我的”里查看。</div>
           </div>
           <div class="divider"></div>
-          <button class="btn btn--primary" data-action="submit-side-effects">提交反馈</button>
+          <div class="btn-row">
+            <button class="btn btn--primary" data-action="go-home">去首页反馈</button>
+            <button class="btn btn--ghost" data-action="go-symptoms">完整评估</button>
+          </div>
         </div>
 
         <div class="card">
@@ -1204,6 +1171,7 @@
           <div class="divider"></div>
           <div class="list">
             <div class="item clickable" data-action="open-followup-sub" data-sub="reminders"><div class="item__main"><div class="item__title">提醒任务</div><div class="item__desc">待处理 ${reminderTodo} 条，含复诊与检查提醒</div></div><div class="item__right"><span class="pill pill--warn">进入</span></div></div>
+            <div class="item clickable" data-action="open-appointment-booking"><div class="item__main"><div class="item__title">预约挂号</div><div class="item__desc">复查前选择门诊、医生与到院时间，减少漏约和错约</div></div><div class="item__right"><span class="pill pill--soft">挂号</span></div></div>
             <div class="item clickable" data-action="open-followup-sub" data-sub="medication"><div class="item__main"><div class="item__title">用药管理</div><div class="item__desc">当前方案 ${medCount} 项，支持打卡与院外用药上报</div></div><div class="item__right"><span class="pill pill--soft">进入</span></div></div>
             <div class="item clickable" data-action="open-followup-sub" data-sub="symptoms"><div class="item__main"><div class="item__title">症状反馈</div><div class="item__desc">累计反馈 ${symptomCount} 条，可继续补充今日情况</div></div><div class="item__right"><span class="pill pill--soft">进入</span></div></div>
           </div>
@@ -1392,6 +1360,7 @@
     const famAuth = s.familyAuth ?? seedData.patient.family.map(() => true);
     const eduRead = storage.get(KEYS.educationRead, {});
     const voiceLogs = storage.get(KEYS.voiceFeedback, []);
+    const symptomLogs = storage.get(KEYS.symptomLogs, []);
     const elder = !!storage.get(KEYS.elderMode, false);
     const readCount = Object.values(eduRead).filter(Boolean).length;
     page.innerHTML = `
@@ -1455,30 +1424,58 @@
             <span class="pill">${readCount}/${seedData.education.lessons.length}</span>
           </div>
           <div class="divider"></div>
-          <div class="list">
-            ${seedData.education.lessons
-              .map(
-                (x) => `<div class="item clickable" data-action="edu-open" data-id="${x.id}"><div class="item__main"><div class="item__title">${x.title}</div><div class="item__desc">${x.category}｜约${x.minutes}分钟</div></div><div class="item__right">${eduRead[x.id] ? `<span class="pill pill--ok">已读</span>` : `<span class="pill pill--warn">未读</span>`}</div></div>`,
-              )
-              .join("")}
+          <div class="item clickable" data-action="go-education">
+            <div class="item__main">
+              <div class="item__title">进入宣教中心</div>
+              <div class="item__desc">按标签筛选图文/视频内容，打开即自动记录已读</div>
+            </div>
+            <div class="item__right"><span class="pill pill--soft">查看</span></div>
           </div>
         </div>
 
         <div class="card">
           <div class="split">
             <div>
-              <div class="title">语音反馈与长辈模式</div>
-              <div class="muted" style="margin-top:4px">支持语音入口与大字号模式（演示）</div>
+              <div class="title">历史反馈列表</div>
+              <div class="muted" style="margin-top:4px">这里沉淀已提交的症状和语音反馈，新的症状反馈请在首页提交</div>
             </div>
             <button class="tag ${elder ? "selected" : ""}" data-action="toggle-elder">${elder ? "长辈模式已开" : "开启长辈模式"}</button>
+          </div>
+          <div class="divider"></div>
+          <div class="list">
+            ${
+              symptomLogs.length
+                ? symptomLogs
+                    .slice()
+                    .reverse()
+                    .map(
+                      (l) => `<div class="item"><div class="item__main"><div class="item__title">${l.title}</div><div class="item__desc">${l.desc}</div></div><div class="item__right"><span class="pill">${l.time}</span></div></div>`,
+                    )
+                    .join("")
+                : `<div class="muted">暂无症状反馈。可在首页快速提交，或进入随访里的完整症状评估。</div>`
+            }
+            ${
+              voiceLogs.length
+                ? voiceLogs
+                    .slice()
+                    .reverse()
+                    .map(
+                      (l) => `<div class="item"><div class="item__main"><div class="item__title">语音反馈</div><div class="item__desc">${l.text}</div></div><div class="item__right"><span class="pill">${l.at}</span></div></div>`,
+                    )
+                    .join("")
+                : ""
+            }
+          </div>
+          <div class="divider"></div>
+          <div class="btn-row">
+            <button class="btn btn--primary" data-action="go-home">去首页反馈</button>
+            <button class="btn btn--ghost" data-action="go-symptoms">完整评估</button>
           </div>
           <div class="divider"></div>
           <div class="btn-row">
             <button class="btn btn--ghost" data-action="voice-add">录入语音反馈</button>
             <button class="btn btn--primary" data-action="voice-list">查看反馈</button>
           </div>
-          <div class="divider"></div>
-          <div class="muted">最近反馈：${voiceLogs.length ? voiceLogs[voiceLogs.length - 1].text : "暂无"}</div>
         </div>
 
         <div class="card">
@@ -1835,8 +1832,20 @@
       go("symptoms");
       return;
     }
+    if (action === "go-profile") {
+      go("profile");
+      return;
+    }
+    if (action === "go-home") {
+      go("home");
+      return;
+    }
     if (action === "go-data") {
       go("data");
+      return;
+    }
+    if (action === "go-education") {
+      go("education");
       return;
     }
     if (action === "open-followup-sub") {
@@ -1856,10 +1865,48 @@
       return;
     }
     if (action === "view-appointment") {
+      const appointment = getAppointmentBooking();
       openModal(
-        `<h2 class="h2">复诊预约详情</h2><div class="muted">时间：2026-04-02 09:00<br/>医生：${seedData.patient.doctor.name}<br/>地点：肾移植科门诊（第3诊室）</div><div class="divider"></div><div class="callout callout--info"><div class="callout__title">复查准备清单</div><div class="callout__body">• 空腹6-8小时（血生化）<br/>• 带上最近的检查报告<br/>• 记录近3天血压、体重数据</div></div><button class="btn btn--primary" style="margin-top:10px" data-close="modal">我知道了</button>`,
+        `<h2 class="h2">复查挂号详情</h2><div class="muted">时间：${appointment.date} ${appointment.time}<br/>科室：${appointment.dept}<br/>医生：${appointment.doctor}<br/>地点：${appointment.room}<br/>状态：${appointment.status}</div><div class="divider"></div><div class="callout callout--info"><div class="callout__title">复查准备清单</div><div class="callout__body">• 空腹6-8小时（血生化）<br/>• 带上最近的检查报告<br/>• 记录近3天血压、体重数据<br/>• ${appointment.note}</div></div><div class="divider"></div><div class="btn-row"><button class="btn btn--ghost" data-action="open-appointment-booking">改约/挂号</button><button class="btn btn--primary" data-close="modal">我知道了</button></div>`,
         { fullscreen: true },
       );
+      return;
+    }
+    if (action === "open-appointment-booking") {
+      closeModal();
+      const appointment = getAppointmentBooking();
+      openSheet(`
+        <h2 class="h2">预约挂号（演示）</h2>
+        <div class="muted">用于复查前确认门诊、医生和到院时间，保存后会更新首页复查提醒。</div>
+        <div class="divider"></div>
+        <div class="field"><div class="label">挂号类型</div><select id="apptType"><option value="复查挂号" ${appointment.type === "复查挂号" ? "selected" : ""}>复查挂号</option><option value="加急复诊" ${appointment.type === "加急复诊" ? "selected" : ""}>加急复诊</option><option value="线上复诊" ${appointment.type === "线上复诊" ? "selected" : ""}>线上复诊</option></select></div>
+        <div class="field"><div class="label">科室</div><select id="apptDept"><option value="肾移植科门诊" ${appointment.dept === "肾移植科门诊" ? "selected" : ""}>肾移植科门诊</option><option value="移植随访门诊" ${appointment.dept === "移植随访门诊" ? "selected" : ""}>移植随访门诊</option><option value="肾内科门诊" ${appointment.dept === "肾内科门诊" ? "selected" : ""}>肾内科门诊</option></select></div>
+        <div class="field"><div class="label">医生</div><select id="apptDoctor"><option value="张主任" ${appointment.doctor === "张主任" ? "selected" : ""}>张主任</option><option value="李副主任" ${appointment.doctor === "李副主任" ? "selected" : ""}>李副主任</option><option value="随访门诊医生" ${appointment.doctor === "随访门诊医生" ? "selected" : ""}>随访门诊医生</option></select></div>
+        <div class="field"><div class="label">日期</div><input id="apptDate" type="date" value="${appointment.date}" /></div>
+        <div class="field"><div class="label">时间段</div><select id="apptTime"><option value="08:30" ${appointment.time === "08:30" ? "selected" : ""}>08:30</option><option value="09:00" ${appointment.time === "09:00" ? "selected" : ""}>09:00</option><option value="10:30" ${appointment.time === "10:30" ? "selected" : ""}>10:30</option><option value="14:00" ${appointment.time === "14:00" ? "selected" : ""}>14:00</option></select></div>
+        <div class="field"><div class="label">备注</div><textarea id="apptNote" placeholder="例如：需带化验单、近期血压记录">${appointment.note}</textarea></div>
+        <div class="divider"></div>
+        <div class="btn-row"><button class="btn btn--ghost" data-close="sheet">取消</button><button class="btn btn--primary" id="saveAppointment">确认挂号</button></div>
+      `);
+      setTimeout(() => {
+        $("#saveAppointment")?.addEventListener("click", () => {
+          const next = {
+            type: String($("#apptType")?.value ?? "复查挂号"),
+            dept: String($("#apptDept")?.value ?? "肾移植科门诊"),
+            doctor: String($("#apptDoctor")?.value ?? seedData.patient.doctor.name),
+            date: String($("#apptDate")?.value ?? "2026-04-02"),
+            time: String($("#apptTime")?.value ?? "09:00"),
+            room: "第3诊室",
+            note: String($("#apptNote")?.value ?? "").trim() || "带上最近检查报告和近3天血压、体重记录",
+            status: "已挂号",
+          };
+          storage.set(KEYS.appointmentBooking, next);
+          closeSheet();
+          renderHome();
+          renderFollowup();
+          toast("已保存预约挂号");
+        });
+      }, 0);
       return;
     }
 
@@ -1975,7 +2022,7 @@
         const id = `u${Math.floor(Math.random() * 1e6)}`;
         const list = storage.get(KEYS.uploadRecords, seedData.today.uploads);
         const blurry = Math.random() < 0.35;
-        const next = [{ id, time, name: type, status: "上传中", rawSaved: true, structuredStatus: "待解析", blurry }, ...list];
+        const next = [{ id, time, name: type, status: "上传中", rawSaved: true, structuredStatus: "待解析", blurry, source: "院外上传" }, ...list];
         storage.set(KEYS.uploadRecords, next);
         renderHome();
 
@@ -2003,15 +2050,6 @@
       });
       return;
     }
-    if (action === "simulate-internal-report") {
-      const now = nowForDemo();
-      const time = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())} ${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
-      const list = storage.get(KEYS.uploadRecords, seedData.today.uploads);
-      storage.set(KEYS.uploadRecords, [{ id: `u${Date.now()}`, time, name: "院内调取报告", status: "已解析", rawSaved: true, structuredStatus: "已结构化", blurry: false }, ...list]);
-      renderHome();
-      toast("已调取院内报告");
-      return;
-    }
     if (action === "retry-upload") {
       const id = el.getAttribute("data-upload");
       if (!id) return;
@@ -2028,7 +2066,7 @@
       const uploads = storage.get(KEYS.uploadRecords, seedData.today.uploads);
       const u = uploads.find((x) => x.id === id);
       openModal(
-        `<h2 class="h2">${u?.name ?? "报告详情"}</h2><div class="muted">状态：${u?.status ?? "—"}<br/>结构化：${u?.structuredStatus || u?.status || "—"}<br/>原始文件：${u?.rawSaved ? "已保留" : "未知"}<br/>时间：${u?.time ?? "—"}</div><div class="divider"></div><div class="callout callout--info"><div class="callout__title">解析结果（演示）</div><div class="callout__body">这里可展示 OCR 提取的关键指标与变化趋势。演示版不输出诊断性结论。</div></div>${u?.blurry ? `<div class="divider"></div><button class="btn btn--ghost" data-action="retry-upload" data-upload="${u.id}">图片模糊，点击二次上传</button>` : ""}${disclaimerBlock()}<button class="btn btn--primary" style="margin-top:10px" data-close="modal">关闭</button>`,
+        `<h2 class="h2">${u?.name ?? "报告详情"}</h2><div class="muted">来源：${u?.source || "院外上传"}<br/>状态：${u?.status ?? "—"}<br/>结构化：${u?.structuredStatus || u?.status || "—"}<br/>原始文件：${u?.rawSaved ? "已保留" : "未知"}<br/>时间：${u?.time ?? "—"}</div><div class="divider"></div><div class="callout callout--info"><div class="callout__title">解析结果（演示）</div><div class="callout__body">这里可展示 OCR 提取的关键指标与变化趋势。演示版不输出诊断性结论。</div></div>${u?.blurry ? `<div class="divider"></div><button class="btn btn--ghost" data-action="retry-upload" data-upload="${u.id}">图片模糊，点击二次上传</button>` : ""}${disclaimerBlock()}<button class="btn btn--primary" style="margin-top:10px" data-close="modal">关闭</button>`,
         { fullscreen: true },
       );
       return;
@@ -2156,21 +2194,24 @@
       return;
     }
 
-    if (action === "submit-side-effects") {
-      const tagsRoot = $("#sideEffectTags");
+    if (action === "submit-home-symptom") {
+      const tagsRoot = $("#homeSymptomTags");
       const chosen = $$(".tag.selected", tagsRoot).map((x) => x.getAttribute("data-tag")).filter(Boolean);
-      const text = String($("#sideEffectText")?.value ?? "").trim();
+      const text = String($("#homeSymptomText")?.value ?? "").trim();
       if (!chosen.length && !text) return toast("请至少选择一个症状或填写描述");
       const logs = storage.get(KEYS.symptomLogs, []);
       logs.push({
         time: `${seedData.today.date} 14:30`,
-        title: "副作用反馈已提交",
-        desc: `${chosen.length ? `症状：${chosen.join("、")}` : ""}${chosen.length && text ? "；" : ""}${text ? `描述：${text}` : ""}`,
+        title: chosen.length ? `症状：${chosen.join("、")}` : "症状反馈已提交",
+        desc: `${chosen.length ? `快速选择：${chosen.join("、")}` : ""}${chosen.length && text ? "；" : ""}${text ? `补充：${text}` : ""}`,
       });
       storage.set(KEYS.symptomLogs, logs);
-      toast("已提交反馈");
-      go("symptoms");
+      storage.set(KEYS.homeSymptomLastAt, new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }));
+      toast("已提交症状反馈");
+      renderHome();
+      renderFollowup();
       renderSymptoms();
+      renderProfile();
       return;
     }
 
@@ -2261,6 +2302,8 @@
       });
       storage.set(KEYS.symptomLogs, logs);
       toast("已提交评估");
+      renderHome();
+      renderProfile();
       renderSymptoms();
       return;
     }
@@ -2268,6 +2311,8 @@
     if (action === "clear-symptoms") {
       storage.set(KEYS.symptomLogs, []);
       toast("已清空记录");
+      renderHome();
+      renderProfile();
       renderSymptoms();
       return;
     }
@@ -2433,9 +2478,9 @@
     const t = e.target;
     if (!(t instanceof HTMLElement)) return;
     if (!t.classList.contains("tag")) return;
-    // Toggle tags in symptom / side effect areas
+    // Toggle tags in symptom feedback areas
     const parentId = t.parentElement?.id;
-    if (parentId === "symptomTags" || parentId === "sideEffectTags") {
+    if (parentId === "symptomTags" || parentId === "homeSymptomTags") {
       t.classList.toggle("selected");
     }
   });
@@ -2458,6 +2503,7 @@
     const elder = !!storage.get(KEYS.elderMode, false);
     document.body.classList.toggle("elder-mode", elder);
     renderHome();
+    renderFollowup();
     renderReminders();
     renderEducation();
     renderMedication();
