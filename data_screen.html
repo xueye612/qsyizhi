@@ -1034,7 +1034,8 @@ setInterval(updateClock,1000);updateClock();
 function animateCount(el,target,duration=900){
     const start=performance.now();
     function step(now){
-        const p=Math.min((now-start)/duration,1);
+        // 钳制到 [0,1]，避免 rAF 时间戳早于 start 造成 ease 为负、最终显示负值
+        const p=Math.max(0,Math.min((now-start)/duration,1));
         const ease=1-Math.pow(1-p,3);
         el.textContent=Math.round(target*ease);
         if(p<1)requestAnimationFrame(step);
